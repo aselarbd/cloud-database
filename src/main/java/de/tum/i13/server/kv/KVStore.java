@@ -1,7 +1,9 @@
 package de.tum.i13.server.kv;
 
-public class KVStore {
-    public void put(String key, String hello) {
-        //TODO
-    }
+public interface KVStore {
+
+    void put(String key, String value);
+
+    String get(String key);
+
 }
