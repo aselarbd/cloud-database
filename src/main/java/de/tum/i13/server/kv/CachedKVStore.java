@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 
 public class CachedKVStore implements KVStore {
 
-    public static Logger logger = Logger.getLogger(CachedKVStore.class.getName());
+    private static Logger logger = Logger.getLogger(CachedKVStore.class.getName());
 
     @Override
     public void put(String key, String value) {

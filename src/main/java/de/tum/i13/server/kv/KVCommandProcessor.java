@@ -4,6 +4,8 @@ import de.tum.i13.shared.CommandProcessor;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
 
 public class KVCommandProcessor implements CommandProcessor {
@@ -14,6 +16,14 @@ public class KVCommandProcessor implements CommandProcessor {
 
     public KVCommandProcessor(KVStore kvStore) {
         this.kvStore = kvStore;
+    }
+
+    private ConcurrentMap<String, String> locks = new ConcurrentHashMap<>();
+
+    private String getLock(final String key) {
+        logger.info("get lock on " + key);
+        locks.putIfAbsent(key, key);
+        return locks.get(key);
     }
 
     @Override
@@ -30,7 +40,7 @@ public class KVCommandProcessor implements CommandProcessor {
                     logger.info("parsed 'put' command");
                     key = parts[1];
                     String value = command.split(key + " ")[1];
-                    synchronized (kvStore) {
+                    synchronized (getLock(key)) {
                         logger.info("put " + key + ":" + value);
                         this.kvStore.put(key, value);
                     }
@@ -39,7 +49,7 @@ public class KVCommandProcessor implements CommandProcessor {
                     logger.info("parsed 'get' command");
                     key = parts[1];
                     String result;
-                    synchronized (kvStore) {
+                    synchronized (getLock(key)) {
                         logger.info("get " + key);
                         result = kvStore.get(key);
                     }
