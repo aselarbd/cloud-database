@@ -4,6 +4,9 @@ import de.tum.i13.shared.CommandProcessor;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
@@ -18,8 +21,8 @@ public class KVCommandProcessor implements CommandProcessor {
         this.kvStore = kvStore;
     }
 
-    private ConcurrentMap<String, String> locks = new ConcurrentHashMap<>();
-
+    private Map<String, String> locks = Collections.synchronizedMap(new WeakHashMap<>());
+    
     private String getLock(final String key) {
         logger.info("get lock on " + key);
         locks.putIfAbsent(key, key);
