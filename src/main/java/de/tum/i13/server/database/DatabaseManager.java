@@ -32,48 +32,33 @@ public class DatabaseManager {
         File databaseFile = getDatabaseFile(key);
         String value = null;
 
-        try {
-            value = fileOperations.getValue(key,databaseFile);
+        value = fileOperations.getValue(key,databaseFile);
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            //log
-        }
         return value;
     }
 
     public int put (String key, String value){
         File databaseFile = getDatabaseFile(key);
 
-        try {
-            if (null == fileOperations.getValue(key,databaseFile)){
-                if (1 == fileOperations.write(key,value,databaseFile))
-                    return 1;
+        if (null == fileOperations.getValue(key,databaseFile)){
+            if (1 == fileOperations.write(key,value,databaseFile))
+                return 1;
 
-            }else {
-                if(1 == fileOperations.update(key,value,databaseFile,false))
-                    return 2;
+        }else {
+            if(1 == fileOperations.update(key,value,databaseFile,false))
+                return 2;
 
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            //log
         }
+
         return -1;
     }
 
     public int delete (String key){
         File databaseFile = getDatabaseFile(key);
 
-        try {
-            if (null != fileOperations.getValue(key,databaseFile)){
-                if(1 == fileOperations.update(key,"",databaseFile,true))
-                    return 1;
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            //log
+        if (null != fileOperations.getValue(key,databaseFile)){
+            if(1 == fileOperations.update(key,"",databaseFile,true))
+                return 1;
         }
         return -1;
     }
