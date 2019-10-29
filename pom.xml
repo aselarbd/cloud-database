@@ -23,7 +23,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>de.tum.i13.client.TestClient</mainClass>
+                            <mainClass>de.tum.i13.client.KvClient</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

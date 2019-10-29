@@ -4,12 +4,16 @@ import de.tum.i13.communication.SocketCommunicator;
 import de.tum.i13.communication.SocketCommunicatorException;
 import de.tum.i13.communication.impl.SocketCommunicatorImpl;
 import de.tum.i13.communication.impl.SocketStreamCloserFactory;
+import de.tum.i13.shared.CommandParser;
 import de.tum.i13.shared.Constants;
+import de.tum.i13.shared.commandparsers.StringArrayCommandParser;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,11 +26,21 @@ public class KvClient {
     private final static String LOG_LVL_NAMES = "ALL | CONFIG | FINE | FINEST | INFO | OFF | SEVERE | WARNING";
     private SocketCommunicator communicator;
     private BufferedReader inReader;
+    private Map<String, Action> actions;
 
     public KvClient() {
         this.communicator = new SocketCommunicatorImpl();
         this.communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
         this.inReader = new BufferedReader(new InputStreamReader(System.in));
+        this.actions = new HashMap<>();
+        this.actions.put("connect", new Action<String[]>(
+                new StringArrayCommandParser("connect", 2, false), this::connect));
+        this.actions.put("disconnect", new Action<String[]>(
+                new StringArrayCommandParser("disconnect", 0, false), this::disconnect));
+        this.actions.put("send", new Action<String[]>(
+                new StringArrayCommandParser("send", 2, true), this::send));
+        this.actions.put("logLevel", new Action<String[]>(
+                new StringArrayCommandParser("logLevel", 1, false), this::logLevel));
     }
 
     /**
@@ -35,7 +49,7 @@ public class KvClient {
      * @return A string array containing the command line splitted by spaces
      * @throws IOException if reading fails
      */
-    private String[] readPromptLine() throws IOException {
+    private String readPromptLine() throws IOException {
         System.out.print(PROMPT);
         String line = inReader.readLine();
         // treat null values or empty strings (such as after Ctrl+D) as quit command
@@ -44,7 +58,7 @@ public class KvClient {
         }
         // only split by one space instead of multiple ones, to keep multiple spaces like
         // in "send foo    bar"
-        return line.trim().split("\\s");
+        return line.trim();
     }
 
     /**
@@ -135,42 +149,34 @@ public class KvClient {
     /**
      * Logic for connect <name> <port>
      *
-     * @param cmdLine The input string splitted by spaces
+     * @param args The input arguments splitted by spaces
      */
-    private void connect(String[] cmdLine) {
-        if (hasWrongArgs(cmdLine, 3, true)) {
-            return;
-        }
-
-        String hostName = cmdLine[1];
+    private void connect(String[] args) {
+        String hostName = args[0];
         int port;
         try {
-            port = Integer.parseInt(cmdLine[2]);
+            port = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            write("Not a valid port: " + cmdLine[2]);
+            write("Not a valid port: " + args[1]);
             return;
         }
-        LOGGER.fine("Connecting to " + hostName + ":" + cmdLine[2]);
+        LOGGER.fine("Connecting to " + hostName + ":" + args[1]);
         String resp = null;
         try {
             resp = communicator.connect(hostName, port);
             write(resp);
         } catch (SocketCommunicatorException e) {
             writeAndWarn("Unable to connect: " + e.getMessage());
-            LOGGER.warning("Failed connection was to " + hostName + ":" + cmdLine[2]);
+            LOGGER.warning("Failed connection was to " + hostName + ":" + args[1]);
         }
     }
 
     /**
      * Logic for disconnect
      *
-     * @param cmdLine The input string splitted by spaces
+     * @param args The input arguments splitted by spaces
      */
-    private void disconnect(String[] cmdLine) {
-        if (hasWrongArgs(cmdLine, 1, true)) {
-            return;
-        }
-
+    private void disconnect(String[] args) {
         try {
             communicator.disconnect();
         } catch (SocketCommunicatorException e) {
@@ -181,18 +187,11 @@ public class KvClient {
     /**
      * Logic for send <message>
      *
-     * @param cmdLine The input string splitted by spaces
+     * @param args The input arguments splitted by spaces
      */
-    private void send(String[] cmdLine) {
-        if (hasWrongArgs(cmdLine, 2, false)) {
-            return;
-        }
-
+    private void send(String[] args) {
         // re-construct message string
-        String toSend = "";
-        for (int i=1; i < cmdLine.length; ++i) {
-            toSend += cmdLine[i] + " ";
-        }
+        String toSend = String.join(" ", args);
         toSend = toSend.trim();
 
         try {
@@ -207,15 +206,11 @@ public class KvClient {
     /**
      * Logic for logLevel <level>
      *
-     * @param cmdLine The input string splitted by spaces
+     * @param args The input arguments splitted by spaces
      */
-    private void logLevel(String[] cmdLine) {
-        if (hasWrongArgs(cmdLine, 2, true)) {
-            return;
-        }
-
+    private void logLevel(String[] args) {
         // Level.parse also accepts numbers. Ensure only specified strings are accepted.
-        final String level = cmdLine[1];
+        final String level = args[0];
         if (level.matches("[A-Z]+") && LOG_LVL_NAMES.contains(level)) {
             try {
                 Level newLevel = Level.parse(level);
@@ -244,37 +239,28 @@ public class KvClient {
     public void run() throws Exception {
         boolean exit = false;
         while (!exit) {
-            String[] inputMsg = readPromptLine();
-            String cmd = inputMsg[0];
+            String inputMsg = readPromptLine();
 
-            switch (cmd) {
-                case "quit":
-                    if (inputMsg.length == 1) {
-                        write("EchoClient is going to exit now. Goodbye!");
-                        // ensure disconnect. By specification, calling this when not connected does nothing
-                        communicator.disconnect();
-                        exit = true;
-                    } else {
-                        help();
+            // handle quit case separately as it exits the loop
+            if (inputMsg.equals("quit")) {
+                write("EchoClient is going to exit now. Goodbye!");
+                // ensure disconnect. By specification, calling this when not connected does nothing
+                communicator.disconnect();
+                exit = true;
+            } else {
+                // Look up what to do
+                Action<?> action = actions.get(inputMsg);
+                if (action != null) {
+                    // parse the line and run the appropriate command
+                    action.run(String.join(" ", inputMsg));
+                } else {
+                    // default action is help
+                    if (!inputMsg.equals("help")) {
+                        write("Unknown command: " + inputMsg);
+                        write("");
                     }
-                    break;
-                case "connect":
-                    connect(inputMsg);
-                    break;
-                case "disconnect":
-                    disconnect(inputMsg);
-                    break;
-                case "send":
-                    send(inputMsg);
-                    break;
-                case "logLevel":
-                    logLevel(inputMsg);
-                    break;
-                default:
-                    write("Unknown command: " + cmd);
-                    write("");
                     help();
-                    break;
+                }
             }
         }
     }

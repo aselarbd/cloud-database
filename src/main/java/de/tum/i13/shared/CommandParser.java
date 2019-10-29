@@ -47,7 +47,7 @@ public abstract class CommandParser<T> {
         if (!checkEncoding(input)) {
             return null;
         }
-        if (command[0] != getName()) {
+        if (!command[0].equals(getName())) {
             return null;
         }
         if (hasVariableArgs() && command.length - 1 < getArgCount()) {
