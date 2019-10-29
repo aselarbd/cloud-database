@@ -3,6 +3,8 @@ package de.tum.i13.shared.commandparsers;
 import de.tum.i13.shared.CommandParser;
 import de.tum.i13.shared.KVItem;
 
+import java.util.Arrays;
+
 /**
  * Parses a command dealing with a key-value pair. This pair is represented as {@link KVItem}.
  */
@@ -36,13 +38,15 @@ public class KVItemCommandParser extends CommandParser<KVItem> {
 
     @Override
     protected boolean hasVariableArgs() {
-        return false;
+        // values may contain spaces
+        return requiresValue;
     }
 
     @Override
     protected KVItem parseArgs(String[] args) {
         if (requiresValue) {
-            return new KVItem(args[0], args[1]);
+            String[] value = Arrays.copyOfRange(args, 1, args.length);
+            return new KVItem(args[0], String.join(" ", value));
         } else {
             return new KVItem(args[0]);
         }
