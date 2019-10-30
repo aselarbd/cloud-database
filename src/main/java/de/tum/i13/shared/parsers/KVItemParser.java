@@ -1,14 +1,14 @@
-package de.tum.i13.shared.commandparsers;
+package de.tum.i13.shared.parsers;
 
-import de.tum.i13.shared.CommandParser;
+import de.tum.i13.shared.Parser;
 import de.tum.i13.shared.KVItem;
 
 import java.util.Arrays;
 
 /**
- * Parses a command dealing with a key-value pair. This pair is represented as {@link KVItem}.
+ * Parses a command/string dealing with a key-value pair. This pair is represented as {@link KVItem}.
  */
-public class KVItemCommandParser extends CommandParser<KVItem> {
+public class KVItemParser extends Parser<KVItem> {
     private boolean requiresValue;
 
     /**
@@ -19,7 +19,7 @@ public class KVItemCommandParser extends CommandParser<KVItem> {
      * @param requiresValue True if the command requires key and value arguments.
      *                      Otherwise, only a key is expected.
      */
-    public KVItemCommandParser(boolean requiresValue) {
+    public KVItemParser(boolean requiresValue) {
         this.requiresValue = requiresValue;
     }
 

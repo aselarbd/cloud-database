@@ -1,6 +1,6 @@
 package de.tum.i13.client;
 
-import de.tum.i13.shared.CommandParser;
+import de.tum.i13.shared.Parser;
 
 import java.util.function.Consumer;
 
@@ -10,10 +10,10 @@ import java.util.function.Consumer;
  * @param <T>
  */
 public class Action<T> {
-    private CommandParser<T> parser;
+    private Parser<T> parser;
     private Consumer<T> action;
 
-    public Action(CommandParser<T> parser, Consumer<T> action) {
+    public Action(Parser<T> parser, Consumer<T> action) {
         this.parser = parser;
         this.action = action;
     }

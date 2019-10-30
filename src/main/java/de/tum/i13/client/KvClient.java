@@ -5,7 +5,7 @@ import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
 import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
 import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.commandparsers.StringArrayCommandParser;
+import de.tum.i13.shared.parsers.StringArrayParser;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,13 +33,13 @@ public class KvClient {
         this.inReader = new BufferedReader(new InputStreamReader(System.in));
         this.actions = new HashMap<>();
         this.actions.put("connect", new Action<String[]>(
-                new StringArrayCommandParser( 2, false), this::connect));
+                new StringArrayParser( 2, false), this::connect));
         this.actions.put("disconnect", new Action<String[]>(
-                new StringArrayCommandParser(0, false), this::disconnect));
+                new StringArrayParser(0, false), this::disconnect));
         this.actions.put("send", new Action<String[]>(
-                new StringArrayCommandParser(2, true), this::send));
+                new StringArrayParser(2, true), this::send));
         this.actions.put("logLevel", new Action<String[]>(
-                new StringArrayCommandParser(1, false), this::logLevel));
+                new StringArrayParser(1, false), this::logLevel));
     }
 
     /**

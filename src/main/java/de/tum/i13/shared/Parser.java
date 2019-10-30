@@ -4,10 +4,14 @@ import java.util.Arrays;
 import java.util.logging.Logger;
 
 /**
- * Basic logic to parse a command. It performs checks like valid input, encoding etc.
+ * Basic logic to parse a command, or more generic, a string having the form
+ * <br>
+ * &lt;name&gt; &lt;arg1&gt; &lt;arg2&gt; ...
+ * <br><br>
+ * It allows to turn the string into a specific object representation.
  */
-public abstract class CommandParser<T> {
-    private final static Logger LOGGER = Logger.getLogger(CommandParser.class.getName());
+public abstract class Parser<T> {
+    private final static Logger LOGGER = Logger.getLogger(Parser.class.getName());
     /**
      * Indicates the number of expected arguments
      *
