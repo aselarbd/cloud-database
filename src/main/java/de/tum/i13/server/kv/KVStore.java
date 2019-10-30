@@ -1,9 +1,12 @@
 package de.tum.i13.server.kv;
 
+import de.tum.i13.shared.KVItem;
+
 public interface KVStore {
 
-    void put(String key, String value);
+    void put(KVItem item);
 
-    String get(String key);
+    KVItem get(String key);
 
+    void delete(KVItem item);
 }

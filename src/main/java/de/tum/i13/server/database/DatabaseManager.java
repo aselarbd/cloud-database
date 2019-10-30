@@ -17,7 +17,7 @@ public class DatabaseManager {
 
     private FileOperations fileOperations;
 
-    DatabaseManager(String directoryToStore){
+    public DatabaseManager(String directoryToStore){
         this.directoryToStore = directoryToStore;
         try {
             init();

@@ -1,9 +1,8 @@
 package de.tum.i13.server.threadperconnection;
 
+import de.tum.i13.server.database.DatabaseManager;
 import de.tum.i13.server.echo.EchoLogic;
-import de.tum.i13.server.kv.CachedKVStore;
-import de.tum.i13.server.kv.KVCommandProcessor;
-import de.tum.i13.server.kv.KVStore;
+import de.tum.i13.server.kv.*;
 import de.tum.i13.shared.CommandProcessor;
 import de.tum.i13.shared.Config;
 
@@ -43,8 +42,14 @@ public class Main {
         //bind to localhost only
         serverSocket.bind(new InetSocketAddress(cfg.listenaddr, cfg.port));
 
-        KVStore kvStore = new CachedKVStore();
-        CommandProcessor logic = new KVCommandProcessor(kvStore);
+        KVCache cache = CacheBuilder.newBuilder()
+                .size(cfg.cachesize)
+                .algorithm(CacheBuilder.Algorithm.FIFO)
+                .build();
+
+        KVStore store = new KVStoreManager(cache, new DatabaseManager(cfg.dataDir.toString()));
+
+        CommandProcessor logic = new KVCommandProcessor(store);
 
         logger.info("wait for connections");
         while (true) {

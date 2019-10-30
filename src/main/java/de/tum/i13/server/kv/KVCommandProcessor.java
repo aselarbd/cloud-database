@@ -1,19 +1,17 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.shared.CommandProcessor;
+import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.KVResult;
+import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
 
 public class KVCommandProcessor implements CommandProcessor {
 
-    public static Logger logger = Logger.getLogger(KVCommandProcessor.class.getName());
+    private static Logger logger = Logger.getLogger(KVCommandProcessor.class.getName());
 
     private final KVStore kvStore;
 
@@ -21,48 +19,27 @@ public class KVCommandProcessor implements CommandProcessor {
         this.kvStore = kvStore;
     }
 
-    private Map<String, String> locks = Collections.synchronizedMap(new WeakHashMap<>());
-    
-    private String getLock(final String key) {
-        logger.info("get lock on " + key);
-        locks.putIfAbsent(key, key);
-        return locks.get(key);
-    }
-
     @Override
-    public String process(String command) {
-        //TODO
-        //TODO: In case you are using nio and want to process non-blocking, it needs more changes of this interface.
+    public String process(String input) {
+        KVResultParser parser = new KVResultParser();
+        KVResult command = parser.parse(input);
 
-        try {
-            logger.info("try to parse command");
-            String[] parts = command.split("\\s+");
-            String key;
-            switch (parts[0].trim().toLowerCase()) {
-                case "put":
-                    logger.info("parsed 'put' command");
-                    key = parts[1];
-                    String value = command.split(key + " ")[1];
-                    synchronized (getLock(key)) {
-                        logger.info("put " + key + ":" + value);
-                        this.kvStore.put(key, value);
-                    }
-                    return "success";
-                case "get":
-                    logger.info("parsed 'get' command");
-                    key = parts[1];
-                    String result;
-                    synchronized (getLock(key)) {
-                        logger.info("get " + key);
-                        result = kvStore.get(key);
-                    }
-                    return result;
-                default:
-                    logger.info("unknown command");
-                    return "unknown command";
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        switch(command.getMessage().toLowerCase()) {
+            case "get":
+                String key = command.getItem().getKey();
+                KVItem result = kvStore.get(key);
+                if (result != null) {
+                    return result.getValue();
+                }
+                return "get_error " + key;
+            case "put":
+                kvStore.put(command.getItem());
+                return "put_success";
+            case "delete":
+                kvStore.delete(command.getItem());
+                break;
+            default:
+                return "unknown command";
         }
 
         return null;
