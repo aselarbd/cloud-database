@@ -33,13 +33,13 @@ public class KvClient {
         this.inReader = new BufferedReader(new InputStreamReader(System.in));
         this.actions = new HashMap<>();
         this.actions.put("connect", new Action<String[]>(
-                new StringArrayCommandParser("connect", 2, false), this::connect));
+                new StringArrayCommandParser( 2, false), this::connect));
         this.actions.put("disconnect", new Action<String[]>(
-                new StringArrayCommandParser("disconnect", 0, false), this::disconnect));
+                new StringArrayCommandParser(0, false), this::disconnect));
         this.actions.put("send", new Action<String[]>(
-                new StringArrayCommandParser("send", 2, true), this::send));
+                new StringArrayCommandParser(2, true), this::send));
         this.actions.put("logLevel", new Action<String[]>(
-                new StringArrayCommandParser("logLevel", 1, false), this::logLevel));
+                new StringArrayCommandParser(1, false), this::logLevel));
     }
 
     /**
