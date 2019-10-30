@@ -36,11 +36,23 @@ public class KVItemParser extends Parser<KVItem> {
 
     @Override
     protected KVItem parseArgs(String name, String[] args) {
-        if (requiresValue) {
+        return KVItemParser.itemFromArgs(args);
+    }
+
+    /**
+     * Creates a KVItem from a string argument array.
+     *
+     * @param args Space-separated arguments, e.g. produced by a parser
+     * @return a new KVItem with the first item interpreted as key
+     */
+    public static KVItem itemFromArgs(String[] args) {
+        if (args.length == 0) {
+            return null;
+        } else if (args.length == 1) {
+            return new KVItem(args[0]);
+        } else {
             String[] value = Arrays.copyOfRange(args, 1, args.length);
             return new KVItem(args[0], String.join(" ", value));
-        } else {
-            return new KVItem(args[0]);
         }
     }
 }
