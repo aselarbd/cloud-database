@@ -1,9 +1,9 @@
-package de.tum.i13.communication.impl;
+package de.tum.i13.client.communication.impl;
 
-import de.tum.i13.communication.SocketCommunicator;
-import de.tum.i13.communication.SocketCommunicatorException;
-import de.tum.i13.communication.StreamCloser;
-import de.tum.i13.communication.StreamCloserFactory;
+import de.tum.i13.client.communication.SocketCommunicator;
+import de.tum.i13.client.communication.SocketCommunicatorException;
+import de.tum.i13.client.communication.StreamCloser;
+import de.tum.i13.client.communication.StreamCloserFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +51,8 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
         }
     }
 
-    private boolean isConnected() {
+    @Override
+    public boolean isConnected() {
         return streamCloser != null && streamCloser.isConnected();
     }
 

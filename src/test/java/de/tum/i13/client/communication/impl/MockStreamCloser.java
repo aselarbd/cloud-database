@@ -1,6 +1,6 @@
-package de.tum.i13.communication.impl;
+package de.tum.i13.client.communication.impl;
 
-import de.tum.i13.communication.StreamCloser;
+import de.tum.i13.client.communication.StreamCloser;
 
 import java.io.*;
 

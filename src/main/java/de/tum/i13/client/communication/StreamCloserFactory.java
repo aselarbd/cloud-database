@@ -1,4 +1,4 @@
-package de.tum.i13.communication;
+package de.tum.i13.client.communication;
 
 /**
  * Interface for providers of StreamClosers

@@ -1,8 +1,8 @@
-package de.tum.i13.communication.impl;
+package de.tum.i13.client.communication.impl;
 
-import de.tum.i13.communication.SocketCommunicator;
-import de.tum.i13.communication.SocketCommunicatorException;
-import de.tum.i13.communication.StreamCloserFactory;
+import de.tum.i13.client.communication.SocketCommunicator;
+import de.tum.i13.client.communication.SocketCommunicatorException;
+import de.tum.i13.client.communication.StreamCloserFactory;
 import de.tum.i13.shared.Constants;
 import org.junit.jupiter.api.Test;
 

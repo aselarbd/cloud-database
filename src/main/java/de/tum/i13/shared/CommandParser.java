@@ -1,11 +1,13 @@
 package de.tum.i13.shared;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 /**
  * Basic logic to parse a command. It performs checks like valid input, encoding etc.
  */
 public abstract class CommandParser<T> {
+    private final static Logger LOGGER = Logger.getLogger(CommandParser.class.getName());
     /**
      * The command's name, i.e. the string which a command is invoked with.
      *
@@ -44,30 +46,18 @@ public abstract class CommandParser<T> {
      */
     public T parse(String input) {
         String[] command = input.split(" ");
-        if (!checkEncoding(input)) {
-            return null;
-        }
         if (!command[0].equals(getName())) {
+            LOGGER.fine("Non-matching name: " + command[0] + " - expecting " + getName());
             return null;
         }
         if (hasVariableArgs() && command.length - 1 < getArgCount()) {
+            LOGGER.fine("Too few arguments for variable-length command");
             return null;
         } else if (!hasVariableArgs() && command.length - 1 != getArgCount()) {
+            LOGGER.fine("Too few arguments for command");
             return null;
         }
         // basic checks passed, now perform command-specific checks
         return parseArgs(Arrays.copyOfRange(command, 1, command.length));
-    }
-
-    /**
-     * Ensures the input has the specified encoding and doesn't contain newline
-     * characters.
-     *
-     * @param input String to check
-     * @return True if the input is valid in terms of encoding
-     */
-    protected boolean checkEncoding(String input) {
-        // TODO
-        return true;
     }
 }

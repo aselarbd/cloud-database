@@ -1,4 +1,4 @@
-package de.tum.i13.communication;
+package de.tum.i13.client.communication;
 
 /**
  * TCP socket communication interface.
@@ -23,6 +23,13 @@ public interface SocketCommunicator {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException;
+
+    /**
+     * Checks if there is an active connection.
+     *
+     * @return true if connected
+     */
+    boolean isConnected();
 
     /**
      * Close the connection. Does nothing if the client isn't connected.

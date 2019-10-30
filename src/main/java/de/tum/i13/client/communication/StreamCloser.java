@@ -1,4 +1,4 @@
-package de.tum.i13.communication;
+package de.tum.i13.client.communication;
 
 import java.io.IOException;
 import java.io.InputStream;

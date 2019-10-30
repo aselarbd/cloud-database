@@ -1,10 +1,9 @@
 package de.tum.i13.client;
 
-import de.tum.i13.communication.SocketCommunicator;
-import de.tum.i13.communication.SocketCommunicatorException;
-import de.tum.i13.communication.impl.SocketCommunicatorImpl;
-import de.tum.i13.communication.impl.SocketStreamCloserFactory;
-import de.tum.i13.shared.CommandParser;
+import de.tum.i13.client.communication.SocketCommunicator;
+import de.tum.i13.client.communication.SocketCommunicatorException;
+import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
+import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.commandparsers.StringArrayCommandParser;
 
@@ -91,42 +90,6 @@ public class KvClient {
     private void writeAndLog(String line) {
         write(line);
         LOGGER.info(line);
-    }
-
-    /**
-     * Helper to validate command input.
-     *
-     * @param cmdLine Input splitted by {@link #readPromptLine()}
-     * @param count Expected item count, at least or equal
-     * @param expectEqual if true, <code>cmdLine</code> has to contain exactly <code>count</code> arguments.
-     *                    Otherwise,<code>cmdLine</code> needs more than <code>count</code> items.
-     * @return True if the command has invalid arguments, false otherwise.
-     */
-    private boolean hasWrongArgs(String[] cmdLine, int count, boolean expectEqual) {
-        String errorMsg = "";
-        if (cmdLine == null || cmdLine.length == 0) {
-            write("Command can't be empty.");
-            help();
-            return true;
-        } else {
-            errorMsg = cmdLine[0] + " requires ";
-        }
-
-        boolean invalidCmd = false;
-        if (expectEqual && cmdLine.length != count) {
-            errorMsg += "exactly ";
-            invalidCmd = true;
-        } else if (!expectEqual && cmdLine.length < count) {
-            errorMsg += "at least ";
-            invalidCmd = true;
-        }
-
-        if (invalidCmd) {
-            errorMsg += Integer.toString(count - 1) + " arguments.";
-            write(errorMsg);
-            help();
-        }
-        return invalidCmd;
     }
 
     /**
