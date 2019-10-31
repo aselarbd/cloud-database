@@ -70,18 +70,18 @@
                         </goals>
                     </execution>
                     <execution>
-                        <id>echo-client</id>
+                        <id>kv-client</id>
                         <configuration>
                             <appendAssemblyId>false</appendAssemblyId>
                             <archive>
                                 <manifest>
-                                    <mainClass>de.tum.i13.client.Milestone1Main</mainClass>
+                                    <mainClass>de.tum.i13.client.KvClient</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
-                            <finalName>echo-client</finalName>
+                            <finalName>kv-client</finalName>
                         </configuration>
                         <phase>package</phase>
                         <goals>
