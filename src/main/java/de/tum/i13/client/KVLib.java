@@ -51,6 +51,9 @@ public class KVLib {
         if (!communicator.isConnected()) {
             return new KVResult("not connected");
         }
+        if (!item.isValid() || item.getValue() == null) {
+            return new KVResult("Invalid key-value item");
+        }
         try {
             String result = communicator.send("put " + item.getKey() + " " + item.getValueAs64());
             return parser.parse(result);
@@ -62,16 +65,19 @@ public class KVLib {
 
     /**
      * Get a key-value pair
-     * @param key Key to query.
+     * @param keyItem Key to query, given as {@link KVItem}. The value is ignored.
      * @return Server reply encoded as {@link KVResult}, which also contains the respective {@link KVItem} if
      *  found.
      */
-    public KVResult get(String key) {
+    public KVResult get(KVItem keyItem) {
         if (!communicator.isConnected()) {
             return new KVResult("not connected");
         }
+        if (!keyItem.isValid()) {
+            return new KVResult("Invalid key");
+        }
         try {
-            String result = communicator.send("get " + key);
+            String result = communicator.send("get " + keyItem.getKey());
             KVResult res = parser.parse(result);
             if (res.getMessage().equals("get_success")) {
                 // if successful, we need to decode the value before returning it

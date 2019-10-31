@@ -8,6 +8,8 @@ import java.util.Base64;
 public class KVItem {
     private String key;
     private String value = null;
+    private static final int KEY_MAX_BYTES = 20;
+    private static final int VAL_MAX_BYTES = 120000;
 
     public KVItem(String key) {
         this.key = key;
@@ -16,6 +18,16 @@ public class KVItem {
     public KVItem(String key, String value) {
         this.key = key;
         this.value = value;
+    }
+
+    public boolean isValid() {
+        if (this.key.getBytes().length > KEY_MAX_BYTES) {
+            return false;
+        }
+        if (this.value != null && this.value.getBytes().length > VAL_MAX_BYTES) {
+            return false;
+        }
+        return true;
     }
 
     public String getKey() {
