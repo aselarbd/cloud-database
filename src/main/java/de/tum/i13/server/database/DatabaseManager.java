@@ -111,18 +111,18 @@ public class DatabaseManager {
 
     private void init () throws IOException {
 
-        a_d_file = new File(this.directoryToStore+"\\a_d.txt");
-        e_h_file = new File(this.directoryToStore+"\\e_h.txt");
-        i_n_file = new File(this.directoryToStore+"\\i_n.txt");
-        o_s_file = new File(this.directoryToStore+"\\o_s.txt");
-        t_z_file = new File(this.directoryToStore+"\\t_z.txt");
-        number_file = new File(this.directoryToStore+"\\number.txt");
-        special_file = new File(this.directoryToStore+"\\special.txt");
+        a_d_file = new File(this.directoryToStore + File.separator + "a_d.txt");
+        e_h_file = new File(this.directoryToStore + File.separator + "e_h.txt");
+        i_n_file = new File(this.directoryToStore + File.separator + "i_n.txt");
+        o_s_file = new File(this.directoryToStore + File.separator + "o_s.txt");
+        t_z_file = new File(this.directoryToStore + File.separator + "t_z.txt");
+        number_file = new File(this.directoryToStore + File.separator + "number.txt");
+        special_file = new File(this.directoryToStore + File.separator + "special.txt");
 
         if (!a_d_file.createNewFile())
             logger.info("Error in creating a_d_file");
         if(!e_h_file.createNewFile())
-        logger.info("Error in creating e_h_file");
+            logger.info("Error in creating e_h_file");
         if(!i_n_file.createNewFile())
             logger.info("Error in creating i_n_file");
         if(!o_s_file.createNewFile())

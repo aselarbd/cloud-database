@@ -40,7 +40,7 @@ public class FileOperations {
      */
     synchronized int update(String key, String value, File fileName, Boolean delete)  {
 
-        File tempFile = new File(fileName.getParent() + "\\" + fileName.getName() + "_temp.txt");
+        File tempFile = new File(fileName.getParent() + File.separator + fileName.getName() + "_temp.txt");
 
         try (BufferedReader br = new BufferedReader( new FileReader(fileName) )  ) {
         try ( BufferedWriter bw = new BufferedWriter(new FileWriter(tempFile))) {
