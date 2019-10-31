@@ -52,7 +52,7 @@ class FileOperationsTest {
         File updateTest = new File(System.getProperty("user.dir")+"\\updateTest.txt");
         if( updateTest.createNewFile()){
             fileOperationsTest.write("jbl","music",updateTest);
-            assertEquals(1,fileOperationsTest.update("jbl","speaker",updateTest,true));
+            assertDoesNotThrow(() -> fileOperationsTest.update("jbl", "speaker", updateTest, true));
             assertNull(fileOperationsTest.getValue("jbl", updateTest));
 
             Boolean success = updateTest.delete();

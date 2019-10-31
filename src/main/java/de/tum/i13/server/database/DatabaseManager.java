@@ -19,54 +19,50 @@ public class DatabaseManager {
 
     private FileOperations fileOperations;
 
-    public DatabaseManager(String directoryToStore){
+    public DatabaseManager(String directoryToStore) throws IOException {
         this.directoryToStore = directoryToStore;
-        try {
-            init();
-            fileOperations = new FileOperations();
-            logger.info("DatabaseManager class initialized");
-        } catch (IOException e) {
-            e.printStackTrace();
-            logger.info("Error in the creating file operation class");
-        }
+        init();
+        fileOperations = new FileOperations();
+        logger.info("DatabaseManager class initialized");
     }
 
-    public String get (String key){
-        File databaseFile = getDatabaseFile(key);
-        String value = null;
-        value = fileOperations.getValue(key,databaseFile);
+    public String get (String key) throws IOException {
         logger.info("getting a value form DB <key> : "+key);
-        return value;
+        File databaseFile = getDatabaseFile(key);
+        return fileOperations.getValue(key, databaseFile);
     }
 
-    public int put (String key, String value){
+    /**
+     * put a key-value-pair to the database or update it
+     *
+     * @param key key under which to save the pair
+     * @param value value to save
+     *
+     * @return 0 if a new pair was saved, 1 if a pair was updated under the same key
+     *
+     * @throws IOException if some file operation fails
+     */
+    public int put (String key, String value) throws IOException {
         File databaseFile = getDatabaseFile(key);
 
         if (null == fileOperations.getValue(key,databaseFile)){
-            if (1 == fileOperations.write(key,value,databaseFile))
-                logger.info("write new value to DB successfully");
-                return 1;
-
+            fileOperations.write(key,value,databaseFile);
+            logger.info("write new value to DB successfully");
+            return 0;
         }else {
-            if(1 == fileOperations.update(key,value,databaseFile,false)){
-                logger.info("updated the value in DB for <key> : "+key);
-                return 2;
-            }
+            fileOperations.update(key,value,databaseFile,false);
+            logger.info("updated the value in DB for <key> : "+key);
+            return 1;
         }
-        logger.info("Error in putting value to the database");
-        return -1;
     }
 
-    public int delete (String key){
+    public void delete (String key) throws IOException {
         File databaseFile = getDatabaseFile(key);
 
-        if (null != fileOperations.getValue(key,databaseFile)){
-            if(1 == fileOperations.update(key,"",databaseFile,true))
-                logger.info("deleted form DB successfully <key> : "+key);
-                return 1;
+        if (null != fileOperations.getValue(key, databaseFile)){
+            fileOperations.update(key,"", databaseFile,true);
+            logger.info("deleted form DB successfully <key> : " + key);
         }
-        logger.info("Error in the deletion path");
-        return -1;
     }
 
 

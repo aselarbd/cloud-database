@@ -26,15 +26,9 @@ public class KVCommandProcessor implements CommandProcessor {
 
         switch(command.getMessage().toLowerCase()) {
             case "get":
-                String key = command.getItem().getKey();
-                KVItem result = kvStore.get(key);
-                if (result != null) {
-                    return result.getValue();
-                }
-                return "get_error " + key;
+                return kvStore.get(command.getItem().getKey());
             case "put":
-                kvStore.put(command.getItem());
-                return "put_success";
+                return kvStore.put(command.getItem());
             case "delete":
                 kvStore.delete(command.getItem());
                 break;
