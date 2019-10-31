@@ -1,10 +1,9 @@
 package de.tum.i13.client;
 
-import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
-import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
-import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
-import de.tum.i13.shared.Constants;
+import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.KVResult;
+import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.StringArrayParser;
 
 import java.io.BufferedReader;
@@ -23,21 +22,24 @@ public class KvClient {
     private final static Logger LOGGER = Logger.getLogger(KvClient.class.getName());
     private final static String PROMPT = "EchoClient> ";
     private final static String LOG_LVL_NAMES = "ALL | CONFIG | FINE | FINEST | INFO | OFF | SEVERE | WARNING";
-    private SocketCommunicator communicator;
+    private KVLib kvLib;
     private BufferedReader inReader;
     private Map<String, Action> actions;
 
     public KvClient() {
-        this.communicator = new SocketCommunicatorImpl();
-        this.communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+        this.kvLib = new KVLib();
         this.inReader = new BufferedReader(new InputStreamReader(System.in));
         this.actions = new HashMap<>();
         this.actions.put("connect", new Action<String[]>(
                 new StringArrayParser( 2, false), this::connect));
         this.actions.put("disconnect", new Action<String[]>(
                 new StringArrayParser(0, false), this::disconnect));
-        this.actions.put("send", new Action<String[]>(
-                new StringArrayParser(2, true), this::send));
+        this.actions.put("put", new Action<KVItem>(
+                new KVItemParser(true), this::put
+        ));
+        this.actions.put("get", new Action<KVItem>(
+                new KVItemParser(false), this::get
+        ));
         this.actions.put("logLevel", new Action<String[]>(
                 new StringArrayParser(1, false), this::logLevel));
     }
@@ -126,7 +128,7 @@ public class KvClient {
         LOGGER.fine("Connecting to " + hostName + ":" + args[1]);
         String resp = null;
         try {
-            resp = communicator.connect(hostName, port);
+            resp = kvLib.connect(hostName, port);
             write(resp);
         } catch (SocketCommunicatorException e) {
             writeAndWarn("Unable to connect: " + e.getMessage());
@@ -141,29 +143,30 @@ public class KvClient {
      */
     private void disconnect(String[] args) {
         try {
-            communicator.disconnect();
+            kvLib.disconnect();
         } catch (SocketCommunicatorException e) {
             writeAndWarn("Unable to disconnect: " + e.getMessage());
         }
     }
 
     /**
-     * Logic for send <message>
+     * Logic for the put command.
      *
-     * @param args The input arguments splitted by spaces
+     * @param item Parsed item
      */
-    private void send(String[] args) {
-        // re-construct message string
-        String toSend = String.join(" ", args);
-        toSend = toSend.trim();
+    private void put(KVItem item) {
+        KVResult res = kvLib.put(item);
+        write(res.toString());
+    }
 
-        try {
-            String result = communicator.send(toSend);
-            write(result);
-        } catch(SocketCommunicatorException e) {
-            writeAndWarn("Could not send message: " + e.getMessage());
-            LOGGER.warning("Failed message was: " + toSend);
-        }
+    /**
+     * Logic for the get command.
+     *
+     * @param item Parsed item
+     */
+    private void get(KVItem item) {
+        KVResult res = kvLib.get(item);
+        write(res.toString());
     }
 
     /**
@@ -208,7 +211,7 @@ public class KvClient {
             if (inputMsg.equals("quit")) {
                 write("EchoClient is going to exit now. Goodbye!");
                 // ensure disconnect. By specification, calling this when not connected does nothing
-                communicator.disconnect();
+                kvLib.disconnect();
                 exit = true;
             } else {
                 // Look up what to do

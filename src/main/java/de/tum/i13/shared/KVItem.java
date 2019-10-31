@@ -56,4 +56,10 @@ public class KVItem {
     public void setValueFrom64(String rawInput) {
         this.value = new String(Base64.getDecoder().decode(rawInput.getBytes()));
     }
+
+    @Override
+    public String toString() {
+        String val = hasValue() ? " " + this.value : "";
+        return this.key + val;
+    }
 }

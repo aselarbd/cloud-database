@@ -24,4 +24,10 @@ public class KVResult {
     public String getMessage() {
         return message;
     }
+
+    @Override
+    public String toString() {
+        String itemStr = (this.item != null) ? " " + this.item.toString() : "";
+        return this.message + itemStr;
+    }
 }
