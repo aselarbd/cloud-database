@@ -9,12 +9,16 @@ import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Library to interact with a key-value server.
  */
 public class KVLib {
     private SocketCommunicator communicator;
     private KVResultParser parser;
+    private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
     public KVLib() {
         this.communicator = new SocketCommunicatorImpl();
@@ -34,7 +38,7 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-        return this.communicator.connect(address, port);
+        return communicator.connect(address, port);
     }
 
     /**
@@ -44,19 +48,48 @@ public class KVLib {
      * @return Server reply encoded as {@link KVResult}
      */
     public KVResult put(KVItem item) {
-        //TODO
-        return null;
+        if (!communicator.isConnected()) {
+            return new KVResult("not connected");
+        }
+        if (!item.isValid() || item.getValue() == null) {
+            return new KVResult("Invalid key-value item");
+        }
+        try {
+            String result = communicator.send("put " + item.getKey() + " " + item.getValueAs64());
+            return parser.parse(result);
+        } catch (SocketCommunicatorException e) {
+            LOGGER.log(Level.WARNING, "Error in put()", e);
+            return new KVResult("Server error");
+        }
     }
 
     /**
      * Get a key-value pair
-     * @param key Key to query.
+     * @param keyItem Key to query, given as {@link KVItem}. The value is ignored.
      * @return Server reply encoded as {@link KVResult}, which also contains the respective {@link KVItem} if
      *  found.
      */
-    public KVResult get(String key) {
-        // TODO
-        return null;
+    public KVResult get(KVItem keyItem) {
+        if (!communicator.isConnected()) {
+            return new KVResult("not connected");
+        }
+        if (!keyItem.isValid()) {
+            return new KVResult("Invalid key");
+        }
+        try {
+            String result = communicator.send("get " + keyItem.getKey());
+            KVResult res = parser.parse(result);
+            if (res.getMessage().equals("get_success")) {
+                // if successful, we need to decode the value before returning it
+                KVItem decodedItem = new KVItem(res.getItem().getKey());
+                decodedItem.setValueFrom64(res.getItem().getValue());
+                return new KVResult(res.getMessage(), decodedItem);
+            }
+            return res;
+        } catch (SocketCommunicatorException e) {
+            LOGGER.log(Level.WARNING, "Error in get()", e);
+            return new KVResult("Server error");
+        }
     }
 
     /**
@@ -65,7 +98,7 @@ public class KVLib {
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
     void disconnect() throws SocketCommunicatorException {
-        this.communicator.disconnect();
+        communicator.disconnect();
     }
 
 }
