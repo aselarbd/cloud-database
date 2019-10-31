@@ -55,7 +55,12 @@ public class KVLib {
             return new KVResult("Invalid key-value item");
         }
         try {
-            String result = communicator.send("put " + item.getKey() + " " + item.getValueAs64());
+            KVItem sendItem = new KVItem(item.getKey(), item.getValueAs64());
+            // check encoded length again
+            if (!sendItem.isValid()) {
+                return new KVResult("Value too long");
+            }
+            String result = communicator.send("put " + sendItem.toString());
             return parser.parse(result);
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in put()", e);
