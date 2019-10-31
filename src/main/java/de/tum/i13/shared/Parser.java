@@ -1,18 +1,17 @@
 package de.tum.i13.shared;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 /**
- * Basic logic to parse a command. It performs checks like valid input, encoding etc.
+ * Basic logic to parse a command, or more generic, a string having the form
+ * <br>
+ * &lt;name&gt; &lt;arg1&gt; &lt;arg2&gt; ...
+ * <br><br>
+ * It allows to turn the string into a specific object representation.
  */
-public abstract class CommandParser<T> {
-    /**
-     * The command's name, i.e. the string which a command is invoked with.
-     *
-     * @return The command name
-     */
-    public abstract String getName();
-
+public abstract class Parser<T> {
+    private final static Logger LOGGER = Logger.getLogger(Parser.class.getName());
     /**
      * Indicates the number of expected arguments
      *
@@ -31,10 +30,11 @@ public abstract class CommandParser<T> {
     /**
      * Parse the splitted arguments, gets called as part of {@link #parse(String)}
      *
+     * @param name The command name (first item)
      * @param args Input splitted by spaces
      * @return A new object based on the given arguments, or null if the arguments are invalid.
      */
-    protected abstract T parseArgs(String[] args);
+    protected abstract T parseArgs(String name, String[] args);
 
     /**
      * Parses the given input string to be interpreted as this command.
@@ -44,30 +44,14 @@ public abstract class CommandParser<T> {
      */
     public T parse(String input) {
         String[] command = input.split(" ");
-        if (!checkEncoding(input)) {
-            return null;
-        }
-        if (command[0] != getName()) {
-            return null;
-        }
         if (hasVariableArgs() && command.length - 1 < getArgCount()) {
+            LOGGER.fine("Too few arguments for variable-length command");
             return null;
         } else if (!hasVariableArgs() && command.length - 1 != getArgCount()) {
+            LOGGER.fine("Too few arguments for command");
             return null;
         }
-        // basic checks passed, now perform command-specific checks
-        return parseArgs(Arrays.copyOfRange(command, 1, command.length));
-    }
-
-    /**
-     * Ensures the input has the specified encoding and doesn't contain newline
-     * characters.
-     *
-     * @param input String to check
-     * @return True if the input is valid in terms of encoding
-     */
-    protected boolean checkEncoding(String input) {
-        // TODO
-        return true;
+        // basic checks passed, now perform command-specific checks.
+        return parseArgs(command[0], Arrays.copyOfRange(command, 1, command.length));
     }
 }

@@ -1,32 +1,24 @@
-package de.tum.i13.shared.commandparsers;
+package de.tum.i13.shared.parsers;
 
-import de.tum.i13.shared.CommandParser;
+import de.tum.i13.shared.Parser;
 
 /**
- * Very simple generic parser which can handle basic commands in a flexible way.
+ * Very simple generic parser which can handle basic commands/strings in a flexible way.
  * The data is represented as String array.
  */
-public class StringArrayCommandParser extends CommandParser<String[]> {
-    private String name;
+public class StringArrayParser extends Parser<String[]> {
     private int argCount;
     private boolean variableArgs;
 
     /**
      * Creates a new parser responsible for the command with the given name.
      *
-     * @param name Command to be parsed by this instance.
      * @param argCount Required number of arguments
      * @param variableArgs true if the <code>argCount</code> is a minimum number of arguments.
      */
-    public StringArrayCommandParser(String name, int argCount, boolean variableArgs) {
-        this.name = name;
+    public StringArrayParser(int argCount, boolean variableArgs) {
         this.argCount = argCount;
         this.variableArgs = variableArgs;
-    }
-
-    @Override
-    public String getName() {
-        return this.name;
     }
 
     @Override
@@ -40,7 +32,7 @@ public class StringArrayCommandParser extends CommandParser<String[]> {
     }
 
     @Override
-    protected String[] parseArgs(String[] args) {
+    protected String[] parseArgs(String name, String[] args) {
         return args;
     }
 }
