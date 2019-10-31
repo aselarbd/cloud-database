@@ -212,14 +212,17 @@ public class KvClient {
                 exit = true;
             } else {
                 // Look up what to do
-                Action<?> action = actions.get(inputMsg);
+                Action<?> action = actions.get(inputMsg.split(" ")[0]);
+                boolean actionResult = false;
                 if (action != null) {
                     // parse the line and run the appropriate command
-                    action.run(String.join(" ", inputMsg));
-                } else {
+                    actionResult = action.run(inputMsg);
+                }
+
+                if(!actionResult) {
                     // default action is help
                     if (!inputMsg.equals("help")) {
-                        write("Unknown command: " + inputMsg);
+                        write("Unknown or invalid command: " + inputMsg);
                         write("");
                     }
                     help();
