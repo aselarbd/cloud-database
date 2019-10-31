@@ -5,9 +5,7 @@ import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.StreamCloser;
 import de.tum.i13.client.communication.StreamCloserFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.logging.Logger;
 
 public class SocketCommunicatorImpl implements SocketCommunicator {
@@ -20,8 +18,8 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
 
     private StreamCloser streamCloser;
 
-    private OutputStream socketOutputStream;
-    private InputStream socketInputStream;
+    private OutputStream output;
+    private BufferedReader input;
 
     @Override
     public void init(StreamCloserFactory streamCloserFactory, String encoding) {
@@ -41,10 +39,10 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
             streamCloser.connect(address, port);
 
             LOGGER.info("Getting the outputstream and inputstream");
-            socketOutputStream = streamCloser.getOutputStream();
-            socketInputStream = streamCloser.getInputStream();
+            output = streamCloser.getOutputStream();
+            input = new BufferedReader(new InputStreamReader(streamCloser.getInputStream()));
 
-            return receiveResponse(1024);
+            return receiveResponse();
         } catch (Exception e){
             LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "connect", e);
             throw new SocketCommunicatorException(e);
@@ -57,25 +55,14 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
     }
 
     /**
-     * Read a response of the given length from the socketInputStream
-     * This method uses the encoding provided on initialization to decode
-     * a received byte-array into a string.
+     * Read a response from the socketInputStream
      *
-     * @param length Maximum amount of bytes to receive
-     * @return the string created from the received byte array
+     * @return the string read from the connection
      *
-     * @throws IOException If there's a problem while reading from the inputStream
+     * @throws IOException If there's a problem while reading from the sockets inputStream
      */
-    private String receiveResponse(int length) throws IOException {
-        byte[] response = new byte[length];
-
-        int count;
-        count = socketInputStream.read(response);
-        String s = new String(response, 0, count, encoding);
-        if (s.endsWith("\r\n")) {
-            return s.substring(0, s.length() - 2);
-        }
-        return s;
+    private String receiveResponse() throws IOException {
+        return input.readLine();
     }
 
     @Override
@@ -86,8 +73,8 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
         }
         try {
             LOGGER.info("Closing connection");
-            socketOutputStream.close();
-            socketInputStream.close();
+            output.close();
+            input.close();
             streamCloser.close();
         } catch (Exception e) {
             LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "disconnect", e);
@@ -113,9 +100,9 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
         try {
             LOGGER.info("sending message: " + message);
             byte[] bytes = toSend.getBytes(encoding);
-            socketOutputStream.write(bytes);
-            socketOutputStream.flush();
-            return receiveResponse(bytes.length);
+            output.write(bytes);
+            output.flush();
+            return receiveResponse();
         } catch(IOException e){
             LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "send", e);
             throw new SocketCommunicatorException(e);
