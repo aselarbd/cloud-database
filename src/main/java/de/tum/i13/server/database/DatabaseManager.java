@@ -1,11 +1,13 @@
 package de.tum.i13.server.database;
 
 import java.io.*;
+import java.util.logging.Logger;
 
 
 public class DatabaseManager {
 
     private String directoryToStore;
+    private Logger logger = Logger.getLogger(DatabaseManager.class.getName());
 
     private File a_d_file ;
     private File e_h_file ;
@@ -22,18 +24,18 @@ public class DatabaseManager {
         try {
             init();
             fileOperations = new FileOperations();
+            logger.info("DatabaseManager class initialized");
         } catch (IOException e) {
             e.printStackTrace();
-            // Log
+            logger.info("Error in the creating file operation class");
         }
     }
 
     public String get (String key){
         File databaseFile = getDatabaseFile(key);
         String value = null;
-
         value = fileOperations.getValue(key,databaseFile);
-
+        logger.info("getting a value form DB <key> : "+key);
         return value;
     }
 
@@ -42,14 +44,16 @@ public class DatabaseManager {
 
         if (null == fileOperations.getValue(key,databaseFile)){
             if (1 == fileOperations.write(key,value,databaseFile))
+                logger.info("write new value to DB successfully");
                 return 1;
 
         }else {
-            if(1 == fileOperations.update(key,value,databaseFile,false))
+            if(1 == fileOperations.update(key,value,databaseFile,false)){
+                logger.info("updated the value in DB for <key> : "+key);
                 return 2;
-
+            }
         }
-
+        logger.info("Error in putting value to the database");
         return -1;
     }
 
@@ -58,8 +62,10 @@ public class DatabaseManager {
 
         if (null != fileOperations.getValue(key,databaseFile)){
             if(1 == fileOperations.update(key,"",databaseFile,true))
+                logger.info("deleted form DB successfully <key> : "+key);
                 return 1;
         }
+        logger.info("Error in the deletion path");
         return -1;
     }
 
@@ -113,27 +119,20 @@ public class DatabaseManager {
         number_file = new File(this.directoryToStore+"\\number.txt");
         special_file = new File(this.directoryToStore+"\\special.txt");
 
-        // TODO : If and Log status
-        if (!a_d_file.createNewFile());
-            //log
-        if(!e_h_file.createNewFile());
-            //log
-        if(!i_n_file.createNewFile());
-        //log
-        if(!o_s_file.createNewFile());
-        //log
-        if(!t_z_file.createNewFile());
-        //log
-        if(!number_file.createNewFile());
-        //log
-        if(!special_file.createNewFile());
-        //log
+        if (!a_d_file.createNewFile())
+            logger.info("Error in creating a_d_file");
+        if(!e_h_file.createNewFile())
+        logger.info("Error in creating e_h_file");
+        if(!i_n_file.createNewFile())
+            logger.info("Error in creating i_n_file");
+        if(!o_s_file.createNewFile())
+            logger.info("Error in creating o_s_file");
+        if(!t_z_file.createNewFile())
+            logger.info("Error in creating t_z_file");
+        if(!number_file.createNewFile())
+            logger.info("Error in creating number_file");
+        if(!special_file.createNewFile())
+            logger.info("Error in creating special_file");
     }
 
-
-
-    // TODO Close the connection and end
-    public int close () {
-        return 0;
-    }
 }

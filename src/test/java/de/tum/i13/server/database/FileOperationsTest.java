@@ -15,8 +15,8 @@ class FileOperationsTest {
     void write() throws IOException {
         File writeTest = new File(System.getProperty("user.dir")+"\\writeTest.txt");
         if( writeTest.createNewFile()){
-            fileOperationsTest.write("jbl","music",writeTest);
-            assertEquals("music",fileOperationsTest.getValue("jbl",writeTest));
+            fileOperationsTest.write("jbl","music head",writeTest);
+            assertEquals("music head",fileOperationsTest.getValue("jbl",writeTest));
         }
         Boolean success = writeTest.delete();
     }
