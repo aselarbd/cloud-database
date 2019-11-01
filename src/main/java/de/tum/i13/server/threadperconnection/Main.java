@@ -47,9 +47,7 @@ public class Main {
                 .algorithm(CacheBuilder.Algorithm.FIFO)
                 .build();
 
-        KVStore store = new KVStoreManager(cache, new DatabaseManager(cfg.dataDir.toString()));
-
-        CommandProcessor logic = new KVCommandProcessor(store);
+        CommandProcessor logic = new KVCommandProcessor(cache, new DatabaseManager(cfg.dataDir.toString()));
 
         logger.info("wait for connections");
         while (true) {
