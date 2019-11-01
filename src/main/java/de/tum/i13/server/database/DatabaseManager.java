@@ -1,6 +1,8 @@
 package de.tum.i13.server.database;
 
 import java.io.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
 
@@ -19,6 +21,8 @@ public class DatabaseManager {
 
     private FileOperations fileOperations;
 
+    private ReadWriteLock rwl = new ReentrantReadWriteLock();
+
     public DatabaseManager(String directoryToStore) throws IOException {
         this.directoryToStore = directoryToStore;
         init();
@@ -29,7 +33,15 @@ public class DatabaseManager {
     public String get (String key) throws IOException {
         logger.info("getting a value form DB <key> : "+key);
         File databaseFile = getDatabaseFile(key);
-        return fileOperations.getValue(key, databaseFile);
+
+
+        try {
+            rwl.readLock().lock();
+
+            return fileOperations.getValue(key, databaseFile);
+        } finally {
+            rwl.readLock().unlock();
+        }
     }
 
     /**
@@ -45,23 +57,35 @@ public class DatabaseManager {
     public int put (String key, String value) throws IOException {
         File databaseFile = getDatabaseFile(key);
 
-        if (null == fileOperations.getValue(key,databaseFile)){
-            fileOperations.write(key,value,databaseFile);
-            logger.info("write new value to DB successfully");
-            return 0;
-        }else {
-            fileOperations.update(key,value,databaseFile,false);
-            logger.info("updated the value in DB for <key> : "+key);
-            return 1;
+        try {
+            rwl.writeLock().lock();
+
+            if (null == fileOperations.getValue(key, databaseFile)) {
+                fileOperations.write(key, value, databaseFile);
+                logger.info("write new value to DB successfully");
+                return 0;
+            } else {
+                fileOperations.update(key, value, databaseFile, false);
+                logger.info("updated the value in DB for <key> : " + key);
+                return 1;
+            }
+        } finally {
+            rwl.writeLock().unlock();
         }
     }
 
     public void delete (String key) throws IOException {
         File databaseFile = getDatabaseFile(key);
 
-        if (null != fileOperations.getValue(key, databaseFile)){
-            fileOperations.update(key,"", databaseFile,true);
-            logger.info("deleted form DB successfully <key> : " + key);
+        try {
+            rwl.writeLock().lock();
+
+            if (null != fileOperations.getValue(key, databaseFile)) {
+                fileOperations.update(key, "", databaseFile, true);
+                logger.info("deleted form DB successfully <key> : " + key);
+            }
+        } finally {
+            rwl.writeLock().unlock();
         }
     }
 

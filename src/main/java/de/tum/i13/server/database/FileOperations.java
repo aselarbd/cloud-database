@@ -3,6 +3,11 @@ package de.tum.i13.server.database;
 import java.io.*;
 import java.util.Arrays;
 
+/**
+ * FileOperations provides basic file ops to store key-value-pairs.
+ * No syncronization is done on this level, we assume that all locking has
+ * been done on a higher level.
+ */
 class FileOperations {
 
     /**
@@ -12,7 +17,7 @@ class FileOperations {
      * @param fileName : filename that tuple should store
      * @throws IOException : If errors in file writing operation
      */
-    synchronized void write(String key, String value, File fileName) throws IOException {
+    void write(String key, String value, File fileName) throws IOException {
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(fileName,true))) {
             bw.write(key+" "+value);
             bw.newLine();
@@ -27,10 +32,9 @@ class FileOperations {
      * @param delete : if operation is delete pass this param as true otherwise false
      * @throws IOException : IO exception throws if errors in buffer reader / writer
      */
-    synchronized void update(String key, String value, File fileName, Boolean delete) throws IOException {
+    void update(String key, String value, File fileName, Boolean delete) throws IOException {
 
         File tempFile = new File(fileName.getParent() + File.separator + fileName.getName() + "_temp.txt");
-
         try (
                 BufferedReader br = new BufferedReader(new FileReader(fileName));
                 BufferedWriter bw = new BufferedWriter(new FileWriter(tempFile))
@@ -67,10 +71,9 @@ class FileOperations {
      * @param fileName: File name that database is stored
      * @throws IOException : If files not found or error with buffer reader or reading the file
      */
-    synchronized String getValue(String key, File fileName) throws IOException {
+    String getValue(String key, File fileName) throws IOException {
 
         try (BufferedReader br = new BufferedReader( new FileReader(fileName) )) {
-
             String record;
             while ((record = br.readLine()) != null) {
                 String[] keyValuePair = record.split(" ");
