@@ -1,36 +1,36 @@
 package de.tum.i13.server.kv;
 
-public final class CacheBuilder <K, V> {
+public final class CacheBuilder {
 
     public enum Algorithm {
         FIFO() {
             @Override
-            public <K, V> KVCache buildCache(int size) {
+            public KVCache buildCache(int size) {
                 return new FIFOCache(size);
             }
         };
 
-        public abstract <K, V> KVCache buildCache(int size);
+        public abstract  KVCache buildCache(int size);
     }
 
     private int size;
     private Algorithm algorithm;
 
-    public static CacheBuilder<Object, Object> newBuilder() {
-        return new CacheBuilder<>();
+    public static CacheBuilder newBuilder() {
+        return new CacheBuilder();
     }
 
-    public CacheBuilder<K, V> size(int size) {
+    public CacheBuilder size(int size) {
         this.size = size;
         return this;
     }
 
-    public CacheBuilder<K, V> algorithm(CacheBuilder.Algorithm algorithm) {
+    public CacheBuilder algorithm(CacheBuilder.Algorithm algorithm) {
         this.algorithm = algorithm;
         return this;
     }
 
-    public <K1 extends K, V1 extends V> KVCache build() {
+    public KVCache build() {
         return this.algorithm.buildCache(this.size);
     }
 
