@@ -29,7 +29,7 @@ class FileOperations {
      */
     synchronized void update(String key, String value, File fileName, Boolean delete) throws IOException {
 
-        File tempFile = new File(fileName.getParent() + "\\" + fileName.getName() + "_temp.txt");
+        File tempFile = new File(fileName.getParent() + File.separator + fileName.getName() + "_temp.txt");
 
         try (
                 BufferedReader br = new BufferedReader(new FileReader(fileName));
