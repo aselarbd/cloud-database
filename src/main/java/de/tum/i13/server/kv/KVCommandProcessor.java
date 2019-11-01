@@ -2,7 +2,6 @@ package de.tum.i13.server.kv;
 
 import de.tum.i13.server.database.DatabaseManager;
 import de.tum.i13.shared.CommandProcessor;
-import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
