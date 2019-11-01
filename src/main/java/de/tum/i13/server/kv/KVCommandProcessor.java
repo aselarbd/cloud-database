@@ -2,6 +2,7 @@ package de.tum.i13.server.kv;
 
 import de.tum.i13.server.database.DatabaseManager;
 import de.tum.i13.shared.CommandProcessor;
+import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
@@ -12,14 +13,15 @@ import java.util.logging.Logger;
 
 public class KVCommandProcessor implements CommandProcessor {
 
+    private static final String DELETE_MARKER = "KVSTORE::DELETE_MARKER";
     private static Logger logger = Logger.getLogger(KVCommandProcessor.class.getName());
 
-    private KVCache cache;
-    private DatabaseManager db;
+    private KVCache kvCache;
+    private KVStore kvStore;
 
-    public KVCommandProcessor(KVCache cache, DatabaseManager db) {
-        this.cache = cache;
-        this.db = db;
+    public KVCommandProcessor(KVCache kvCache, KVStore kvStore) {
+        this.kvCache = kvCache;
+        this.kvStore = kvStore;
     }
 
     @Override
@@ -40,27 +42,27 @@ public class KVCommandProcessor implements CommandProcessor {
     }
 
     private String put(KVItem item) {
-        int put;
+        String result;
         try {
-            put = db.put(item.getKey(), item.getValue());
+            result = kvStore.put(item);
         } catch (IOException e) {
             logger.severe("Could not put value to Database: " + e.getMessage());
             return "put_error " + item.getKey() + " " + item.getValue();
         }
-        cache.put(item);
+        kvCache.put(item);
 
-        return put <= 0 ? "put_success " + item.getKey() : "put_update " + item.getKey();
+        return "put_" + result + " " + item.getKey() + " " + item.getValue();
     }
 
     private String get(String key) {
-        KVItem kvItem = cache.get(key);
+        KVItem kvItem = kvCache.get(key);
         if (kvItem != null) {
-            return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
+            return "get_success " + kvItem.getKey();
         }
 
         String value;
         try {
-            value = db.get(key);
+            value = kvStore.get(key);
         } catch (IOException e) {
             logger.severe("Could not get value from database: " + e.getMessage());
             return "get_error " + key;
@@ -68,7 +70,7 @@ public class KVCommandProcessor implements CommandProcessor {
 
         if (value != null) {
             kvItem = new KVItem(key, value);
-            cache.put(kvItem);
+            kvCache.put(kvItem);
             return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
         }
 
@@ -76,9 +78,9 @@ public class KVCommandProcessor implements CommandProcessor {
     }
 
     private String delete(KVItem item) {
-        cache.delete(item);
+        kvCache.delete(item);
         try {
-            db.delete(item.getKey());
+            kvStore.put(new KVItem(item.getKey(), DELETE_MARKER));
         } catch (IOException e) {
             logger.severe("Could not delete value from database: " + e.getMessage());
             return "delete_error " + item.getKey();

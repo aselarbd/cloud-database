@@ -1,7 +1,5 @@
 package de.tum.i13.server.threadperconnection;
 
-import de.tum.i13.server.database.DatabaseManager;
-import de.tum.i13.server.echo.EchoLogic;
 import de.tum.i13.server.kv.*;
 import de.tum.i13.shared.CommandProcessor;
 import de.tum.i13.shared.Config;
@@ -47,7 +45,11 @@ public class Main {
                 .algorithm(CacheBuilder.Algorithm.FIFO)
                 .build();
 
-        CommandProcessor logic = new KVCommandProcessor(cache, new DatabaseManager(cfg.dataDir.toString()));
+//        KVStore store = new DatabaseStore(cfg.dataDir.toString());
+
+        KVStore store = new LSMStore(cfg.walLogFileDir, cfg.dataDir);
+
+        CommandProcessor logic = new KVCommandProcessor(cache, store);
 
         logger.info("wait for connections");
         while (true) {

@@ -10,6 +10,7 @@ public class KVItem {
     private String value = null;
     private static final int KEY_MAX_BYTES = 20;
     private static final int VAL_MAX_BYTES = 120000;
+    private long timestamp;
 
     public KVItem(String key) {
         this.key = key;
@@ -18,6 +19,12 @@ public class KVItem {
     public KVItem(String key, String value) {
         this.key = key;
         this.value = value;
+    }
+
+    public KVItem(String key, String value, long timestamp) {
+        this.key = key;
+        this.value = value;
+        this.timestamp = timestamp;
     }
 
     public boolean isValid() {
@@ -61,5 +68,9 @@ public class KVItem {
     public String toString() {
         String val = hasValue() ? " " + this.value : "";
         return this.key + val;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
     }
 }

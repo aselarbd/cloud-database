@@ -1,5 +1,6 @@
 package de.tum.i13.shared;
 
+import de.tum.i13.server.kv.LSMLog;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -35,6 +36,9 @@ public class Config {
 
     @CommandLine.Option(names = "-h", description = "Displays help", usageHelp = true)
     public boolean usagehelp;
+
+    @CommandLine.Option(names = "-w", description = "WAL Log File location", defaultValue = "wal/")
+    public Path walLogFileDir;
 
     public static Config parseCommandlineArgs(String[] args) {
         Config cfg = new Config();
@@ -73,7 +77,8 @@ public class Config {
                 ", loglevel='" + loglevel + '\'' +
                 ", cachesize=" + cachesize +
                 ", cachedisplacement='" + cachedisplacement + '\'' +
-                ", usagehelp=" + usagehelp +
+                ", usagehelp=" + usagehelp + '\'' +
+                ", walLogFileDir=" + walLogFileDir +
                 '}';
     }
 }

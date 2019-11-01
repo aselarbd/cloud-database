@@ -2,11 +2,11 @@ package de.tum.i13.server.kv;
 
 import de.tum.i13.shared.KVItem;
 
+import java.io.IOException;
+
 public interface KVStore {
 
-    String put(KVItem item);
+    String put(KVItem item) throws IOException;
 
-    String get(String key);
-
-    String delete(KVItem item);
+    String get(String key) throws IOException;
 }
