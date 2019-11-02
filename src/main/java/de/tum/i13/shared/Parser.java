@@ -43,6 +43,9 @@ public abstract class Parser<T> {
      * @return A new object based on the given arguments, or null if the input is invalid.
      */
     public T parse(String input) {
+        if (input == null || input.isEmpty()) {
+            return null;
+        }
         String[] command = input.split(" ");
         if (hasVariableArgs() && command.length - 1 < getArgCount()) {
             LOGGER.fine("Too few arguments for variable-length command");

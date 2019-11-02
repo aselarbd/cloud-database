@@ -63,7 +63,7 @@ public class KVLib {
         if (!communicator.isConnected()) {
             return new KVResult("not connected");
         }
-        if (!item.isValid() || item.getValue() == null) {
+        if (item == null || !item.isValid() || item.getValue() == null) {
             return new KVResult("Invalid key-value item");
         }
         try {
@@ -73,7 +73,11 @@ public class KVLib {
                 return new KVResult("Value too long");
             }
             String result = communicator.send("put " + sendItem.toString());
-            return parser.parse(result);
+            KVResult res = parser.parse(result);
+            if (res == null) {
+                res = new KVResult("Empty response");
+            }
+            return res;
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in put()", e);
             return new KVResult("Server error");
@@ -96,10 +100,15 @@ public class KVLib {
         try {
             String result = communicator.send("get " + keyItem.getKey());
             KVResult res = parser.parse(result);
-            if (res.getMessage().equals("get_success")) {
+            if (res == null) {
+                res = new KVResult("Empty response");
+            } else if (res.getMessage().equals("get_success")) {
                 // if successful, we need to decode the value before returning it
                 KVItem decodedItem = new KVItem(res.getItem().getKey());
                 decodedItem.setValueFrom64(res.getItem().getValue());
+                if (!decodedItem.isValid()) {
+                    decodedItem = null;
+                }
                 return new KVResult(res.getMessage(), decodedItem);
             }
             return res;
