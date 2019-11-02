@@ -2,6 +2,7 @@ package de.tum.i13.client;
 
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
+import de.tum.i13.client.communication.StreamCloserFactory;
 import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
 import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
 import de.tum.i13.shared.Constants;
@@ -23,6 +24,17 @@ public class KVLib {
     public KVLib() {
         this.communicator = new SocketCommunicatorImpl();
         this.communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+        this.parser = new KVResultParser();
+    }
+
+    /**
+     * Constructor with dependency injection intended for tests.
+     *
+     * @param communicator The {@link SocketCommunicator} used for this instance. The user has to ensure that
+     *                     {@link SocketCommunicator#init} was called.
+     */
+    public KVLib(SocketCommunicator communicator) {
+        this.communicator = communicator;
         this.parser = new KVResultParser();
     }
 
