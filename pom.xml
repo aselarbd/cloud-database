@@ -109,6 +109,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- https://junit.org/junit5/docs/current/user-guide/#running-tests-build-maven
+            Explicitly specify a newer version of maven-surefire-plugin having native JUnit Jupiter support.
+            Otherwise, @BeforeEach and @AfterEach are ignored in mvn test.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.2</version>
+            </plugin>
         </plugins>
     </build>
 
