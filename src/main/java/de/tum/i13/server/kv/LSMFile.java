@@ -16,7 +16,7 @@ public class LSMFile implements Closeable {
 
     private static final String DATA_FILE_NAME = "data-";
     private static final String INDEX_FILE_NAME = "index-";
-    private static final int KEY_LENGTH = 20; // Bytes
+    protected static final int KEY_LENGTH = 20; // Bytes
 
     private File data;
     private File index;
@@ -30,6 +30,10 @@ public class LSMFile implements Closeable {
     private String currentKey;
 
     private boolean closed;
+
+    protected LSMFile() {
+
+    }
 
     /**
      * Constructor for reading an existing LSMFile
@@ -178,20 +182,20 @@ public class LSMFile implements Closeable {
         return new KVItem(new String(Arrays.copyOfRange(key, 0, keyLength)), new String(valueBytes), timestamp);
     }
 
-    private byte[] longToBytes(long l) {
+    protected byte[] longToBytes(long l) {
         ByteBuffer res = ByteBuffer.allocate(Long.BYTES);
         ByteBuffer byteBuffer = res.putLong(l);
         return byteBuffer.array();
     }
 
-    private long bytesToLong(byte[] bytes) {
+    protected long bytesToLong(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.put(bytes);
         buffer.flip();
         return buffer.getLong();
     }
 
-    private byte[] padKey(String key) {
+    protected byte[] padKey(String key) {
         byte[] res = new byte[LSMFile.KEY_LENGTH];
         byte[] keyBytes = key.getBytes();
 

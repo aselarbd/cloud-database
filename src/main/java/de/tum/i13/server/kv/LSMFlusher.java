@@ -1,5 +1,6 @@
 package de.tum.i13.server.kv;
 
+import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
@@ -15,15 +16,17 @@ public class LSMFlusher extends Thread {
     private static final int MIN_FLUSH_SIZE = 3;
     private LSMCache lsmCache;
     private Path lsmFileDir;
+    private LSMLog lsmLog;
 
     private boolean shutDown = false;
 
     private ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    public LSMFlusher(LSMCache lsmCache, Path lsmFileDir) {
+    public LSMFlusher(LSMCache lsmCache, Path lsmFileDir, LSMLog lsmLog) {
 
         this.lsmCache = lsmCache;
         this.lsmFileDir = lsmFileDir;
+        this.lsmLog = lsmLog;
     }
 
     // TODO: Does this makes sense?
@@ -46,6 +49,7 @@ public class LSMFlusher extends Thread {
                     lsmFile.append(e.getValue());
                 }
                 lsmFile.close();
+                lsmLog.append(new KVItem(Constants.FLUSH_MESSAGE, "", 0));
             } catch (IOException e) {
                 e.printStackTrace();
                 // TODO: Do more than crying?

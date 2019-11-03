@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -47,7 +48,7 @@ public class Main {
 
 //        KVStore store = new DatabaseStore(cfg.dataDir.toString());
 
-        KVStore store = new LSMStore(cfg.walLogFileDir, cfg.dataDir);
+        KVStore store = new LSMStore(cfg.dataDir);
 
         CommandProcessor logic = new KVCommandProcessor(cache, store);
 
