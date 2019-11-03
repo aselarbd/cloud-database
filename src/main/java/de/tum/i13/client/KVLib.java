@@ -100,7 +100,7 @@ public class KVLib {
         try {
             String result = communicator.send("get " + keyItem.getKey());
             KVResult res = parser.parse(result);
-            if (res == null) {
+            if (res == null || res.getItem() == null) {
                 res = new KVResult("Empty response");
             } else if (res.getMessage().equals("get_success")) {
                 // if successful, we need to decode the value before returning it

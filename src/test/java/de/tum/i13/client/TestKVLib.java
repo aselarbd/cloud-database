@@ -182,6 +182,19 @@ public class TestKVLib {
     }
 
     @Test
+    public void getValueServerNoItem() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicatorMock.send(anyString())).thenReturn("put_success");
+
+        // when
+        KVResult result = this.library.get(new KVItem("key"));
+
+        // then
+        verify(communicatorMock).send("get key");
+        assertTrue(result.getMessage().toLowerCase().contains("empty"));
+    }
+
+    @Test
     public void getValueServerTooLong() throws SocketCommunicatorException {
         byte[] testVal = new byte[120001];
         when(communicatorMock.isConnected()).thenReturn(true);

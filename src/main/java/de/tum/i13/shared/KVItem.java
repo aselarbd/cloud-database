@@ -28,6 +28,9 @@ public class KVItem {
     }
 
     public boolean isValid() {
+        if (this.key == null || this.key.isEmpty()) {
+            return false;
+        }
         if (this.key.getBytes().length > KEY_MAX_BYTES) {
             return false;
         }
@@ -61,7 +64,11 @@ public class KVItem {
     }
 
     public void setValueFrom64(String rawInput) {
-        this.value = new String(Base64.getDecoder().decode(rawInput.getBytes()));
+        if (rawInput != null) {
+            this.value = new String(Base64.getDecoder().decode(rawInput.getBytes()));
+        } else {
+            this.value = null;
+        }
     }
 
     @Override

@@ -16,6 +16,22 @@ public class KVItemTest {
     }
 
     @Test
+    public void keyNullOrEmpty() {
+        KVItem testItem;
+
+        // when
+        testItem = new KVItem(null, "val");
+        // then
+        assertFalse(testItem.isValid());
+
+        // when
+        testItem = new KVItem("", "val");
+        // then
+        assertFalse(testItem.isValid());
+    }
+
+
+    @Test
     public void valueInvalid() {
         String testVal = new String(new byte[120001]);
 
@@ -47,6 +63,15 @@ public class KVItemTest {
         dest.setValueFrom64(src.getValueAs64());
         // then
         assertEquals(testValue, dest.getValue());
+    }
+
+    @Test
+    public void nullValDecode() {
+        // when
+        KVItem testItem = new KVItem("key2");
+        testItem.setValueFrom64(null);
+        // then
+        assertNull(testItem.getValue());
     }
 
     @Test
