@@ -198,6 +198,72 @@ public class TestKVLib {
     }
 
     @Test
+    public void deleteNotConnected() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(false);
+
+        // when
+        KVResult res = this.library.delete(new KVItem("key"));
+
+        // then
+        verify(communicatorMock, never()).send(anyString());
+        assertNull(res.getItem());
+    }
+
+    @Test
+    public void deleteValue() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicatorMock.send(anyString())).thenReturn("delete_success key");
+
+        // when
+        KVResult res = this.library.delete(new KVItem("key"));
+
+        // then
+        verify(communicatorMock).send("delete key");
+        assertEquals("delete_success", res.getMessage());
+        assertEquals("key", res.getItem().getKey());
+    }
+
+    @Test
+    public void deleteValueError() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicatorMock.send(anyString())).thenReturn("delete_error key");
+
+        // when
+        KVResult res = this.library.delete(new KVItem("key"));
+
+        // then
+        verify(communicatorMock).send("delete key");
+        assertEquals("delete_error", res.getMessage());
+        assertEquals("key", res.getItem().getKey());
+    }
+
+    @Test
+    public void deleteKeyTooLong() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        String testKey = new String(new byte[21]);
+
+        // when
+        KVResult res = this.library.delete(new KVItem(testKey));
+
+        // then
+        verify(communicatorMock, never()).send(anyString());
+        assertNull(res.getItem());
+    }
+
+    @Test
+    public void deleteServerNull() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicatorMock.send(anyString())).thenReturn(null);
+
+        // when
+        KVResult result = this.library.delete(new KVItem("key"));
+
+        // then
+        verify(communicatorMock).send("delete key");
+        assertTrue(result.getMessage().toLowerCase().contains("empty"));
+    }
+
+    @Test
     public void disconnect() throws SocketCommunicatorException {
         // when
         this.library.disconnect();

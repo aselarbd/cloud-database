@@ -40,6 +40,9 @@ public class KvClient {
         this.actions.put("get", new Action<KVItem>(
                 new KVItemParser(false), this::get
         ));
+        this.actions.put("delete", new Action<KVItem>(
+                new KVItemParser(false), this::delete
+        ));
         this.actions.put("logLevel", new Action<String[]>(
                 new StringArrayParser(1, false), this::logLevel));
     }
@@ -104,7 +107,9 @@ public class KvClient {
                 + "\thelp\tPrints out this help message\n"
                 + "\tquit\tExits the client\n"
                 + "\tconnect <host> <port>\tConnects to the given server\n"
-                + "\tsend <message>\tSends the given message to the server (requires connection)\n"
+                + "\tput <key> <value>\tPuts the given key-value pair to the server (requires connection)\n"
+                + "\tget <key>\tGets the key-value pair with the given key from the server (requires connection)\n"
+                + "\tdelete <key>\tDeletes the key-value pair with the given key from the server (requires connection)\n"
                 + "\tdisconnect\tDisconnects from the server\n"
                 + "\tlogLevel <level>\tSets the log level to one of\n"
                 + "\t\t" + LOG_LVL_NAMES
@@ -166,6 +171,16 @@ public class KvClient {
      */
     private void get(KVItem item) {
         KVResult res = kvLib.get(item);
+        write(res.toString());
+    }
+
+    /**
+     * Logic for the delete command.
+     *
+     * @param item Parsed item
+     */
+    private void delete(KVItem item) {
+        KVResult res = kvLib.delete(item);
         write(res.toString());
     }
 

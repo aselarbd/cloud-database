@@ -119,6 +119,32 @@ public class KVLib {
     }
 
     /**
+     * Delete a key-value pair.
+     *
+     * @param keyItem Key to query, given as {@link KVItem}. The value is ignored.
+     * @return Server reply encoded as {@link KVResult}
+     */
+    public KVResult delete(KVItem keyItem) {
+        if (!communicator.isConnected()) {
+            return new KVResult("not connected");
+        }
+        if (!keyItem.isValid()) {
+            return new KVResult("Invalid key");
+        }
+        try {
+            String result = communicator.send("delete " + keyItem.getKey());
+            KVResult res = parser.parse(result);
+            if (res == null) {
+                res = new KVResult("Empty response");
+            }
+            return res;
+        } catch (SocketCommunicatorException e) {
+            LOGGER.log(Level.WARNING, "Error in delete()", e);
+            return new KVResult("Server error");
+        }
+    }
+
+    /**
      * Close the connection. Does nothing if the client isn't connected.
      *
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
