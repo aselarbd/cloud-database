@@ -1,7 +1,7 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.server.database.DatabaseManager;
 import de.tum.i13.shared.CommandProcessor;
+import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 
 public class KVCommandProcessor implements CommandProcessor {
 
-    private static final String DELETE_MARKER = "KVSTORE::DELETE_MARKER";
     private static Logger logger = Logger.getLogger(KVCommandProcessor.class.getName());
 
     private KVCache kvCache;
@@ -57,7 +56,7 @@ public class KVCommandProcessor implements CommandProcessor {
     private String get(String key) {
         KVItem kvItem = kvCache.get(key);
         if (kvItem != null) {
-            return "get_success " + kvItem.getKey();
+            return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
         }
 
         String value;
@@ -80,7 +79,7 @@ public class KVCommandProcessor implements CommandProcessor {
     private String delete(KVItem item) {
         kvCache.delete(item);
         try {
-            kvStore.put(new KVItem(item.getKey(), DELETE_MARKER));
+            kvStore.put(new KVItem(item.getKey(), Constants.DELETE_MARKER));
         } catch (IOException e) {
             logger.severe("Could not delete value from database: " + e.getMessage());
             return "delete_error " + item.getKey();

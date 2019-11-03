@@ -43,7 +43,7 @@ public class FIFOCache implements KVCache {
                 return;
             }
 
-            if (fifo.size() >= size) {
+            if (fifo.size() >= size && size > 0) {
                 String removed = fifo.remove();
                 cache.remove(removed);
             }

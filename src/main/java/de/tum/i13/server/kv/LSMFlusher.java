@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class LSMFlusher extends Thread {
 
     private static final long CACHE_FLUSH_FREQUENCY = 5000;
+    private static final int MIN_FLUSH_SIZE = 3;
     private LSMCache lsmCache;
     private Path lsmFileDir;
 
@@ -34,18 +35,15 @@ public class LSMFlusher extends Thread {
     public void run() {
 
         while (!shutDown) {
-            TreeMap<String, KVItem> snapshot = lsmCache.getSnapshot();
-            if (snapshot.size() <= 0) {
+            if (lsmCache.size() <= MIN_FLUSH_SIZE) {
                 // nothing to flush here
                 continue;
             }
+            TreeMap<String, KVItem> snapshot = lsmCache.getSnapshot();
             try {
                 LSMFile lsmFile = new LSMFile(lsmFileDir);
                 for (Map.Entry<String, KVItem> e : snapshot.entrySet()) {
-                    if (!lsmFile.append(e.getValue())) {
-                        // This should never happen so far
-                    }
-                    ;
+                    lsmFile.append(e.getValue());
                 }
                 lsmFile.close();
             } catch (IOException e) {

@@ -6,7 +6,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class LSMCache implements KVStore {
+public class LSMCache {
     TreeMap<String, KVItem> lsmCache = new TreeMap<>();
 
     ReadWriteLock rwl = new ReentrantReadWriteLock();
@@ -26,13 +26,13 @@ public class LSMCache implements KVStore {
         return result;
     }
 
-    public String get(String key) {
+    public KVItem get(String key) {
         try{
             rwl.readLock().lock();
 
             KVItem kvItem = lsmCache.get(key);
             if (kvItem != null) {
-                return kvItem.getValue();
+                return kvItem;
             }
             return null;
         } finally {
@@ -50,5 +50,9 @@ public class LSMCache implements KVStore {
         } finally {
             rwl.writeLock().unlock();
         }
+    }
+
+    public int size() {
+        return lsmCache.size();
     }
 }
