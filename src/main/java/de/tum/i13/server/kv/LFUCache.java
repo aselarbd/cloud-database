@@ -78,12 +78,14 @@ public class LFUCache implements KVCache {
                     increaseFrequency(key);
                     this.cache.put(key,item);
                 }else {
-                    String replaceKey = this.frequencyLists.get(this.minFrequency).iterator().next();
-                    this.frequencyLists.get(this.minFrequency).remove(replaceKey);
-                    this.frequency.remove(replaceKey);
-                    this.cache.remove(replaceKey);
-                    increaseFrequency(item.getKey());
-                    this.cache.put(key,item);
+                    if ( this.frequencyLists.get(this.minFrequency) != null) {
+                        String replaceKey = this.frequencyLists.get(this.minFrequency).iterator().next();
+                        this.frequencyLists.get(this.minFrequency).remove(replaceKey);
+                        this.frequency.remove(replaceKey);
+                        this.cache.remove(replaceKey);
+                        increaseFrequency(item.getKey());
+                        this.cache.put(key, item);
+                    }
                 }
             }
             logger.info("new KVItem added to the cache");
