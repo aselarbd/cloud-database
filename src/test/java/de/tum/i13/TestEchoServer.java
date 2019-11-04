@@ -14,23 +14,6 @@ public class TestEchoServer {
 
     public static Integer port = 5153;
 
-    public String doRequest(Socket s, String req) throws IOException {
-        PrintWriter output = new PrintWriter(s.getOutputStream());
-        BufferedReader input = new BufferedReader(new InputStreamReader(s.getInputStream()));
-
-        output.write(req + "\r\n");
-        output.flush();
-
-        String res = input.readLine();
-        return res;
-    }
-
-    public String readMessage(Socket s) throws IOException {
-        BufferedReader input = new BufferedReader(new InputStreamReader(s.getInputStream()));
-        String res = input.readLine();
-        return res;
-    }
-
     @Test
     public void smokeTest() throws InterruptedException, IOException {
         Thread th = new Thread() {
@@ -48,10 +31,10 @@ public class TestEchoServer {
 
         Socket s = new Socket();
         s.connect(new InetSocketAddress("127.0.0.1", port));
-        String welcome = readMessage(s);
+        String welcome = RequestUtils.readMessage(s);
         assertThat(welcome, is(containsString("Connection to MSRG Echo server established:")));
         String command = "hello ";
-        assertThat(doRequest(s, command), is(equalTo(command)));
+        assertThat(RequestUtils.doRequest(s, command), is(equalTo(command)));
         s.close();
 
     }
@@ -85,10 +68,10 @@ public class TestEchoServer {
                         for(int i = 0; i < 100; i++) {
                             Socket s = new Socket();
                             s.connect(new InetSocketAddress("127.0.0.1", port));
-                            String welcome = readMessage(s);
+                            String welcome = RequestUtils.readMessage(s);
 
                             String command = "hello " + finalTcnt;
-                            assertThat(doRequest(s, command), is(equalTo(command)));
+                            assertThat(RequestUtils.doRequest(s, command), is(equalTo(command)));
                             s.close();
                         }
                     } catch (Exception e) {
