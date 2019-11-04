@@ -13,7 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KVServerIntegrationTest {
-    public static Integer port = 5153;
+    // use a different port than tests for EchoServer
+    public static Integer port = 5154;
 
     private Thread startServer(String folder) throws InterruptedException {
         Thread th = new Thread() {
