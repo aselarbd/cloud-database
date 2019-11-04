@@ -1,6 +1,7 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.kv.stores;
 
 import de.tum.i13.server.database.DatabaseManager;
+import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;

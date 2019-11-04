@@ -1,5 +1,10 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.kv.stores;
 
+import de.tum.i13.server.kv.KVStore;
+import de.tum.i13.server.lsm.LSMCache;
+import de.tum.i13.server.lsm.LSMFile;
+import de.tum.i13.server.lsm.LSMFlusher;
+import de.tum.i13.server.lsm.LSMLog;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 

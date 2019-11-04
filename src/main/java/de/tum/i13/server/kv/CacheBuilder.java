@@ -1,5 +1,9 @@
 package de.tum.i13.server.kv;
 
+import de.tum.i13.server.kv.caches.FIFOCache;
+import de.tum.i13.server.kv.caches.LFUCache;
+import de.tum.i13.server.kv.caches.LRUCache;
+
 /**
  * CacheBuilder configures and builds a new cache instance
  * with a given displacement strategy. The config methods return

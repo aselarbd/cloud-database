@@ -1,5 +1,6 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.kv.caches;
 
+import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.shared.KVItem;
 
 import java.util.HashMap;

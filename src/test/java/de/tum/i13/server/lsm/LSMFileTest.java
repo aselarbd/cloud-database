@@ -1,11 +1,10 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.lsm;
 
 import de.tum.i13.shared.KVItem;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

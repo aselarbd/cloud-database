@@ -1,6 +1,7 @@
 package de.tum.i13.server.threadperconnection;
 
 import de.tum.i13.server.kv.*;
+import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.CommandProcessor;
 import de.tum.i13.shared.Config;
 
@@ -8,7 +9,6 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Paths;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;

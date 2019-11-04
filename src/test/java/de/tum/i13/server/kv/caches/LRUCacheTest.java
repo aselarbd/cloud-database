@@ -1,4 +1,4 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.kv.caches;
 
 import de.tum.i13.shared.KVItem;
 import org.junit.jupiter.api.Test;

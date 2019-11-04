@@ -1,5 +1,6 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.server.kv.caches;
 
+import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.shared.KVItem;
 
 import java.util.*;
@@ -18,7 +19,7 @@ public class FIFOCache implements KVCache {
     private Map<String, KVItem> cache;
     private Queue<String> fifo;
 
-    FIFOCache(int size) {
+    public FIFOCache(int size) {
         this.size = size;
         this.cache = new HashMap<>();
         this.fifo = new LinkedList<>();
