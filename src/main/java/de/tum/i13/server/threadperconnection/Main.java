@@ -43,7 +43,7 @@ public class Main {
 
         KVCache cache = CacheBuilder.newBuilder()
                 .size(cfg.cachesize)
-                .algorithm(CacheBuilder.Algorithm.FIFO)
+                .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
 
 //        KVStore store = new DatabaseStore(cfg.dataDir.toString());

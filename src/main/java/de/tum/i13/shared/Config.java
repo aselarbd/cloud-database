@@ -31,7 +31,7 @@ public class Config {
     @CommandLine.Option(names = "-c", description = "Sets the cachesize, e.g., 100 keys")
     public int cachesize;
 
-    @CommandLine.Option(names = "-s", description = "Sets the cache displacement strategy, FIFO, LRU, LFU")
+    @CommandLine.Option(names = "-s", description = "Sets the cache displacement strategy, FIFO, LRU, LFU", defaultValue = "LFU")
     public String cachedisplacement;
 
     @CommandLine.Option(names = "-h", description = "Displays help", usageHelp = true)
