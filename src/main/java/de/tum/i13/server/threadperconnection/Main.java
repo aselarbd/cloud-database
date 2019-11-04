@@ -18,23 +18,33 @@ public class Main {
 
     public static Logger logger = Logger.getLogger(Main.class.getName());
 
+    protected static ServerSocket serverSocket;
+    protected static boolean isRunning = false;
+
+    public static void shutdown() {
+        if (serverSocket != null) {
+            isRunning = false;
+            System.out.println("Closing thread per connection kv server");
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         Config cfg = parseCommandlineArgs(args);  //Do not change this
         setupLogging(cfg.logfile, cfg.loglevel);
 
         logger.info("initialize socket");
 
-        final ServerSocket serverSocket = new ServerSocket();
+        serverSocket = new ServerSocket();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                System.out.println("Closing thread per connection kv server");
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                shutdown();
             }
         });
 
@@ -53,7 +63,8 @@ public class Main {
         CommandProcessor logic = new KVCommandProcessor(cache, store);
 
         logger.info("wait for connections");
-        while (true) {
+        isRunning = true;
+        while (isRunning) {
             Socket clientSocket = serverSocket.accept();
 
             //When we accept a connection, we start a new Thread for this connection
