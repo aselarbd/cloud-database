@@ -26,7 +26,7 @@ public class Config {
     @CommandLine.Option(names = "-ll", description = "Loglevel", defaultValue = "INFO")
     public String loglevel;
 
-    @CommandLine.Option(names = "-c", description = "Sets the cachesize, e.g., 100 keys")
+    @CommandLine.Option(names = "-c", description = "Sets the cachesize, e.g., 100 keys", defaultValue = "3")
     public int cachesize;
 
     @CommandLine.Option(names = "-s", description = "Sets the cache displacement strategy, FIFO, LRU, LFU", defaultValue = "LFU")
