@@ -1,10 +1,8 @@
 package de.tum.i13.shared;
 
-import de.tum.i13.server.kv.LSMLog;
 import picocli.CommandLine;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,9 +35,6 @@ public class Config {
     @CommandLine.Option(names = "-h", description = "Displays help", usageHelp = true)
     public boolean usagehelp;
 
-    @CommandLine.Option(names = "-w", description = "WAL Log File location", defaultValue = "wal/")
-    public Path walLogFileDir;
-
     public static Config parseCommandlineArgs(String[] args) {
         Config cfg = new Config();
         CommandLine.ParseResult parseResult = new CommandLine(cfg).registerConverter(InetSocketAddress.class, new InetSocketAddressTypeConverter()).parseArgs(args);
@@ -63,6 +58,11 @@ public class Config {
             System.exit(-1);
         }
 
+        if(parseResult.isUsageHelpRequested()) {
+            CommandLine.usage(new Config(), System.out);
+            System.exit(0);
+        }
+
         return cfg;
     }
 
@@ -78,7 +78,6 @@ public class Config {
                 ", cachesize=" + cachesize +
                 ", cachedisplacement='" + cachedisplacement + '\'' +
                 ", usagehelp=" + usagehelp + '\'' +
-                ", walLogFileDir=" + walLogFileDir +
                 '}';
     }
 }
