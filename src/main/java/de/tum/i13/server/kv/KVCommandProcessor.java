@@ -60,16 +60,16 @@ public class KVCommandProcessor implements CommandProcessor {
             return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
         }
 
-        String value;
+        KVItem value;
         try {
-            value = kvStore.get(key).getValue();
+            value = kvStore.get(key);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not get value from Database", e);
             return "get_error " + key;
         }
 
         if (value != null) {
-            kvItem = new KVItem(key, value);
+            kvItem = new KVItem(key, value.getValue());
             kvCache.put(kvItem);
             return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
         }
