@@ -60,6 +60,9 @@ public class LRUCache implements KVCache {
      */
     @Override
     public void put(KVItem item) {
+        if (size <= 0) {
+            return;
+        }
         try {
             rwl.writeLock().lock();
 
