@@ -9,6 +9,7 @@ import de.tum.i13.shared.parsers.KVResultParser;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class KVCommandProcessor implements CommandProcessor {
@@ -45,7 +46,7 @@ public class KVCommandProcessor implements CommandProcessor {
         try {
             result = kvStore.put(item);
         } catch (IOException e) {
-            logger.severe("Could not put value to Database: " + e.getMessage());
+            logger.log(Level.SEVERE, "Could not put value to Database", e);
             return "put_error " + item.getKey() + " " + item.getValue();
         }
         kvCache.put(item);
@@ -63,7 +64,7 @@ public class KVCommandProcessor implements CommandProcessor {
         try {
             value = kvStore.get(key).getValue();
         } catch (IOException e) {
-            logger.severe("Could not get value from database: " + e.getMessage());
+            logger.log(Level.SEVERE, "Could not get value from Database", e);
             return "get_error " + key;
         }
 
@@ -85,7 +86,7 @@ public class KVCommandProcessor implements CommandProcessor {
             }
             return "delete_error " + item.getKey();
         } catch (IOException e) {
-            logger.severe("Could not delete value from database: " + e.getMessage());
+            logger.log(Level.SEVERE, "Could not delete value from database", e);
             return "delete_error " + item.getKey();
         }
     }

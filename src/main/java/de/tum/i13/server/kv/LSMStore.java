@@ -41,6 +41,10 @@ public class LSMStore implements KVStore {
 
         Path lsmLogFileDir = Paths.get(dataDir.toString(), "log");
         this.lsmFileDir = Paths.get(dataDir.toString(), "data");
+        // create subdirectory if it doesn't exist
+        if (!lsmFileDir.toFile().exists()) {
+            lsmFileDir.toFile().mkdir();
+        }
 
         this.lsmLog = new LSMLog(lsmLogFileDir);
         TreeMap<String, KVItem> log = lsmLog.readAllSinceFlush();
