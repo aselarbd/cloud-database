@@ -6,6 +6,9 @@ import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * FIFOCache provides A KVCache using FIFO as its displacement strategy.
+ */
 public class FIFOCache implements KVCache {
 
     private int size;
@@ -21,6 +24,13 @@ public class FIFOCache implements KVCache {
         this.fifo = new LinkedList<>();
     }
 
+    /**
+     * Get a value from the cache.
+     *
+     * @param key of the requested value
+     *
+     * @return the requested value if present, null otherwise.
+     */
     @Override
     public KVItem get(String key) {
         try {
@@ -32,6 +42,13 @@ public class FIFOCache implements KVCache {
         }
     }
 
+    /**
+     * put a new value to the cache. Updates are also possible through this method.
+     * An update does not put the value at the end of the FIFO queue, but leaves
+     * the item at the same place as before.
+     *
+     * @param item the item to cache.
+     */
     @Override
     public void put(KVItem item) {
         try {
@@ -54,6 +71,11 @@ public class FIFOCache implements KVCache {
         }
     }
 
+    /**
+     * Delete a value from the cache.
+     *
+     * @param item the item to delete
+     */
     @Override
     public void delete(KVItem item) {
         try {

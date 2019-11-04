@@ -9,6 +9,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
+/**
+ * An LSMFlusher can run in a separate worker thread and regularly
+ * flushes a given LSMCache to a new LSMFile
+ */
 public class LSMFlusher extends Thread {
 
     private static Logger logger = Logger.getLogger(LSMFlusher.class.getName());
@@ -21,6 +25,13 @@ public class LSMFlusher extends Thread {
 
     private boolean shutDown = false;
 
+    /**
+     * create a new LSMFLusher
+     *
+     * @param lsmCache the cache which should be flushed regularly
+     * @param lsmFileDir The directory, where new LSMFiles should be stored
+     * @param lsmLog The log file, to which a cache-flush message will be written
+     */
     public LSMFlusher(LSMCache lsmCache, Path lsmFileDir, LSMLog lsmLog) {
 
         this.lsmCache = lsmCache;
@@ -33,6 +44,9 @@ public class LSMFlusher extends Thread {
         this.shutDown = sd;
     }
 
+    /**
+     * start the worker thread
+     */
     @Override
     public void run() {
 

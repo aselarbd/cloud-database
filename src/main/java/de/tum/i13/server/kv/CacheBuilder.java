@@ -1,5 +1,12 @@
 package de.tum.i13.server.kv;
 
+/**
+ * CacheBuilder configures and builds a new cache instance
+ * with a given displacement strategy. The config methods return
+ * a CacheBuilder instance, so the calls can be changed and the
+ * cache will only be build and returned when the build method
+ * is called.
+ */
 public final class CacheBuilder {
 
     public enum Algorithm {

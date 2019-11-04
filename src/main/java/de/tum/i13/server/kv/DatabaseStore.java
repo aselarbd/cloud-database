@@ -5,6 +5,11 @@ import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
 
+/**
+ * DatabaseStore implements a KVStore using the database
+ * package as a storage backend. It is basically an adapter
+ * to that package.
+ */
 public class DatabaseStore implements KVStore {
 
     DatabaseManager db;

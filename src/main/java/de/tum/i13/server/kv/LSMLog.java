@@ -13,6 +13,9 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+/**
+ * LSMLog provides access to an append log file for KVItem operations
+ */
 public class LSMLog extends LSMFile {
 
     private int size;
@@ -23,6 +26,13 @@ public class LSMLog extends LSMFile {
 
     private ReadWriteLock rwl = new ReentrantReadWriteLock();
 
+    /**
+     * open a new LSMLog-file
+     *
+     * @param dir where to find or create the log file
+     *
+     * @throws IOException if an error occurs when accessing the file
+     */
     public LSMLog(Path dir) throws IOException {
         Path file = dir;
         if(!dir.toFile().exists()) {
@@ -34,6 +44,14 @@ public class LSMLog extends LSMFile {
         this.in = new FileInputStream(logFile.toFile());
     }
 
+    /**
+     * append a KVItem to the end of the log file
+     *
+     * @param kvItem KVItem to append
+     *
+     * @return true
+     * @throws IOException throws an exception if there's some IO Error
+     */
     @Override
     public boolean append(KVItem kvItem) throws IOException {
 
@@ -61,6 +79,14 @@ public class LSMLog extends LSMFile {
         return true;
     }
 
+    /**
+     * read all entries from the log file since the last Constants.FLUSH_MESSAGE
+     * has been written to the log
+     *
+     * @return a TreeMap containing all the items since the last flush message
+     *
+     * @throws IOException if an IO Error occurs while accessing the log file
+     */
     public TreeMap<String, KVItem> readAllSinceFlush() throws IOException {
 
         rwl.readLock().lock();
@@ -103,6 +129,11 @@ public class LSMLog extends LSMFile {
         }
     }
 
+    /**
+     * returns the current count of items written to the log file
+     *
+     * @return count of items in the log
+     */
     public int size() {
         return size;
     }

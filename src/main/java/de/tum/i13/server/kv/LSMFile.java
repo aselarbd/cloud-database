@@ -12,6 +12,12 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.TreeMap;
 
+/**
+ * LSMFile provides an interface to LSMFiles on disk. An LSMFile is actually
+ * a directory containing an index and a data file. The data file contains KVItems
+ * while the index file only contains keys and for each key the position in the data
+ * file where the item to the key is stored.
+ */
 public class LSMFile implements Closeable {
 
     private static final String DATA_FILE_NAME = "data-";
@@ -31,6 +37,9 @@ public class LSMFile implements Closeable {
 
     private boolean closed;
 
+    /**
+     * default constructor for subclasses
+     */
     protected LSMFile() {
 
     }
@@ -77,6 +86,11 @@ public class LSMFile implements Closeable {
         openWrite();
     }
 
+    /**
+     * open the LSMFile for write access
+     *
+     * @throws IOException if some IO operation fails
+     */
     private void openWrite() throws IOException {
         if (closed) {
             throw new IOException("Write to closed or immutable file");
@@ -91,16 +105,53 @@ public class LSMFile implements Closeable {
         indexFOS = new FileOutputStream(index);
     }
 
+    /**
+     * open the LSMFile for read access
+     *
+     * @throws FileNotFoundException if the file does not exist
+     */
     private void openRead() throws FileNotFoundException {
         dataFIS = new FileInputStream(data);
         indexFIS = new FileInputStream(index);
     }
 
+    /**
+     * creates a new random name for a new LSMFile
+     *
+     * @return a random string
+     */
     private String getRandomName() {
         Random rand = new Random();
         return "" + Math.abs(rand.nextLong());
     }
 
+    /**
+     * append a new KVItem to the LSMFile. This method writes the KVItem to the
+     * data file and the key and the position in the data file to the index file.
+     *
+     * The data file has the following format for each item:
+     *
+     * 20 bytes "paddedKeyBytes" key
+     * 8 bytes "keyLengthBytes" indicating the actual key length (may be shorter than 20 bytes)
+     * 8 bytes "timestampBytes" timestamp
+     * 8 bytes "valueLengthBytes" indicating the length of the value
+     * valueLengthBytes bytes actual value
+     *
+     * The index file has the following format for each item:
+     *
+     * 20 bytes "paddedKeyBytes" key
+     * 8 bytes "keyLengthBytes" indicating the actual key length (may be shorter than 20 bytes)
+     * 8 bytes "positionBytes" pointing to the position of this item in the data file
+     *
+     * @param item item to append
+     *
+     * @return true if the item was appended, false if the item is to late
+     * (i.e. another item which is later in lexicographical order than this item
+     * has already been saved to the file in the past. In this case, appending
+     * this item would destroy the lexicographic sort order).
+     *
+     * @throws IOException If some IOError occurs
+     */
     public boolean append(KVItem item) throws IOException {
         if (currentKey != null && currentKey.compareTo(item.getKey()) > 0) {
             return false;
@@ -134,6 +185,13 @@ public class LSMFile implements Closeable {
         return true;
     }
 
+    /**
+     * reads the index of an LSMFile and returns it as a TreeMap
+     * from key to position in the data file
+     *
+     * @return TreeMap containing the index or null if the file is a write only file
+     * @throws IOException when some IO Error occurs on reading the index file
+     */
     public TreeMap<String, Long> readIndex() throws IOException {
         if (indexFIS == null) {
             // reading on write only file
@@ -158,6 +216,15 @@ public class LSMFile implements Closeable {
         return index;
     }
 
+    /**
+     * Read a value from the data file of an LSMFile
+     *
+     * @param position at which the value begins
+     *
+     * @return the KVItem at the position in the data file
+     *
+     * @throws IOException If some IO Error occurs while reading the data file
+     */
     public KVItem readValue(long position) throws IOException {
         long skip = dataFIS.skip(position); // TODO: Maybe handle the result?
 
@@ -182,12 +249,25 @@ public class LSMFile implements Closeable {
         return new KVItem(new String(Arrays.copyOfRange(key, 0, keyLength)), new String(valueBytes), timestamp);
     }
 
+    /**
+     * get a long value as byte array
+     *
+     * @param l long value
+     * @return a byte array containing the long value as bytes
+     */
     protected byte[] longToBytes(long l) {
         ByteBuffer res = ByteBuffer.allocate(Long.BYTES);
         ByteBuffer byteBuffer = res.putLong(l);
         return byteBuffer.array();
     }
 
+    /**
+     * Get a long value from a byte array
+     *
+     * @param bytes the byte array holding the long value
+     *
+     * @return the long value which was stored in the byte array
+     */
     protected long bytesToLong(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
         buffer.put(bytes);
@@ -195,6 +275,13 @@ public class LSMFile implements Closeable {
         return buffer.getLong();
     }
 
+    /**
+     * Write a key to a padded byte array of size LSMFile.KEY_LENGTH
+     *
+     * @param key key to store in a byte array
+     *
+     * @return a byte array holding the padded key as bytes
+     */
     protected byte[] padKey(String key) {
         byte[] res = new byte[LSMFile.KEY_LENGTH];
         byte[] keyBytes = key.getBytes();
@@ -203,6 +290,11 @@ public class LSMFile implements Closeable {
         return res;
     }
 
+    /**
+     * close this LSMFile
+     *
+     * @throws IOException if the file can't be closed due to some IO Error
+     */
     @Override
     public void close() throws IOException {
         if (dataFOS != null) {
@@ -220,6 +312,11 @@ public class LSMFile implements Closeable {
         closed = true;
     }
 
+    /**
+     * returns the name of this LSMFile
+     *
+     * @return name of the LSMFile
+     */
     public String getName() {
         return Paths.get(data.getParent()).getFileName().toString();
     }

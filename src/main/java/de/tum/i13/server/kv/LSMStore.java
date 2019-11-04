@@ -13,12 +13,30 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+/**
+ * LSMStore provides a KVStore implementation using an LSM-tree
+ * The LSM-tree is inspired by the implementations in BigTable and HBase.
+ *
+ * {@link LSMCache} is used as in in-memory store to
+ * which new data is written. A separate worker thread running
+ * {@link LSMFlusher} stores the cache in a new {@link LSMFile}. To prevent
+ * losing items on server crashes we write every change to {@link LSMLog}
+ * before saving it in the cache and try to recover the cache from that log
+ * on restart.
+ */
 public class LSMStore implements KVStore {
 
     private LSMLog lsmLog;
     private LSMCache lsmCache;
     private Path lsmFileDir;
 
+    /**
+     * create a new LSMStore and save all data in the given directory
+     *
+     * @param dataDir Path to the directory where data will be stored.
+     *
+     * @throws IOException If there's some error accessing the given directory
+     */
     public LSMStore(Path dataDir) throws IOException {
 
         Path lsmLogFileDir = Paths.get(dataDir.toString(), "log");
@@ -35,6 +53,14 @@ public class LSMStore implements KVStore {
         lsmFlusher.start();
     }
 
+    /**
+     * list all LSMFiles in a given directory
+     *
+     * @param lsmFileDir directory to look for LSMFiles
+     *
+     * @return a list of all LSMFiles in that directory
+     * @throws IOException
+     */
     private List<LSMFile> listLSMFiles(Path lsmFileDir) throws IOException {
         List<LSMFile> lsmFiles = new ArrayList<>();
         List<Path> files = Files.list(lsmFileDir).collect(Collectors.toList());
@@ -44,6 +70,15 @@ public class LSMStore implements KVStore {
         return lsmFiles;
     }
 
+    /**
+     * put a new item to the LSMStore
+     *
+     * @param item item to store or update
+     *
+     * @return "success" if the item was added, "update" if it was already present before
+     *
+     * @throws IOException if there's a problem writing to the LSMLog
+     */
     @Override
     public String put(KVItem item) throws IOException {
         if (item.getTimestamp() == 0) {
@@ -58,6 +93,9 @@ public class LSMStore implements KVStore {
         return result;
     }
 
+    /**
+     * helper class to lookup the position of a KVItem in an LSMFile
+     */
     private static class Lookup {
 
         private LSMFile lsmFile;
@@ -69,6 +107,17 @@ public class LSMStore implements KVStore {
         }
     }
 
+    /**
+     * get tries to get an item from the LSMTree by first looking if it is
+     * in the LSMCache and if it is not querying all LSMFiles and finding the
+     * most recent version.
+     *
+     * @param key key of the requested item
+     *
+     * @return the requested item or null if it does not exist
+     *
+     * @throws IOException if an IO error occurs on reading the LSMFiles
+     */
     @Override
     public KVItem get(String key) throws IOException {
 
