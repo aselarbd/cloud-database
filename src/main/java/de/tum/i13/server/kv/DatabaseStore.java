@@ -20,7 +20,7 @@ public class DatabaseStore implements KVStore {
     }
 
     @Override
-    public String get(String key) throws IOException {
-        return db.get(key);
+    public KVItem get(String key) throws IOException {
+        return new KVItem(key, db.get(key));
     }
 }

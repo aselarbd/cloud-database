@@ -61,7 +61,7 @@ public class KVCommandProcessor implements CommandProcessor {
 
         String value;
         try {
-            value = kvStore.get(key);
+            value = kvStore.get(key).getValue();
         } catch (IOException e) {
             logger.severe("Could not get value from database: " + e.getMessage());
             return "get_error " + key;
@@ -77,14 +77,17 @@ public class KVCommandProcessor implements CommandProcessor {
     }
 
     private String delete(KVItem item) {
-        kvCache.delete(item);
         try {
-            kvStore.put(new KVItem(item.getKey(), Constants.DELETE_MARKER));
+            if (kvStore.get(item.getKey()) != null) {
+                kvStore.put(new KVItem(item.getKey(), Constants.DELETE_MARKER));
+                kvCache.delete(item);
+                return "delete_success " + item.getKey();
+            }
+            return "delete_error " + item.getKey();
         } catch (IOException e) {
             logger.severe("Could not delete value from database: " + e.getMessage());
             return "delete_error " + item.getKey();
         }
-        return "delete_success " + item.getKey();
     }
 
     @Override

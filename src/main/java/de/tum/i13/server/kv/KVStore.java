@@ -8,5 +8,5 @@ public interface KVStore {
 
     String put(KVItem item) throws IOException;
 
-    String get(String key) throws IOException;
+    KVItem get(String key) throws IOException;
 }

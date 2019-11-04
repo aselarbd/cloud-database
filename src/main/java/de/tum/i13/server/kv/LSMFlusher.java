@@ -7,10 +7,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Logger;
 
 public class LSMFlusher extends Thread {
+
+    private static Logger logger = Logger.getLogger(LSMFlusher.class.getName());
 
     private static final long CACHE_FLUSH_FREQUENCY = 5000;
     private static final int MIN_FLUSH_SIZE = 3;
@@ -19,8 +20,6 @@ public class LSMFlusher extends Thread {
     private LSMLog lsmLog;
 
     private boolean shutDown = false;
-
-    private ReadWriteLock rwl = new ReentrantReadWriteLock();
 
     public LSMFlusher(LSMCache lsmCache, Path lsmFileDir, LSMLog lsmLog) {
 
@@ -40,8 +39,13 @@ public class LSMFlusher extends Thread {
         while (!shutDown) {
             if (lsmCache.size() <= MIN_FLUSH_SIZE) {
                 // nothing to flush here
-                continue;
+                try {
+                    Thread.sleep(CACHE_FLUSH_FREQUENCY);
+                } catch (InterruptedException e) {
+                    logger.severe(e.getMessage());
+                }
             }
+            logger.info("Trying to flush cache");
             TreeMap<String, KVItem> snapshot = lsmCache.getSnapshot();
             try {
                 LSMFile lsmFile = new LSMFile(lsmFileDir);
@@ -51,13 +55,7 @@ public class LSMFlusher extends Thread {
                 lsmFile.close();
                 lsmLog.append(new KVItem(Constants.FLUSH_MESSAGE, "", 0));
             } catch (IOException e) {
-                e.printStackTrace();
-                // TODO: Do more than crying?
-            }
-            try {
-                Thread.sleep(CACHE_FLUSH_FREQUENCY);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                logger.severe("Failed to flush cache " + e.getMessage());
             }
         }
 

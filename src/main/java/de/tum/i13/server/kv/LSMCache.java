@@ -11,10 +11,7 @@ public class LSMCache {
 
     ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    public String put(KVItem item) {
-
-        String result = lsmCache.containsKey(item.getKey()) ? "update" : "success";
-
+    public void put(KVItem item) {
         try {
             rwl.writeLock().lock();
 
@@ -22,8 +19,6 @@ public class LSMCache {
         } finally {
             rwl.writeLock().unlock();
         }
-
-        return result;
     }
 
     public KVItem get(String key) {

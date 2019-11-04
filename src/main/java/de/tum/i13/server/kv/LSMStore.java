@@ -19,8 +19,6 @@ public class LSMStore implements KVStore {
     private LSMCache lsmCache;
     private Path lsmFileDir;
 
-    private LSMFlusher lsmFlusher;
-
     public LSMStore(Path dataDir) throws IOException {
 
         Path lsmLogFileDir = Paths.get(dataDir.toString(), "log");
@@ -33,7 +31,7 @@ public class LSMStore implements KVStore {
 
         log.forEach((s, i) -> lsmCache.put(i));
 
-        lsmFlusher = new LSMFlusher(lsmCache, lsmFileDir, lsmLog);
+        LSMFlusher lsmFlusher = new LSMFlusher(lsmCache, lsmFileDir, lsmLog);
         lsmFlusher.start();
     }
 
@@ -51,8 +49,13 @@ public class LSMStore implements KVStore {
         if (item.getTimestamp() == 0) {
             item.setTimestamp(Instant.now().toEpochMilli());
         }
+        String result = "success";
+        if (get(item.getKey()) != null) {
+            result = "update";
+        }
         lsmLog.append(item);
-        return lsmCache.put(item);
+        lsmCache.put(item);
+        return result;
     }
 
     private static class Lookup {
@@ -66,13 +69,12 @@ public class LSMStore implements KVStore {
         }
     }
 
-    // TODO: Merge cache and lsmFiles and get latest item
     @Override
-    public String get(String key) throws IOException {
+    public KVItem get(String key) throws IOException {
 
         KVItem cachedItem = lsmCache.get(key);
         if (cachedItem != null) {
-            return cachedItem.getValue();
+            return cachedItem;
         }
 
         ArrayList<Lookup> lookUps = new ArrayList<>();
@@ -94,8 +96,8 @@ public class LSMStore implements KVStore {
         }
 
         if (items.size() > 0) {
-            String result = items.lastEntry().getValue().getValue();
-            if (!result.equals(Constants.DELETE_MARKER)) {
+            KVItem result = items.lastEntry().getValue();
+            if (!result.getValue().equals(Constants.DELETE_MARKER)) {
                 return result;
             }
         }
