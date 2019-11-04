@@ -26,7 +26,7 @@ public class LogSetup {
         logger.setLevel(parsedLevel); //we want log everything
     }
 
-    public static LogeLevelChange changeLoglevel(Level newLevel) {
+    public static LogLevelChange changeLoglevel(Level newLevel) {
         Logger logger = LogManager.getLogManager().getLogger("");
         Level previousLevel = logger.getLevel();
 
@@ -34,7 +34,7 @@ public class LogSetup {
             h.setLevel(newLevel);
         }
         logger.setLevel(newLevel);
-        return new LogeLevelChange(previousLevel, newLevel);
+        return new LogLevelChange(previousLevel, newLevel);
 
     }
 }

@@ -2,11 +2,11 @@ package de.tum.i13.shared;
 
 import java.util.logging.Level;
 
-public class LogeLevelChange {
+public class LogLevelChange {
     private Level previousLevel;
     private Level newLevel;
 
-    public LogeLevelChange(Level previousLevel, Level newLevel) {
+    public LogLevelChange(Level previousLevel, Level newLevel) {
 
         this.previousLevel = previousLevel;
         this.newLevel = newLevel;

@@ -3,6 +3,8 @@ package de.tum.i13.client;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
+import de.tum.i13.shared.LogLevelChange;
+import de.tum.i13.shared.LogSetup;
 import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.StringArrayParser;
 
@@ -196,9 +198,10 @@ public class KvClient {
             try {
                 Level newLevel = Level.parse(level);
                 // use unnamed logger such that settings are applied for all loggers
-                Logger.getLogger("").setLevel(newLevel);
+                LogLevelChange change = LogSetup.changeLoglevel(newLevel);
                 // log is obviously only visible for appropriate levels. Print out user feedback as well.
-                writeAndLog("New log Level is " + level);
+                writeAndLog("Changed log Level from " + change.getPreviousLevel().toString() + " to "
+                                + change.getNewLevel().toString());
             } catch (IllegalArgumentException e) {
                 // use WARNING here as this should never happen due to the checks above
                 LOGGER.log(Level.WARNING, "Error while parsing log level", e);
