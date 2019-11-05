@@ -76,8 +76,14 @@ public class LSMFile implements Closeable {
         }
 
         String name = getRandomName();
-        String dataName = Paths.get(directory.toString(), name, DATA_FILE_NAME + name).toString();
-        this.data = new File(dataName);
+        Path dataPath = Paths.get(directory.toString(), name, DATA_FILE_NAME + name);
+
+        while(Files.exists(dataPath)) {
+            name = getRandomName();
+            dataPath = Paths.get(directory.toString(), name, DATA_FILE_NAME + name);
+        }
+
+        this.data = new File(dataPath.toString());
 
         String indexName = Paths.get(directory.toString(), name, INDEX_FILE_NAME + name).toString();
         this.index = new File(indexName);
