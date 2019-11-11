@@ -164,7 +164,9 @@ class KVCommandProcessorTest {
                     c.action + " " + c.key + ":" + c.value,
                     () -> {
                         KVCommandProcessor kvcp = new KVCommandProcessor(c.cache, c.store);
-                        String processed = kvcp.process(c.action + " " + c.key + " " + (c.value != null ? c.value : ""));
+                        String processed = kvcp.process(
+                                c.action + " " + c.key + (c.value != null ? " " + c.value : "")
+                        );
                         assertEquals(c.result, processed);
                     })
                 );
