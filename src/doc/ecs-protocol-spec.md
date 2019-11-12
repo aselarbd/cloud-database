@@ -25,11 +25,11 @@ In case of error, a series of messages (like node addition) is to be aborted.
 
 #### Changing the successor node
      
-* ECS -> Server: `next_addr <address> <port>`
+* ECS -> Server: `next_addr <ip:port>`
 
-#### Data transferral - range
+#### Data transferral
 
-* ECS -> Server: `transfer_range <address> <port>`
+* ECS -> Server: `transfer_range <range_from>,<range_to>,<ip:port>`
 
   *this sends everything between `next_addr`'s hash and the given address hash to the specified server*
 * Server1 -> Server2: `ecs_put <encoded data items>` (for the server-to-server exchange initiated by `transfer_range`)
@@ -37,18 +37,11 @@ In case of error, a series of messages (like node addition) is to be aborted.
   There may be multiple `put` messages.
 * Server2 -> ECS: `done`
 
-#### Data transferral - all
-
-* ECS -> Server: `transfer_all <address> <port>`
-
-  *sends everything to the destination*
-* Uses the same `ecs_put` etc. like range transfer
-
-
 #### Node metadata announcement
 
-* ECS -> all: `broadcast_new <address> <port>`
-* ECS -> all: `broadcast_rem <address> <port>`
+* ECS -> all: `broadcast_new <range_from>,<range_to>,<ip:port>`
+* ECS -> all: `broadcast_rem <range_from>,<range_to>,<ip:port>`
+* ECS -> new Server: `keyrange <range_from>,<range_to>,<ip:port>;<range_from>,...;`
 
 #### Removing a node
 
@@ -72,8 +65,7 @@ The `ecs_put` may be split up to multiple messages.
      |  register |             |                 
      |           |             |                 
      |---------->|             |                 
-     | next_addr |             |                 
-     | of svr 3  |             |                 
+     | keyrange  |             |                 
      |           |             |                 
      |------------------------>|                 
      |       write_lock        |                 
@@ -119,8 +111,8 @@ The `ecs_put` may be split up to multiple messages.
    |             next_addr svr 3*             |                                  
    |                |                         |                                  
    |--------------->|                         |                                  
-   | transfer_all   |                         |                                  
-   |      s_2       |------------------------>|                                  
+   | transfer_range |                         |                                  
+   |    s_1 .. s_3  |------------------------>|                                  
    |                |       ecs_put           |                                  
    |                |                         |                                  
    |                |<------------------------|                                  
