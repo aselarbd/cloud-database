@@ -47,6 +47,8 @@ public class KvClient {
         ));
         this.actions.put("logLevel", new Action<String[]>(
                 new StringArrayParser(1, false), this::logLevel));
+        this.actions.put("keyrange", new Action<String[]>(
+                new StringArrayParser(0,false), this::keyRange));
     }
 
     /**
@@ -97,6 +99,17 @@ public class KvClient {
     private void writeAndLog(String line) {
         write(line);
         LOGGER.info(line);
+    }
+
+
+    /**
+     * KeyRange function will get the key range from server
+     *
+     * @param args : arguments from commandline
+     */
+    private void keyRange(String[] args) {
+        String res = kvLib.keyRange();
+        write(res);
     }
 
     /**
@@ -251,7 +264,6 @@ public class KvClient {
             }
         }
     }
-
     public static void main(String[] args) {
         setupLogging(Path.of("client.log"), "ALL");
 

@@ -31,6 +31,31 @@ public class KVLib {
         this.parser = new KVResultParser();
     }
 
+
+    /**
+     * get key range for new servers
+     *
+     * @return key range for each server that got by server or server stop message
+     * if server not responding
+     */
+    public String keyRange() {
+        if (!communicator.isConnected()) {
+            return "not connected";
+        }
+        try {
+            String result = communicator.send("keyrange");
+            // TODO parse result according to key range meta data format
+            // TODO update meta data table in client side using parsed results
+            if (result.contains("\r\n"))
+                result = result.substring(0, result.length()-2);
+            return result;
+
+        } catch (SocketCommunicatorException e) {
+            LOGGER.log(Level.WARNING, "Error in get()", e);
+            return "Server error";
+        }
+    }
+
     /**
      * Connect to the given server.
      *
@@ -242,5 +267,7 @@ public class KVLib {
             s.getValue().disconnect();
         }
     }
+
+
 
 }
