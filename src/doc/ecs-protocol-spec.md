@@ -39,7 +39,10 @@ In case of error, a series of messages (like node addition) is to be aborted.
 
 * ECS -> all: `broadcast_new <ip:port>`
 * ECS -> all: `broadcast_rem <ip:port>`
-* ECS -> new Server: `keyrange <ip:port> <ip:port> ...`
+* ECS -> new Server: `keyrange <from>,<to>,<ip:port>;<from>,<to>,<ip:port>;...`
+
+  The keyrange format is identical to the message used for clients. Other ECS messages usually do not
+  include hashes as they can be re-computed easily.
 
   This sends the ordered ring structure to bootstrap a new server
 

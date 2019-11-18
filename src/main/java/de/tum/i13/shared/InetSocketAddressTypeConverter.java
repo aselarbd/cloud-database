@@ -36,4 +36,15 @@ public class InetSocketAddressTypeConverter implements CommandLine.ITypeConverte
             throw new CommandLine.TypeConversionException(e.getLocalizedMessage());
         }
     }
+
+    /**
+     * Helper to create an IP:Port string from an InetSocketAddress.
+     * 
+     * This essentially is the reverse of the parsing done in {@link #convert}.
+     *
+     * @return IP:Port as String
+     */
+    public static String addrString(InetSocketAddress addr) {
+        return addr.getHostString() + ":" + addr.getPort();
+    }
 }

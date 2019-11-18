@@ -1,5 +1,6 @@
 package de.tum.i13.shared;
 
+import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
@@ -7,14 +8,15 @@ import java.util.TreeMap;
 
 /**
  * Class {@link ConsistentHashMap} offers a wrapper datastructure to
- * map MD5 Hashes to strings. It's basically a wrapper around a TreeMap
- * offering necessary functionality for fast storage and lookups of strings
- * and their MD5 hashes.
+ * map MD5 Hashes to InetSocketAddresses. It's basically a wrapper around a TreeMap
+ * offering necessary functionality for fast storage and lookups of Server addresses
+ * and their MD5 hashes. Especially, it is possible to find the closest server for arbitrary
+ * string hashes.
  */
 public class ConsistentHashMap {
 
     private MessageDigest messageDigest;
-    private TreeMap<String, String> consistentHashMap = new TreeMap<>();
+    private TreeMap<String, InetSocketAddress> consistentHashMap = new TreeMap<>();
 
     /**
      * Create a new {@link ConsistentHashMap}.
@@ -46,14 +48,19 @@ public class ConsistentHashMap {
         return sb.toString();
     }
 
+    private String addressHash(InetSocketAddress addr) {
+        String toHash = InetSocketAddressTypeConverter.addrString(addr);
+        return getMD5DigestHEX(toHash);
+    }
+
     /**
-     * Save a string s in the HashMap. The key will be the HEX-String of the hash
-     * of the given string.
+     * Save a server entry in the HashMap. The key will be the HEX-String of the hash
+     * of the given IP:Port string.
      *
-     * @param s String to save under it's own hash.
+     * @param addr The IP:Port value as InetSocketAddress
      */
-    public void put(String s) {
-        consistentHashMap.put(getMD5DigestHEX(s), s);
+    public void put(InetSocketAddress addr) {
+        consistentHashMap.put(addressHash(addr), addr);
     }
 
     /**
@@ -63,12 +70,12 @@ public class ConsistentHashMap {
      * first available key.
      *
      * @param key plain text key
-     * @return The value saved under the key, which lexicographically next to
+     * @return The server address saved under the key, which lexicographically next to
      * the hashed key or the first, if no such key exists, or null if the map
      * is empty.
      */
-    public String get(String key) {
-        Map.Entry<String, String> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
+    public InetSocketAddress get(String key) {
+        Map.Entry<String, InetSocketAddress> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
         if (ceiling != null) {
             return ceiling.getValue();
         }
@@ -77,9 +84,14 @@ public class ConsistentHashMap {
 
     /**
      * remove a key value pair from the map.
-     * @param ip
+     * @param addr The server address to remove
      */
-    public void remove(String ip) {
-        consistentHashMap.remove(getMD5DigestHEX(ip));
+    public void remove(InetSocketAddress addr) {
+        consistentHashMap.remove(addressHash(addr));
+    }
+
+    public String getKeyrangeString() {
+        // TODO
+        return "";
     }
 }
