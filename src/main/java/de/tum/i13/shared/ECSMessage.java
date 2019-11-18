@@ -1,5 +1,6 @@
 package de.tum.i13.shared;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -95,6 +96,15 @@ public class ECSMessage {
         }
     }
 
+    /**
+     * Helper to check if the given index is valid for this item.
+     *
+     * @param index
+     *  Index to perform an operation on
+     * @param write
+     *  true if data should be written at the index
+     * @throws IndexOutOfBoundsException if the index is not valid
+     */
     protected void checkLength(int index, boolean write) throws IndexOutOfBoundsException {
         if (index < 0 || index > arguments.size()) {
             throw new IndexOutOfBoundsException();
@@ -105,6 +115,12 @@ public class ECSMessage {
         }
     }
 
+    /**
+     * Check if the message type of this instance expects IP:Port at the given index.
+     *
+     * @param index Index to check
+     * @throws IllegalArgumentException if no IP:Port is allowed here
+     */
     protected void expectIpPort(int index) throws IllegalArgumentException {
         // variable args are expected to be at the end.
         int varStartIndex = messageType.getArgs().length - 1;
@@ -121,27 +137,67 @@ public class ECSMessage {
         }
     }
 
+    /**
+     * Check if the message type of this instance allows a Base64 String at the given index.
+     *
+     * @param index Index to check
+     * @throws IllegalArgumentException if no Base64 String is allowed at the given position.
+     */
     protected void expectBase64(int index) throws IllegalArgumentException {
         if (messageType.getArgs()[index] != MsgArg.BASE64_STR) {
             throw new IllegalArgumentException("Base64 string not allowed at this position");
         }
     }
 
-    public void addIpPort(int index, IpPortTuple ipPort)
+    /**
+     * Adds or modifies an IP:Port value at the given index.
+     *
+     * @param index
+     *  Index to add or modify
+     * @param addr
+     *  IP:Port value as InetSocketAddress
+     * @throws IndexOutOfBoundsException if the index is invalid
+     * @throws IllegalArgumentException if no IP:Port is allowed at the given position
+     */
+    public void addIpPort(int index, InetSocketAddress addr)
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index, true);
         expectIpPort(index);
         // checks passed, now set the value
-        arguments.add(index, ipPort.getColonSeparated());
+        arguments.add(index, addr.getHostName() + ":" + addr.getPort());
     }
 
-    public IpPortTuple getIpPort(int index)
+    /**
+     * Gets the IP:Port value at the given index as InetSocketAddress.
+     *
+     * @param index Index to read from
+     * @return Value parsed as InetSocketAddress
+     * @throws IndexOutOfBoundsException if the index is invalid
+     * @throws IllegalArgumentException if no IP:Port is allowed at the given position or
+     *  if the value can't be parsed as InetSocketAddress
+     */
+    public InetSocketAddress getIpPort(int index)
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index, false);
         expectIpPort(index);
-        return new IpPortTuple(arguments.get(index));
+        InetSocketAddressTypeConverter converter = new InetSocketAddressTypeConverter();
+        try {
+            return converter.convert(arguments.get(index));
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
+    /**
+     * Adds a Base64 string at the given position
+     *
+     * @param index
+     *  Index to add or modify
+     * @param cleartext
+     *  String to add. This is the cleartext value without Base64 encoding.
+     * @throws IndexOutOfBoundsException If the index is invalid
+     * @throws IllegalArgumentException if there is no Base64 string allowed at this position
+     */
     public void addBase64(int index, String cleartext)
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index, true);
@@ -149,6 +205,14 @@ public class ECSMessage {
         arguments.add(index, new String(Base64.getEncoder().encode(cleartext.getBytes())));
     }
 
+    /**
+     * Reads the value at the given position as Base64 String.
+     *
+     * @param index Index to read from
+     * @return The decoded value
+     * @throws IndexOutOfBoundsException If the index is invalid
+     * @throws IllegalArgumentException If there is no Base64 string allowed at this position
+     */
     public String getBase64(int index)
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index, false);
@@ -156,5 +220,15 @@ public class ECSMessage {
         return new String(Base64.getDecoder().decode(
                 arguments.get(index).getBytes()
         ));
+    }
+
+    /**
+     * Constructs a string which is ready for transmission out of the raw data.
+     *
+     * @return Message to be sent
+     */
+    public String getFullMessage() {
+        // TODO: perform checks if message is complete
+        return String.join(" ", arguments);
     }
 }
