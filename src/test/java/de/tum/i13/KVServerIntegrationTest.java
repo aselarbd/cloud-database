@@ -1,6 +1,6 @@
 package de.tum.i13;
 
-import de.tum.i13.server.nio.StartNioServer;
+import de.tum.i13.server.kv.Main;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,7 +23,7 @@ public class KVServerIntegrationTest {
             public void run() {
                 try {
                     // start server
-                    StartNioServer.main(new String[]{"-p", port.toString(), "-d", folder});
+                    Main.main(new String[]{"-p", port.toString(), "-d", folder});
                     // wait until interrupted
                     while (!Thread.currentThread().isInterrupted()) {
                         try {
@@ -33,7 +34,7 @@ public class KVServerIntegrationTest {
                     }
                     // shutdown server
                     Runtime.getRuntime().exit(0);
-                } catch (IOException e) {
+                } catch (IOException | NoSuchAlgorithmException e) {
                     e.printStackTrace();
                 }
             }

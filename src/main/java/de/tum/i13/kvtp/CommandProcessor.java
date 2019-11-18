@@ -1,4 +1,4 @@
-package de.tum.i13.shared;
+package de.tum.i13.kvtp;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

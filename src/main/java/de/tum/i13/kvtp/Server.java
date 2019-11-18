@@ -1,57 +1,68 @@
-package de.tum.i13.server.nio;
+package de.tum.i13.kvtp;
 
-import de.tum.i13.shared.CommandProcessor;
 import de.tum.i13.shared.Constants;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Based on http://rox-xmlrpc.sourceforge.net/niotut/
  */
-public class NioServer {
+public class Server {
+
+    private byte[] messageDelimiter;
+
+    public static Logger logger = Logger.getLogger(Server.class.getName());
 
     private List<ChangeRequest> pendingChanges;
     private Map<SelectionKey, List<ByteBuffer>> pendingWrites;
     private Map<SelectionKey, byte[]> pendingReads;
 
     private Selector selector;
-    private ServerSocketChannel serverChannel;
 
     private ByteBuffer readBuffer;
-    private CommandProcessor cmdProcessor;
 
-    public NioServer(CommandProcessor cmdProcessor) {
-        this.cmdProcessor = cmdProcessor;
+    private List<ServerSocketChannel> serverSocketChannels;
+    private List<SocketChannel> socketChannels;
+
+    public Server() throws UnsupportedEncodingException {
+        this.serverSocketChannels = new ArrayList<>();
+        this.socketChannels = new ArrayList<>();
+
         this.pendingChanges = new LinkedList<>();
         this.pendingWrites = new HashMap<>();
         this.pendingReads = new HashMap<>();
 
         this.readBuffer = ByteBuffer.allocate(8192); // = 2^13
+
+        messageDelimiter = "\r\n".getBytes(Constants.TELNET_ENCODING);
     }
 
-    public void bindSockets(String servername, int port) throws IOException {
+    public void bindSockets(String serverName, int port, CommandProcessor cmdProcessor) throws IOException {
         // Create a new non-blocking server selectionKey channel
-        this.serverChannel = ServerSocketChannel.open();
-        this.serverChannel.configureBlocking(false);
+        ServerSocketChannel ssc = ServerSocketChannel.open();
+        ssc.configureBlocking(false);
 
         // Bind the server selectionKey to the specified address and port
-        InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(servername), port);
-        this.serverChannel.socket().bind(isa);
+        InetSocketAddress isa = new InetSocketAddress(InetAddress.getByName(serverName), port);
+        ssc.socket().bind(isa);
 
         // Register the server selectionKey channel, indicating an interest in
         // accepting new connections
-        this.selector = SelectorProvider.provider().openSelector();
-        this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+        if (this.selector == null) {
+            this.selector = SelectorProvider.provider().openSelector();
+        }
+
+        SelectionKey sk = ssc.register(selector, SelectionKey.OP_ACCEPT);
+        sk.attach(cmdProcessor);
+        serverSocketChannels.add(ssc);
     }
 
     public void start() throws IOException {
@@ -99,15 +110,17 @@ public class NioServer {
 
         InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
         InetSocketAddress localAddress = (InetSocketAddress)socketChannel.getLocalAddress();
-        String confirmation = this.cmdProcessor.connectionAccepted(localAddress, remoteAddress);
+        CommandProcessor cmdProcessor = (CommandProcessor) key.attachment();
+        String confirmation = cmdProcessor.connectionAccepted(localAddress, remoteAddress);
 
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
         SelectionKey registeredKey = socketChannel.register(this.selector, SelectionKey.OP_WRITE);
+        registeredKey.attach(cmdProcessor);
         queueForWrite(registeredKey, confirmation.getBytes(Constants.TELNET_ENCODING));
     }
 
-    private void read(SelectionKey key) throws IOException {
+    private void read(SelectionKey key) throws UnsupportedEncodingException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
         // Clear out our read buffer so it's ready for new data
@@ -118,32 +131,19 @@ public class NioServer {
         try {
             numRead = socketChannel.read(this.readBuffer);
         } catch (IOException e) {
-            InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-            this.cmdProcessor.connectionClosed(remoteAddress.getAddress());
-
-            // The remote forcibly closed the connection, cancel
-            // the selection key and close the channel.
-            key.cancel();
-            socketChannel.close();
-
+            logger.info("failed to read from remote, closing connection: " + e.getMessage());
+            closeRemote(key);
             return;
         }
 
         if (numRead == -1) {
-            InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-            this.cmdProcessor.connectionClosed(remoteAddress.getAddress());
-
-            // Remote entity shut the selectionKey down cleanly. Do the
-            // same from our end and cancel the channel.
-            key.channel().close();
-            key.cancel();
-
+            logger.info("Read -1 bytes from buffer, socket has reached end-of-stream, closing connection");
+            closeRemote(key);
             return;
         }
 
         byte[] dataCopy = new byte[numRead];
         System.arraycopy(this.readBuffer.array(), 0, dataCopy, 0, numRead);
-        //System.out.println("#tempdata:" + new String(dataCopy, Constants.TELNET_ENCODING));
 
         // If we have already received some data, we add this to our buffer
         if (this.pendingReads.containsKey(key)) {
@@ -153,47 +153,72 @@ public class NioServer {
             System.arraycopy(existingBytes, 0, concatenated, 0, existingBytes.length);
             System.arraycopy(dataCopy, 0, concatenated, existingBytes.length, dataCopy.length);
 
-            //If somebody funny sends us veeerry long requests, we just close the connection
-            if(concatenated.length > 1000000) {
-                this.pendingReads.remove(key);
-                socketChannel.close();
-            }
+            dataCopy = concatenated;
+        }
 
-            // In case we have now finally reached all characters
-            if (checkIfFinished(concatenated)) {
-                String data = new String(concatenated, 0, concatenated.length - 2, Constants.TELNET_ENCODING);
-                this.pendingReads.remove(key);
-                handleRequest(key, data);
-            } else {
-                this.pendingReads.put(key, concatenated);
-            }
-        } else {
-            // In case we got already the whole request within one step we don't
-            // have to wait again
-            // In this case no buffering in the hashtable and start direct
-            // handling the request
-            if (checkIfFinished(dataCopy)) {
-                String data = new String(dataCopy, 0, dataCopy.length - 2, Constants.TELNET_ENCODING);
-                handleRequest(key, data);
-            } else {
-                // in case it is the first request we
-                if (this.pendingReads.containsKey(key)) {
-                    byte[] existingBytes = this.pendingReads.get(key);
-                    byte[] concatenated = new byte[existingBytes.length + dataCopy.length];
-                    System.arraycopy(existingBytes, 0, concatenated, 0, existingBytes.length);
-                    System.arraycopy(dataCopy, 0, concatenated, existingBytes.length, dataCopy.length);
+        if(dataCopy.length > 128000) {
+            logger.info("Remote message exceeded max message size, closing connection");
+            closeRemote(key);
+            this.pendingReads.remove(key);
+            return;
+        }
 
-                    this.pendingReads.put(key, concatenated);
-                } else {
-                    this.pendingReads.put(key, dataCopy);
-                }
+        // In case we have now finally reached all characters
+        // Split by delimiter \r\n and handle all requests which are delimited
+        // everything after is then put back to pending reads
+        List<byte[]> buffers = splitByDelimiter(dataCopy, messageDelimiter);
+        for (int i = 0; i < buffers.size() - 1; i++) {
+            handleRequest(key, new String(buffers.get(i), Constants.TELNET_ENCODING));
+        }
+        this.pendingReads.put(key, buffers.get(buffers.size() - 1));
+    }
+
+    private static boolean match(byte[] pattern, byte[] input, int pos) {
+        for (int i = 0; i < pattern.length; i++) {
+            if (input[pos + i] != pattern[i]) {
+                return false;
             }
+        }
+        return true;
+    }
+
+    static List<byte[]> splitByDelimiter(byte[] data, byte[] delimiter) {
+        List<byte[]> result = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i < data.length; i++) {
+            if (match(delimiter, data, i)) {
+                byte[] block = new byte[i - start];
+                System.arraycopy(data, start, block, 0, i - start);
+                result.add(block);
+                start = i + delimiter.length;
+                i = start;
+            }
+        }
+
+        byte[] last = new byte[data.length - start];
+        System.arraycopy(data, start,last, 0, data.length - start);
+        result.add(last);
+        return result;
+    }
+
+    private void closeRemote(SelectionKey key) {
+        SocketChannel sc = (SocketChannel) key.channel();
+        CommandProcessor cp = (CommandProcessor) key.attachment();
+
+        try {
+            InetSocketAddress remoteAddress = (InetSocketAddress) sc.getRemoteAddress();
+            cp.connectionClosed(remoteAddress.getAddress());
+            key.cancel();
+            sc.close();
+        } catch(ClosedChannelException cce) {
+            logger.info("Failed to close remote, channel already closed " + cce.getMessage());
+        } catch (IOException ioe) {
+            logger.warning("Failed to close remote: " + ioe.getMessage());
         }
     }
 
-    private void write(SelectionKey key) throws IOException {
+    private void write(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
-        InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
         List<ByteBuffer> queue = this.pendingWrites.get(key);
 
         // Write until there's no more data left ...
@@ -204,7 +229,8 @@ public class NioServer {
             }catch (IOException ex) {
                 //There could be an IOException: Connection reset by peer
                 queue.clear(); //clear the queue
-                this.cmdProcessor.connectionClosed(remoteAddress.getAddress());
+                this.pendingWrites.remove(key);
+                closeRemote(key);
                 return;
             }
             if (buf.remaining() > 0) {
@@ -222,26 +248,27 @@ public class NioServer {
         }
     }
 
-    // This is telnet specific, maybe you have to change it according to your
-    // protocol
-    private boolean checkIfFinished(byte[] data) {
-        int length = data.length;
-        if (length < 3) {
-            return false;
-        } else {
-            if (data[length - 1] == '\n') {
-                return data[length - 2] == '\r';
-            }
-            return false;
+    public void connectTo(String address, int port, CommandProcessor ecsProcessor) throws IOException {
+        SocketChannel sc = SocketChannel.open();
+        sc.connect(new InetSocketAddress(address, port));
+        sc.configureBlocking(false);
+
+        if (this.selector == null) {
+            this.selector = SelectorProvider.provider().openSelector();
         }
+
+        SelectionKey key = sc.register(selector, SelectionKey.OP_CONNECT);
+        key.attach(ecsProcessor);
+        this.socketChannels.add(sc);
     }
 
     private void handleRequest(SelectionKey selectionKey, String request) {
+        CommandProcessor cp = (CommandProcessor) selectionKey.attachment();
         try {
-            String res = cmdProcessor.process(request);
+            String res = cp.process(request) + "\r\n";
             send(selectionKey, res.getBytes(Constants.TELNET_ENCODING));
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            logger.severe("Failed to send due to unsupported Encoding: " + e.getMessage());
         }
     }
 
@@ -263,10 +290,12 @@ public class NioServer {
     }
 
     public void close() {
-        try {
-            this.serverChannel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        for (ServerSocketChannel ssc : serverSocketChannels) {
+            try {
+                ssc.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

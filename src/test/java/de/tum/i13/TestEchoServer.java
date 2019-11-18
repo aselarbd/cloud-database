@@ -1,12 +1,13 @@
 package de.tum.i13;
 
-import de.tum.i13.server.nio.StartNioServer;
+import de.tum.i13.server.kv.Main;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.NoSuchAlgorithmException;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,8 +24,8 @@ public class TestEchoServer {
             @Override
             public void run() {
                 try {
-                    StartNioServer.main(new String[]{"-p", port.toString()});
-                } catch (IOException e) {
+                    Main.main(new String[]{"-p", port.toString()});
+                } catch (IOException | NoSuchAlgorithmException e) {
                     e.printStackTrace();
                 }
             }
@@ -50,8 +51,8 @@ public class TestEchoServer {
             @Override
             public void run() {
                 try {
-                    StartNioServer.main(new String[]{"-p", port.toString()});
-                } catch (IOException e) {
+                    Main.main(new String[]{"-p", port.toString()});
+                } catch (IOException | NoSuchAlgorithmException e) {
                     e.printStackTrace();
                 }
             }

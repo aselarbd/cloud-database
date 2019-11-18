@@ -1,14 +1,14 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.shared.CommandProcessor;
-import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.KVItem;
-import de.tum.i13.shared.KVResult;
+import de.tum.i13.kvtp.CommandProcessor;
+import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,7 +19,20 @@ public class KVCommandProcessor implements CommandProcessor {
     private KVCache kvCache;
     private KVStore kvStore;
 
-    public KVCommandProcessor(KVCache kvCache, KVStore kvStore) {
+    // TODO: initialize with values given by ecs
+    private String address;
+    private ConsistentHashMap keyRange;
+
+    private ReentrantReadWriteLock serverWriteLock = new ReentrantReadWriteLock();
+    private boolean serverStopped;
+
+    public KVCommandProcessor(KVCache kvCache, KVStore kvStore) throws NoSuchAlgorithmException {
+        // TODO: set useful values
+        address = "0";
+        keyRange = new ConsistentHashMap();
+        keyRange.put(address); // TODO: delete this line
+        serverStopped = false;
+
         this.kvCache = kvCache;
         this.kvStore = kvStore;
     }
@@ -28,6 +41,17 @@ public class KVCommandProcessor implements CommandProcessor {
     public String process(String input) {
         KVResultParser parser = new KVResultParser();
         KVResult command = parser.parse(input);
+
+        String key = command.getItem().getKey();
+        if (!keyRange.get(key).equals(address)) {
+            return "server_not_responsible";
+        }
+        if (serverWriteLock.isWriteLocked()) {
+            return "server_write_lock";
+        }
+        if (serverStopped) {
+            return "server_stopped";
+        }
 
         switch(command.getMessage().toLowerCase()) {
             case "get":
