@@ -164,7 +164,7 @@ public class ECSMessage {
         checkLength(index, true);
         expectIpPort(index);
         // checks passed, now set the value
-        arguments.add(index, addr.getHostName() + ":" + addr.getPort());
+        arguments.add(index, addr.getHostString() + ":" + addr.getPort());
     }
 
     /**
@@ -229,6 +229,7 @@ public class ECSMessage {
      */
     public String getFullMessage() {
         // TODO: perform checks if message is complete
-        return String.join(" ", arguments);
+        String argsStr = (arguments.size() > 0) ? " " + String.join(" ", arguments) : "";
+        return messageType.getMsgName() + argsStr;
     }
 }
