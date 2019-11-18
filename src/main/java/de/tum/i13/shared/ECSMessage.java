@@ -1,6 +1,7 @@
 package de.tum.i13.shared;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -94,8 +95,12 @@ public class ECSMessage {
         }
     }
 
-    protected void checkLength(int index) throws IndexOutOfBoundsException {
-        if (index < 0 || !isVariable && index >= arguments.size()) {
+    protected void checkLength(int index, boolean write) throws IndexOutOfBoundsException {
+        if (index < 0 || index > arguments.size()) {
+            throw new IndexOutOfBoundsException();
+        } else if (index == arguments.size() && (!write || !isVariable)) {
+            // when reading or having fixed args, index may not be equal to size as well,
+            // this is only valid for appending variable args
             throw new IndexOutOfBoundsException();
         }
     }
@@ -116,12 +121,40 @@ public class ECSMessage {
         }
     }
 
-    public void addIpPort(int index, String ip, int port)
-            throws IndexOutOfBoundsException, IllegalArgumentException {
-        checkLength(index);
-        expectIpPort(index);
-        // checks passed, now set the value
-        arguments.add(index, ip + ":" + Integer.toString(port));
+    protected void expectBase64(int index) throws IllegalArgumentException {
+        if (messageType.getArgs()[index] != MsgArg.BASE64_STR) {
+            throw new IllegalArgumentException("Base64 string not allowed at this position");
+        }
     }
 
+    public void addIpPort(int index, IpPortTuple ipPort)
+            throws IndexOutOfBoundsException, IllegalArgumentException {
+        checkLength(index, true);
+        expectIpPort(index);
+        // checks passed, now set the value
+        arguments.add(index, ipPort.getColonSeparated());
+    }
+
+    public IpPortTuple getIpPort(int index)
+            throws IndexOutOfBoundsException, IllegalArgumentException {
+        checkLength(index, false);
+        expectIpPort(index);
+        return new IpPortTuple(arguments.get(index));
+    }
+
+    public void addBase64(int index, String cleartext)
+            throws IndexOutOfBoundsException, IllegalArgumentException {
+        checkLength(index, true);
+        expectBase64(index);
+        arguments.add(index, new String(Base64.getEncoder().encode(cleartext.getBytes())));
+    }
+
+    public String getBase64(int index)
+            throws IndexOutOfBoundsException, IllegalArgumentException {
+        checkLength(index, false);
+        expectBase64(index);
+        return new String(Base64.getDecoder().decode(
+                arguments.get(index).getBytes()
+        ));
+    }
 }
