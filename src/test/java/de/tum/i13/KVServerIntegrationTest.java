@@ -1,6 +1,6 @@
 package de.tum.i13;
 
-import de.tum.i13.server.threadperconnection.Main;
+import de.tum.i13.server.nio.StartNioServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,7 +22,7 @@ public class KVServerIntegrationTest {
             public void run() {
                 try {
                     // start server
-                    Main.main(new String[]{"-p", port.toString(), "-d", folder});
+                    StartNioServer.main(new String[]{"-p", port.toString(), "-d", folder});
                     // wait until interrupted
                     while (!Thread.currentThread().isInterrupted()) {
                         try {
@@ -32,7 +32,7 @@ public class KVServerIntegrationTest {
                         }
                     }
                     // shutdown server
-                    Main.shutdown();
+                    Runtime.getRuntime().exit(0);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

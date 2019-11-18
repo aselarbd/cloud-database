@@ -31,13 +31,13 @@ public class KVCommandProcessor implements CommandProcessor {
 
         switch(command.getMessage().toLowerCase()) {
             case "get":
-                return get(command.getItem().getKey());
+                return get(command.getItem().getKey()) + "\r\n";
             case "put":
-                return put(command.getItem());
+                return put(command.getItem()) + "\r\n";
             case "delete":
-                return delete(command.getItem());
+                return delete(command.getItem()) + "\r\n";
             default:
-                return "unknown command";
+                return "unknown command" + "\r\n";
         }
     }
 
@@ -93,14 +93,12 @@ public class KVCommandProcessor implements CommandProcessor {
 
     @Override
     public String connectionAccepted(InetSocketAddress address, InetSocketAddress remoteAddress) {
-        //TODO
-
-        return null;
+        logger.info("new connection: " + remoteAddress.toString());
+        return "connected to MSRG KVServer: " + address.toString() + "\r\n";
     }
 
     @Override
     public void connectionClosed(InetAddress address) {
-        //TODO
-
+        logger.info("connection closed: " + address.toString());
     }
 }

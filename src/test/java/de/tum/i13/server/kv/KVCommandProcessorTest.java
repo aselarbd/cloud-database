@@ -167,7 +167,7 @@ class KVCommandProcessorTest {
                         String processed = kvcp.process(
                                 c.action + " " + c.key + (c.value != null ? " " + c.value : "")
                         );
-                        assertEquals(c.result, processed);
+                        assertEquals(c.result  + "\r\n", processed);
                     })
                 );
     }

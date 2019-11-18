@@ -100,7 +100,6 @@ public class NioServer {
         InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
         InetSocketAddress localAddress = (InetSocketAddress)socketChannel.getLocalAddress();
         String confirmation = this.cmdProcessor.connectionAccepted(localAddress, remoteAddress);
-        //send(key, confirmation.getBytes(Constants.TELNET_ENCODING));
 
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
@@ -162,7 +161,7 @@ public class NioServer {
 
             // In case we have now finally reached all characters
             if (checkIfFinished(concatenated)) {
-                String data = new String(concatenated, Constants.TELNET_ENCODING);
+                String data = new String(concatenated, 0, concatenated.length - 2, Constants.TELNET_ENCODING);
                 this.pendingReads.remove(key);
                 handleRequest(key, data);
             } else {
@@ -174,7 +173,7 @@ public class NioServer {
             // In this case no buffering in the hashtable and start direct
             // handling the request
             if (checkIfFinished(dataCopy)) {
-                String data = new String(dataCopy, Constants.TELNET_ENCODING);
+                String data = new String(dataCopy, 0, dataCopy.length - 2, Constants.TELNET_ENCODING);
                 handleRequest(key, data);
             } else {
                 // in case it is the first request we
@@ -231,9 +230,7 @@ public class NioServer {
             return false;
         } else {
             if (data[length - 1] == '\n') {
-                if (data[length - 2] == '\r') {
-                    return true;
-                }
+                return data[length - 2] == '\r';
             }
             return false;
         }
@@ -243,7 +240,6 @@ public class NioServer {
         try {
             String res = cmdProcessor.process(request);
             send(selectionKey, res.getBytes(Constants.TELNET_ENCODING));
-
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -262,11 +258,7 @@ public class NioServer {
     }
 
     private void queueForWrite(SelectionKey selectionKey, byte[] data) {
-        List<ByteBuffer> queue = this.pendingWrites.get(selectionKey);
-        if (queue == null) {
-            queue = new ArrayList<>();
-            this.pendingWrites.put(selectionKey, queue);
-        }
+        List<ByteBuffer> queue = this.pendingWrites.computeIfAbsent(selectionKey, k -> new ArrayList<>());
         queue.add(ByteBuffer.wrap(data));
     }
 

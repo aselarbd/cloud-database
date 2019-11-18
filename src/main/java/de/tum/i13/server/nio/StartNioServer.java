@@ -1,6 +1,10 @@
 package de.tum.i13.server.nio;
 
-import de.tum.i13.server.echo.EchoLogic;
+import de.tum.i13.server.kv.CacheBuilder;
+import de.tum.i13.server.kv.KVCache;
+import de.tum.i13.server.kv.KVCommandProcessor;
+import de.tum.i13.server.kv.KVStore;
+import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.CommandProcessor;
 import de.tum.i13.shared.Config;
 
@@ -21,10 +25,16 @@ public class StartNioServer {
 
         logger.info("starting server");
 
-        //Replace with your Key Value command processor
-        CommandProcessor echoLogic = new EchoLogic();
+        KVCache cache = CacheBuilder.newBuilder()
+                .size(cfg.cachesize)
+                .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
+                .build();
 
-        NioServer sn = new NioServer(echoLogic);
+        KVStore store = new LSMStore(cfg.dataDir);
+
+        CommandProcessor kvCommandProcessor = new KVCommandProcessor(cache, store);
+
+        NioServer sn = new NioServer(kvCommandProcessor);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Closing NioServer");
