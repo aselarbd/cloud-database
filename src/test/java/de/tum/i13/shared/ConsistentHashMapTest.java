@@ -1,10 +1,10 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.shared;
 
 import org.junit.jupiter.api.Test;
 
 import java.security.NoSuchAlgorithmException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConsistentHashMapTest {
 

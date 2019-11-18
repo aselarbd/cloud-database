@@ -1,4 +1,4 @@
-package de.tum.i13.server.kv;
+package de.tum.i13.shared;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,7 +22,7 @@ public class ConsistentHashMap {
      * @throws NoSuchAlgorithmException when MD5 is not available
      * (should never happen)
      */
-    ConsistentHashMap() throws NoSuchAlgorithmException {
+    public ConsistentHashMap() throws NoSuchAlgorithmException {
         this.messageDigest = MessageDigest.getInstance("MD5");
     }
 
