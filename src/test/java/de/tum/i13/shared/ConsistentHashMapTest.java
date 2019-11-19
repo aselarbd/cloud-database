@@ -2,6 +2,7 @@ package de.tum.i13.shared;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,9 +12,9 @@ class ConsistentHashMapTest {
     @Test
     void testConsistentHashMap() throws NoSuchAlgorithmException {
         ConsistentHashMap consistentHashMap = new ConsistentHashMap();
-        String ip1 = "192.168.1.1"; // 66efff4c945d3c3b87fc271b47d456db
-        String ip2 = "192.168.1.2"; // 8a120ff3e2c86713f4d346d20f763ee7
-        String ip3 = "192.168.1.3"; // cc9d4028d80b7d9c2242cf5fc8cb25f2
+        InetSocketAddress ip1 = new InetSocketAddress("192.168.1.1", 80); // be8e4f546de43337d7f0d4637a796478
+        InetSocketAddress ip2 = new InetSocketAddress("192.168.1.2", 80); // c8088b91cb0f2fbcbdf107bd31e3d195
+        InetSocketAddress ip3 = new InetSocketAddress("192.168.1.3", 80); // 0da0828d3687114976e0edb80e0c54d5
 
         String key = "key"; // 3c6e0b8a9c15224a8228b9a98ca1531d
 
@@ -23,7 +24,7 @@ class ConsistentHashMapTest {
 
         assertEquals(ip1, consistentHashMap.get(key));
 
-        String ip6 = "192.168.1.6"; // 428e996031cc52e6948e992887dd9330
+        InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
         consistentHashMap.put(ip6);
 
         assertEquals(ip6, consistentHashMap.get(key));

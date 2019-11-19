@@ -90,8 +90,30 @@ public class ConsistentHashMap {
         consistentHashMap.remove(addressHash(addr));
     }
 
+    /**
+     * Get keyrange arguments in the format start_hash,end_hash,IP:Port;start_hash,...
+     * @return
+     */
     public String getKeyrangeString() {
-        // TODO
-        return "";
+        String items = "";
+        String startHash = "";
+        String endHash = "";
+        String ipPort = "";
+        for (Map.Entry<String, InetSocketAddress> entry : consistentHashMap.entrySet()) {
+            // current hash is end hash for previous one
+            endHash = entry.getKey();
+            if (!startHash.equals("")) {
+                items += startHash + "," + endHash + "," + ipPort + ";";
+            }
+            // prepare items to be written in the next iteration
+            startHash = entry.getKey();
+            ipPort = InetSocketAddressTypeConverter.addrString(entry.getValue());
+        }
+        // process the last item - it has the first item's hash as end hash
+        endHash = consistentHashMap.firstKey();
+        if (!startHash.equals("")) {
+            items += startHash + "," + endHash + "," + ipPort + ";";
+        }
+        return items;
     }
 }
