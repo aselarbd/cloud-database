@@ -55,6 +55,7 @@ public class LSMFlusher extends Thread {
                 // nothing to flush here
                 try {
                     Thread.sleep(CACHE_FLUSH_FREQUENCY);
+                    continue;
                 } catch (InterruptedException e) {
                     logger.severe(e.getMessage());
                 }
