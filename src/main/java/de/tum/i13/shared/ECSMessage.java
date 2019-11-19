@@ -1,12 +1,21 @@
 package de.tum.i13.shared;
 
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
 /**
  * Describes a message to or from the ECS.
+ *
+ * For constructing a message, you have to initially call the add methods with the respective types in the
+ * order of the arguments (i.e. it isn't possible to create argument 1 before argument 0). This ensures that
+ * all arguments are present and have the correct type.
+ *
+ * After elements are initialized, updates are possible in any order via the same add calls.
+ *
+ * If the message contains all required items with the proper types, a string representation can be generated.
  */
 public class ECSMessage {
     /**
@@ -84,6 +93,20 @@ public class ECSMessage {
     }
 
     /**
+     * Appends or updates an argument to the argument list.
+     *
+     * @param index Index to add the item at
+     * @param item Argument as String
+     */
+    private void addOrUpdate(int index, String item) {
+        if (index == arguments.size()) {
+            arguments.add(item);
+        } else {
+            arguments.set(index, item);
+        }
+    }
+
+    /**
      * Helper to check if the given index is valid for this item.
      *
      * @param index
@@ -91,7 +114,7 @@ public class ECSMessage {
      * @throws IndexOutOfBoundsException if the index is not valid
      */
     protected void checkLength(int index) throws IndexOutOfBoundsException {
-        if (index < 0 || index >= arguments.size()) {
+        if (index < 0 || index > arguments.size() || index >= messageType.getArgs().length) {
             throw new IndexOutOfBoundsException();
         }
     }
@@ -124,7 +147,7 @@ public class ECSMessage {
         checkLength(index);
         expectAt(index, MsgArg.IP_PORT);
         // checks passed, now set the value
-        arguments.add(index, addr.getHostString() + ":" + addr.getPort());
+        addOrUpdate(index, addr.getHostString() + ":" + addr.getPort());
     }
 
     /**
@@ -162,7 +185,7 @@ public class ECSMessage {
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index);
         expectAt(index, MsgArg.BASE64_STR);
-        arguments.add(index, new String(Base64.getEncoder().encode(cleartext.getBytes())));
+        addOrUpdate(index, new String(Base64.getEncoder().encode(cleartext.getBytes())));
     }
 
     /**
@@ -196,16 +219,34 @@ public class ECSMessage {
             throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index);
         expectAt(index, MsgArg.KEYRANGE);
-        arguments.add(index, map.getKeyrangeString());
+        addOrUpdate(index, map.getKeyrangeString());
+    }
+
+    /**
+     * Gets a keyrange argument. The raw argument is parsed as {@link ConsistentHashMap}.
+     *
+     * @param index The index of the argument
+     * @return A new {@link ConsistentHashMap} based on the argument values
+     * @throws IndexOutOfBoundsException if the index is invalid
+     * @throws IllegalArgumentException if there is no KEYRANGE item allowed at this position or if parsing failed
+     * @throws NoSuchAlgorithmException if MD5 is unavailable (should never happen)
+     */
+    public ConsistentHashMap getKeyrange(int index)
+            throws IndexOutOfBoundsException, IllegalArgumentException, NoSuchAlgorithmException {
+        checkLength(index);
+        expectAt(index, MsgArg.KEYRANGE);
+        return ConsistentHashMap.fromKeyrangeString(arguments.get(index));
     }
 
     /**
      * Constructs a string which is ready for transmission out of the raw data.
      *
-     * @return Message to be sent
+     * @return Message to be sent, or an empty string if the data is incomplete.
      */
     public String getFullMessage() {
-        // TODO: perform checks if message is complete
+        if (arguments.size() != messageType.getArgs().length) {
+            return "";
+        }
         String argsStr = (arguments.size() > 0) ? " " + String.join(" ", arguments) : "";
         return messageType.getMsgName() + argsStr;
     }
