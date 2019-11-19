@@ -118,7 +118,7 @@ public class KVCommandProcessor implements CommandProcessor {
     @Override
     public String connectionAccepted(InetSocketAddress address, InetSocketAddress remoteAddress) {
         logger.info("new connection: " + remoteAddress.toString());
-        return "connected to MSRG KVServer: " + address.toString() + "\r\n";
+        return "connected to KVServer: " + address.toString();
     }
 
     @Override

@@ -65,6 +65,24 @@ public class Server {
         serverSocketChannels.add(ssc);
     }
 
+    public void connectTo(InetSocketAddress address, CommandProcessor ecsProcessor) throws IOException {
+        SocketChannel sc = SocketChannel.open();
+        boolean connected = sc.connect(address);
+        sc.configureBlocking(false);
+
+        if (this.selector == null) {
+            this.selector = SelectorProvider.provider().openSelector();
+        }
+
+        SelectionKey key = sc.register(selector, SelectionKey.OP_CONNECT);
+        key.attach(ecsProcessor);
+        this.socketChannels.add(sc);
+
+        if (connected) {
+            connect(key);
+        }
+    }
+
     public void start() throws IOException {
         while (true) {
             // Process queued interest changes
@@ -93,6 +111,8 @@ public class Server {
                     read(key);
                 } else if (key.isWritable()) {
                     write(key);
+                } else if (key.isConnectable()) {
+                    connect(key);
                 }
             }
         }
@@ -117,7 +137,7 @@ public class Server {
         // we'd like to be notified when there's data waiting to be read
         SelectionKey registeredKey = socketChannel.register(this.selector, SelectionKey.OP_WRITE);
         registeredKey.attach(cmdProcessor);
-        queueForWrite(registeredKey, confirmation.getBytes(Constants.TELNET_ENCODING));
+        send(registeredKey, confirmation.getBytes(Constants.TELNET_ENCODING));
     }
 
     private void read(SelectionKey key) throws UnsupportedEncodingException {
@@ -173,6 +193,48 @@ public class Server {
         this.pendingReads.put(key, buffers.get(buffers.size() - 1));
     }
 
+    private void write(SelectionKey key) {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        List<ByteBuffer> queue = this.pendingWrites.get(key);
+
+        // Write until there's no more data left ...
+        while (!queue.isEmpty()) {
+            ByteBuffer buf = queue.get(0);
+            try {
+                socketChannel.write(buf);
+            }catch (IOException ex) {
+                //There could be an IOException: Connection reset by peer
+                queue.clear(); //clear the queue
+                this.pendingWrites.remove(key);
+                closeRemote(key);
+                return;
+            }
+            if (buf.remaining() > 0) {
+                // ... or the selectionKey's buffer fills up
+                break;
+            }
+            queue.remove(0);
+        }
+
+        if (queue.isEmpty()) {
+            // We wrote away all data, so we're no longer interested
+            // in writing on this selectionKey. Switch back to waiting for
+            // data.
+            key.interestOps(SelectionKey.OP_READ);
+        }
+    }
+
+    private void connect(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+
+        InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+        InetSocketAddress localAddress = (InetSocketAddress) socketChannel.getLocalAddress();
+        CommandProcessor cmdProcessor = (CommandProcessor) key.attachment();
+
+        String cmd = cmdProcessor.connectionAccepted(localAddress, remoteAddress);
+        send(key, cmd.getBytes(Constants.TELNET_ENCODING));
+    }
+
     private static boolean match(byte[] pattern, byte[] input, int pos) {
         for (int i = 0; i < pattern.length; i++) {
             if (input[pos + i] != pattern[i]) {
@@ -217,56 +279,13 @@ public class Server {
         }
     }
 
-    private void write(SelectionKey key) {
-        SocketChannel socketChannel = (SocketChannel) key.channel();
-        List<ByteBuffer> queue = this.pendingWrites.get(key);
-
-        // Write until there's no more data left ...
-        while (!queue.isEmpty()) {
-            ByteBuffer buf = queue.get(0);
-            try {
-                socketChannel.write(buf);
-            }catch (IOException ex) {
-                //There could be an IOException: Connection reset by peer
-                queue.clear(); //clear the queue
-                this.pendingWrites.remove(key);
-                closeRemote(key);
-                return;
-            }
-            if (buf.remaining() > 0) {
-                // ... or the selectionKey's buffer fills up
-                break;
-            }
-            queue.remove(0);
-        }
-
-        if (queue.isEmpty()) {
-            // We wrote away all data, so we're no longer interested
-            // in writing on this selectionKey. Switch back to waiting for
-            // data.
-            key.interestOps(SelectionKey.OP_READ);
-        }
-    }
-
-    public void connectTo(String address, int port, CommandProcessor ecsProcessor) throws IOException {
-        SocketChannel sc = SocketChannel.open();
-        sc.connect(new InetSocketAddress(address, port));
-        sc.configureBlocking(false);
-
-        if (this.selector == null) {
-            this.selector = SelectorProvider.provider().openSelector();
-        }
-
-        SelectionKey key = sc.register(selector, SelectionKey.OP_CONNECT);
-        key.attach(ecsProcessor);
-        this.socketChannels.add(sc);
-    }
-
     private void handleRequest(SelectionKey selectionKey, String request) {
         CommandProcessor cp = (CommandProcessor) selectionKey.attachment();
         try {
-            String res = cp.process(request) + "\r\n";
-            send(selectionKey, res.getBytes(Constants.TELNET_ENCODING));
+            String res = cp.process(request);
+            if (res != null) {
+                send(selectionKey, res.getBytes(Constants.TELNET_ENCODING));
+            }
         } catch (UnsupportedEncodingException e) {
             logger.severe("Failed to send due to unsupported Encoding: " + e.getMessage());
         }
@@ -276,8 +295,12 @@ public class Server {
         // Indicate we want the interest ops set changed
         this.pendingChanges.add(new ChangeRequest(selectionKey, SelectionKey.OP_WRITE));
 
+        byte[] concatenated = new byte[data.length + messageDelimiter.length];
+        System.arraycopy(data, 0, concatenated, 0, data.length);
+        System.arraycopy(messageDelimiter, 0, concatenated, data.length, messageDelimiter.length);
+
         // And queue the data we want written
-        queueForWrite(selectionKey, data);
+        queueForWrite(selectionKey, concatenated);
 
         // Finally, wake up our selecting thread so it can make the required
         // changes

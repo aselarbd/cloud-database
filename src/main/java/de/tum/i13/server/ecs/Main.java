@@ -28,7 +28,7 @@ public class Main {
             s.close();
         }));
 
-        CommandProcessor ecs = new ECSProcessor();
+        CommandProcessor ecs = new ECSCommandProcessor();
 
         s.bindSockets(cfg.listenaddr, cfg.port, ecs);
 

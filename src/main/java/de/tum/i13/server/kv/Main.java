@@ -35,10 +35,10 @@ public class Main {
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
 
+        server.connectTo(cfg.bootstrap, new ECSClientProcessor());
+
         CommandProcessor kvCommandProcessor = new KVCommandProcessor(cache, store);
         server.bindSockets(cfg.listenaddr, cfg.port, kvCommandProcessor);
-
-        server.connectTo(cfg.listenaddr, cfg.port, new ECSClientProcessor());
 
         server.start();
     }
