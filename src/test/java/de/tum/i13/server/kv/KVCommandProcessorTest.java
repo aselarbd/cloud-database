@@ -163,8 +163,9 @@ class KVCommandProcessorTest {
                 .map(c -> DynamicTest.dynamicTest(
                     c.action + " " + c.key + ":" + c.value,
                     () -> {
-                        KVCommandProcessor kvcp = new KVCommandProcessor(c.cache, c.store);
+                        KVCommandProcessor kvcp = new KVCommandProcessor(null, c.cache, c.store);
                         String processed = kvcp.process(
+                                null,
                                 c.action + " " + c.key + (c.value != null ? " " + c.value : "")
                         );
                         assertEquals(c.result  + "\r\n", processed);

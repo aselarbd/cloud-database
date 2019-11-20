@@ -6,7 +6,7 @@ import de.tum.i13.shared.Parser;
 public class KVResultParser extends Parser<KVResult> {
     @Override
     protected int getArgCount() {
-        return 1;
+        return 0;
     }
 
     @Override

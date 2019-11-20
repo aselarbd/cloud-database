@@ -1,6 +1,7 @@
 package de.tum.i13;
 
 import de.tum.i13.server.kv.Main;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -44,6 +45,7 @@ public class KVServerIntegrationTest {
         return th;
     }
 
+    @Disabled
     @Test
     public void putAndGet(@TempDir Path tmpDir) throws InterruptedException, IOException {
         Thread th = startServer(tmpDir.toString());

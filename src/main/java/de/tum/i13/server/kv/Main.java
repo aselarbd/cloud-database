@@ -4,8 +4,10 @@ import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
+import de.tum.i13.shared.InetSocketAddressTypeConverter;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
@@ -35,10 +37,15 @@ public class Main {
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
 
-        server.connectTo(cfg.bootstrap, new ECSClientProcessor());
-
-        CommandProcessor kvCommandProcessor = new KVCommandProcessor(cache, store);
+        InetSocketAddress isa = new InetSocketAddress(cfg.listenaddr, cfg.port);
+        KVCommandProcessor kvCommandProcessor = new KVCommandProcessor(isa, cache, store);
         server.bindSockets(cfg.listenaddr, cfg.port, kvCommandProcessor);
+
+
+        ECSClientProcessor ecsClientProcessor = new ECSClientProcessor(server, cfg.bootstrap, kvCommandProcessor);
+        server.connectTo(cfg.bootstrap, ecsClientProcessor);
+        ecsClientProcessor.register();
+
 
         server.start();
     }

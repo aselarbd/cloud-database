@@ -30,11 +30,11 @@ public class Server {
     private ByteBuffer readBuffer;
 
     private List<ServerSocketChannel> serverSocketChannels;
-    private List<SocketChannel> socketChannels;
+    private Map<InetSocketAddress, SocketChannel> socketChannels;
 
     public Server() throws UnsupportedEncodingException {
         this.serverSocketChannels = new ArrayList<>();
-        this.socketChannels = new ArrayList<>();
+        this.socketChannels = new HashMap<>();
 
         this.pendingChanges = new LinkedList<>();
         this.pendingWrites = new HashMap<>();
@@ -76,11 +76,16 @@ public class Server {
 
         SelectionKey key = sc.register(selector, SelectionKey.OP_CONNECT);
         key.attach(ecsProcessor);
-        this.socketChannels.add(sc);
+        this.socketChannels.put(address, sc);
 
         if (connected) {
             connect(key);
         }
+    }
+
+    public void sendTo(InetSocketAddress address, String message) {
+        SelectionKey selectionKey = socketChannels.get(address).keyFor(this.selector);
+        send(selectionKey, (message).getBytes(Constants.TELNET_ENCODING_CHARSET));
     }
 
     public void start() throws IOException {
@@ -133,6 +138,8 @@ public class Server {
         CommandProcessor cmdProcessor = (CommandProcessor) key.attachment();
         String confirmation = cmdProcessor.connectionAccepted(localAddress, remoteAddress);
 
+        socketChannels.put(remoteAddress, socketChannel);
+
         // Register the new SocketChannel with our Selector, indicating
         // we'd like to be notified when there's data waiting to be read
         SelectionKey registeredKey = socketChannel.register(this.selector, SelectionKey.OP_WRITE);
@@ -184,13 +191,36 @@ public class Server {
         }
 
         // In case we have now finally reached all characters
-        // Split by delimiter \r\n and handle all requests which are delimited
-        // everything after is then put back to pending reads
-        List<byte[]> buffers = splitByDelimiter(dataCopy, messageDelimiter);
-        for (int i = 0; i < buffers.size() - 1; i++) {
-            handleRequest(key, new String(buffers.get(i), Constants.TELNET_ENCODING));
+        byte[] unprocessed = processReceiveBuffer(dataCopy, key);
+        this.pendingReads.put(key, unprocessed);
+    }
+
+    // This is telnet specific, maybe you have to change it according to your
+    private byte[] processReceiveBuffer(byte[] data, SelectionKey key) throws UnsupportedEncodingException {
+        int length = data.length;
+        int start = 0;
+        for(int i = 1; i < length; i++) {
+            if(data[i] == '\n') {
+                if(i > 1 && data[i-1] == '\r') {
+
+                    byte[] concatenated = new byte[(i-1) - start];
+                    System.arraycopy(data, start, concatenated, 0, (i-1) - start);
+
+                    String tempStr = new String(concatenated, Constants.TELNET_ENCODING);
+
+                    if (tempStr.length() > 0) {
+                        handleRequest(key, tempStr);
+                    }
+
+                    start = i +1;
+                }
+            }
         }
-        this.pendingReads.put(key, buffers.get(buffers.size() - 1));
+
+        byte[] unprocessed = new byte[data.length - start];
+        System.arraycopy(data, start, unprocessed, 0, unprocessed.length);
+
+        return unprocessed;
     }
 
     private void write(SelectionKey key) {
@@ -225,42 +255,8 @@ public class Server {
     }
 
     private void connect(SelectionKey key) throws IOException {
-        SocketChannel socketChannel = (SocketChannel) key.channel();
-
-        InetSocketAddress remoteAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
-        InetSocketAddress localAddress = (InetSocketAddress) socketChannel.getLocalAddress();
-        CommandProcessor cmdProcessor = (CommandProcessor) key.attachment();
-
-        String cmd = cmdProcessor.connectionAccepted(localAddress, remoteAddress);
-        send(key, cmd.getBytes(Constants.TELNET_ENCODING));
-    }
-
-    private static boolean match(byte[] pattern, byte[] input, int pos) {
-        for (int i = 0; i < pattern.length; i++) {
-            if (input[pos + i] != pattern[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    static List<byte[]> splitByDelimiter(byte[] data, byte[] delimiter) {
-        List<byte[]> result = new ArrayList<>();
-        int start = 0;
-        for (int i = 0; i < data.length; i++) {
-            if (match(delimiter, data, i)) {
-                byte[] block = new byte[i - start];
-                System.arraycopy(data, start, block, 0, i - start);
-                result.add(block);
-                start = i + delimiter.length;
-                i = start;
-            }
-        }
-
-        byte[] last = new byte[data.length - start];
-        System.arraycopy(data, start,last, 0, data.length - start);
-        result.add(last);
-        return result;
+        SocketChannel sc = (SocketChannel) key.channel();
+        sc.finishConnect();
     }
 
     private void closeRemote(SelectionKey key) {
@@ -282,11 +278,13 @@ public class Server {
     private void handleRequest(SelectionKey selectionKey, String request) {
         CommandProcessor cp = (CommandProcessor) selectionKey.attachment();
         try {
-            String res = cp.process(request);
+            SocketChannel sc = (SocketChannel) selectionKey.channel();
+            InetSocketAddress remoteAddress = (InetSocketAddress) sc.getRemoteAddress();
+            String res = cp.process(remoteAddress, request);
             if (res != null) {
-                send(selectionKey, res.getBytes(Constants.TELNET_ENCODING));
+                send(selectionKey, res.getBytes(Constants.TELNET_ENCODING_CHARSET));
             }
-        } catch (UnsupportedEncodingException e) {
+        } catch (IOException e) {
             logger.severe("Failed to send due to unsupported Encoding: " + e.getMessage());
         }
     }

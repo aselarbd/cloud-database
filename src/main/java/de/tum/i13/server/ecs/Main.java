@@ -5,6 +5,7 @@ import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.shared.Config;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -14,7 +15,7 @@ public class Main {
 
     public static Logger logger = Logger.getLogger(Main.class.getName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
         Config cfg = parseCommandlineArgs(args);
         setupLogging(cfg.logfile, cfg.loglevel);
 
@@ -28,7 +29,7 @@ public class Main {
             s.close();
         }));
 
-        CommandProcessor ecs = new ECSCommandProcessor();
+        CommandProcessor ecs = new ECSCommandProcessor(s);
 
         s.bindSockets(cfg.listenaddr, cfg.port, ecs);
 

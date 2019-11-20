@@ -1,9 +1,14 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.kvtp.CommandProcessor;
+import de.tum.i13.kvtp.Server;
+import de.tum.i13.shared.ConsistentHashMap;
+import de.tum.i13.shared.ECSMessage;
+import de.tum.i13.shared.parsers.ECSMessageParser;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
 // TODO: Not happy with this whole idea of using a CommandProcessor
@@ -12,37 +17,77 @@ public class ECSClientProcessor implements CommandProcessor {
 
     public static Logger logger = Logger.getLogger(ECSClientProcessor.class.getName());
 
-    @Override
-    public String process(String command) {
-        String[] cmdArgs = command.split("\\s+");
+    private Server sender;
+    private KVCommandProcessor kvCommandProcessor;
+    private InetSocketAddress ecsAddr;
 
-        switch(cmdArgs[0]) {
-            case "ok":
-            case "error":
-            case "connected": // TODO: maybe handle this confirmation message after init connection differently
-                logger.info("got answer: " + command);
+    public ECSClientProcessor(Server sender, InetSocketAddress ecsAddr, KVCommandProcessor kvCommandProcessor) {
+        this.sender = sender;
+        this.ecsAddr = ecsAddr;
+        this.kvCommandProcessor = kvCommandProcessor;
+    }
+
+    public void register() {
+        logger.info("registering new KVServer");
+
+        ECSMessage registerMsg = new ECSMessage(ECSMessage.MsgType.REGISTER_SERVER);
+        registerMsg.addIpPort(0, kvCommandProcessor.getAddr());
+
+        sender.sendTo(ecsAddr, registerMsg.getFullMessage());
+    }
+
+    @Override
+    public String process(InetSocketAddress src, String command) {
+
+        logger.info("got ecs command: " + command);
+        ECSMessageParser parser = new ECSMessageParser();
+        ECSMessage msg = parser.parse(command);
+
+        switch(msg.getType()) {
+            case RESPONSE_OK:
+            case RESPONSE_ERROR:
+            case WRITE_LOCK:
+                kvCommandProcessor.setWriteLock();
                 return null;
-            case "write_lock":
-            case "release_lock":
-            case "next_addr":
-            case "transfer_range":
-            case "broadcast_new":
-            case "broadcast_rem":
-            case "keyrange":
-            case "ping": // TODO: move to separate processor to handle via udp?
-                logger.info("got: " + cmdArgs[0]);
+            case REL_LOCK:
+                kvCommandProcessor.releaseWriteLock();
+                return null;
+            case NEXT_ADDR:
+            case TRANSFER_RANGE:
+            case BROADCAST_NEW:
+            case BROADCAST_REM:
                 break;
-            default:
-                logger.info("got unknown cmd: " + command);
-                return "error";
+            case KEYRANGE:
+                try {
+                    ConsistentHashMap newKeyRange = msg.getKeyrange(0);
+
+                    InetSocketAddress previousPredecessor = kvCommandProcessor.getKeyRange().getPredecessor(kvCommandProcessor.getAddr());
+
+                    // this checks, whether the previousPredecessor (it's position
+                    // on the ConsistentHash-ring) is now part of our key range.
+                    // If yes, that means, we have to hand of the data between our previous
+                    // predecessor and our new predecessor to some other server(s).
+                    // If no, our keyrange grew larger, which just means, that another server
+                    // is soon going to start putting new items to this server.
+                    if (newKeyRange.get(previousPredecessor).equals(kvCommandProcessor.getAddr())) {
+                        // handoff keys
+                    }
+                    // just set the new keyrange, new keys will come soon.
+                    kvCommandProcessor.setKeyRange(newKeyRange);
+                    sender.sendTo(ecsAddr, "done"); // tell that you're done
+                } catch (NoSuchAlgorithmException e) {
+                    logger.severe("Could not create Consistent Hash Map");
+                    // TODO: Maybe get rid of these stupid NoSuchAlgorithmExceptions, we can't do anything about it anyway.
+                }
+                return null;
         }
-        return "ok";
+        return null;
     }
 
     @Override
     public String connectionAccepted(InetSocketAddress address, InetSocketAddress remoteAddress) {
-        logger.info("connected to ECS Service, registering new node");
-        return "register";
+        logger.info("new connection: " + remoteAddress.toString());
+        return "ECSClientProcessor connected: " + address + " to " + remoteAddress;
     }
 
     @Override

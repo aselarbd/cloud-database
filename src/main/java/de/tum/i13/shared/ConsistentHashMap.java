@@ -82,6 +82,18 @@ public class ConsistentHashMap {
         return consistentHashMap.firstEntry().getValue();
     }
 
+    public InetSocketAddress get(InetSocketAddress key) {
+        return get(addressHash(key));
+    }
+
+    public InetSocketAddress getPredecessor(InetSocketAddress address) {
+        Map.Entry<String, InetSocketAddress> floor = consistentHashMap.lowerEntry(addressHash(address));
+        if (floor != null) {
+            return floor.getValue();
+        }
+        return consistentHashMap.lastEntry().getValue();
+    }
+
     /**
      * remove a key value pair from the map.
      * @param addr The server address to remove
