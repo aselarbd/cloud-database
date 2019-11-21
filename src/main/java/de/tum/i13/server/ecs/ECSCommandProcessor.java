@@ -2,15 +2,14 @@ package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
-import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.ECSMessage;
+import de.tum.i13.shared.HeartbeatSender;
 import de.tum.i13.shared.parsers.ECSMessageParser;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 
 public class ECSCommandProcessor implements CommandProcessor {
@@ -67,6 +66,7 @@ public class ECSCommandProcessor implements CommandProcessor {
 
         ServerState serverState = new ServerState(ecsAddr, kvAddr);
         ssm.add(serverState);
+        heartbeat(serverState);
 
         ECSMessage keyRangeMessage = new ECSMessage(ECSMessage.MsgType.KEYRANGE);
         keyRangeMessage.addKeyrange(0, ssm.getKeyRanges());
@@ -80,6 +80,26 @@ public class ECSCommandProcessor implements CommandProcessor {
             sender.sendTo(predecessor.getECS(), writeLockMessage.getFullMessage());
             sender.sendTo(predecessor.getECS(), keyRangeString);
             ssm.setState(predecessor, ServerState.State.BALANCE);
+        }
+    }
+
+    private void heartbeat(ServerState receveiver) {
+        HeartbeatSender heartbeatSender = new HeartbeatSender(receveiver.getKV());
+        ScheduledExecutorService heartBeatService = heartbeatSender.start(() -> {
+            ssm.remove(receveiver);
+            braodcastKeyrange();
+        });
+        receveiver.addShutdownHook(() -> {
+            heartBeatService.shutdown();
+        });
+    }
+
+    private void braodcastKeyrange() {
+        ECSMessage keyRangeMsg = new ECSMessage(ECSMessage.MsgType.KEYRANGE);
+        keyRangeMsg.addKeyrange(0, ssm.getKeyRanges());
+        String msg = keyRangeMsg.getFullMessage();
+        for (InetSocketAddress isa : ssm.getECSBroadcastSet()) {
+            sender.sendTo(isa, msg);
         }
     }
 }

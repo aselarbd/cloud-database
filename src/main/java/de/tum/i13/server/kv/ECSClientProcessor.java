@@ -4,11 +4,14 @@ import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.ECSMessage;
+import de.tum.i13.shared.HeartbeatListener;
 import de.tum.i13.shared.parsers.ECSMessageParser;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 
 // TODO: Not happy with this whole idea of using a CommandProcessor
@@ -20,6 +23,7 @@ public class ECSClientProcessor implements CommandProcessor {
     private Server sender;
     private KVCommandProcessor kvCommandProcessor;
     private InetSocketAddress ecsAddr;
+    private ScheduledExecutorService heartBeatService;
 
     public ECSClientProcessor(Server sender, InetSocketAddress ecsAddr, KVCommandProcessor kvCommandProcessor) {
         this.sender = sender;
@@ -27,8 +31,16 @@ public class ECSClientProcessor implements CommandProcessor {
         this.kvCommandProcessor = kvCommandProcessor;
     }
 
-    public void register() {
+    // TODO: Call this where appropriate
+    public void shutdown() {
+        heartBeatService.shutdown();
+    }
+
+    public void register() throws SocketException {
         logger.info("registering new KVServer");
+
+        HeartbeatListener heartbeatListener = new HeartbeatListener();
+        this.heartBeatService = heartbeatListener.start(kvCommandProcessor.getAddr().getPort(), kvCommandProcessor.getAddr().getAddress());
 
         ECSMessage registerMsg = new ECSMessage(ECSMessage.MsgType.REGISTER_SERVER);
         registerMsg.addIpPort(0, kvCommandProcessor.getAddr());

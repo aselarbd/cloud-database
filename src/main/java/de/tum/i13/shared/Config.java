@@ -23,7 +23,7 @@ public class Config {
     @CommandLine.Option(names = "-l", description = "Logfile", defaultValue = "echo.log")
     public Path logfile;
 
-    @CommandLine.Option(names = "-ll", description = "Loglevel", defaultValue = "INFO")
+    @CommandLine.Option(names = "-ll", description = "Loglevel", defaultValue = "ALL")
     public String loglevel;
 
     @CommandLine.Option(names = "-c", description = "Sets the cachesize, e.g., 100 keys", defaultValue = "3")
