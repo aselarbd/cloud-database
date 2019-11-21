@@ -21,7 +21,7 @@ In case of error, a series of messages (like node addition) is to be aborted.
 
 #### register a new node
 
-* Server -> ECS: `register`
+* Server -> ECS: `register <ip:port>`
 
 #### Changing the successor node
      
@@ -48,7 +48,7 @@ In case of error, a series of messages (like node addition) is to be aborted.
 
 #### Removing a node
 
-* Server -> ECS: `announce_shutdown`
+* Server -> ECS: `announce_shutdown <ip:port>`
 
 ### Monitoring
 

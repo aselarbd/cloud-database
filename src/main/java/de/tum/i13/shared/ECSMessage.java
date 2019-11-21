@@ -49,7 +49,7 @@ public class ECSMessage {
         RESPONSE_ERROR("error", new MsgArg[]{}),
         WRITE_LOCK("write_lock", new MsgArg[]{}),
         REL_LOCK("release_lock", new MsgArg[]{}),
-        REGISTER_SERVER("register", new MsgArg[]{}),
+        REGISTER_SERVER("register", new MsgArg[]{MsgArg.IP_PORT}),
         NEXT_ADDR("next_addr", new MsgArg[]{MsgArg.IP_PORT}),
         TRANSFER_RANGE("transfer_range", new MsgArg[]{MsgArg.IP_PORT,
             MsgArg.IP_PORT, MsgArg.IP_PORT}),
@@ -58,7 +58,7 @@ public class ECSMessage {
         BROADCAST_NEW("broadcast_new", new MsgArg[]{MsgArg.IP_PORT}),
         BROADCAST_REM("broadcast_rem", new MsgArg[]{MsgArg.IP_PORT}),
         KEYRANGE("keyrange", new MsgArg[]{MsgArg.KEYRANGE}),
-        ANNOUNCE_SHUTDOWN("announce_shutdown", new MsgArg[]{}),
+        ANNOUNCE_SHUTDOWN("announce_shutdown", new MsgArg[]{MsgArg.IP_PORT}),
         PING("ping", new MsgArg[]{}),
         ;
 
