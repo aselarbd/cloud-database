@@ -32,6 +32,8 @@ public class ECSMessageParser extends Parser<ECSMessage> {
             }
             if (type != null) {
                 return new ECSMessage(type, args);
+            } else {
+                LOGGER.info("Unknown message type: " + name);
             }
         } catch (IllegalArgumentException e) {
             LOGGER.log(Level.INFO, "Unable to parse ECS message", e);

@@ -15,7 +15,8 @@ public class ParserCommonTest {
             new StringArrayParser(3, true),
             new KVItemParser(false),
             new KVItemParser(true),
-            new KVResultParser()
+            new KVResultParser(),
+            new ECSMessageParser()
     };
 
     @Test
@@ -47,6 +48,10 @@ public class ParserCommonTest {
         Object result;
 
         for (Parser<?> parser : parsers) {
+            if (parser.getClass().equals(ECSMessageParser.class)) {
+                // skip ECSMessages as they may have no arguments
+                continue;
+            }
             // when
             result = parser.parse("cmd");
             // then
