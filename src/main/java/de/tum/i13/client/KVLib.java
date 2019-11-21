@@ -1,15 +1,20 @@
 package de.tum.i13.client;
 
+
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
-import de.tum.i13.client.communication.StreamCloserFactory;
 import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
 import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
+import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
+import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,24 +22,13 @@ import java.util.logging.Logger;
  * Library to interact with a key-value server.
  */
 public class KVLib {
-    private SocketCommunicator communicator;
     private KVResultParser parser;
     private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
-    public KVLib() {
-        this.communicator = new SocketCommunicatorImpl();
-        this.communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
-        this.parser = new KVResultParser();
-    }
+    private ConsistentHashMap keyRanges;
+    private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
-    /**
-     * Constructor with dependency injection intended for tests.
-     *
-     * @param communicator The {@link SocketCommunicator} used for this instance. The user has to ensure that
-     *                     {@link SocketCommunicator#init} was called.
-     */
-    public KVLib(SocketCommunicator communicator) {
-        this.communicator = communicator;
+    public KVLib() {
         this.parser = new KVResultParser();
     }
 
@@ -50,8 +44,27 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-        return communicator.connect(address, port);
+
+        try {
+            SocketCommunicator communicator = new SocketCommunicatorImpl();
+            communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+            String res = communicator.connect(address, port);
+            communicatorMap.put(new InetSocketAddress(address, port), communicator);
+            getKeyRanges();
+            return res;
+        } catch (NoSuchAlgorithmException e) {
+            return "Failed to connect to host: " + e.getMessage();
+        }
     }
+
+    private void getKeyRanges() throws SocketCommunicatorException, NoSuchAlgorithmException {
+        if (!communicatorMap.isEmpty()) {
+            Map.Entry<InetSocketAddress, SocketCommunicator> anyComm = communicatorMap.entrySet().iterator().next();
+            String keyRangeString = anyComm.getValue().send("keyrange");
+            keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
+        }
+    }
+
 
     /**
      * Put a key-value pair to the server.
@@ -60,11 +73,34 @@ public class KVLib {
      * @return Server reply encoded as {@link KVResult}
      */
     public KVResult put(KVItem item) {
-        if (!communicator.isConnected()) {
-            return new KVResult("not connected");
-        }
+
         if (item == null || !item.isValid() || item.getValue() == null) {
             return new KVResult("Invalid key-value item");
+        }
+
+        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+
+        if (!communicatorMap.containsKey(targetServer)) {
+            String address = targetServer.getHostString();
+            int port = targetServer.getPort();
+            try {
+                connect(address, port);
+            } catch (SocketCommunicatorException e) {
+                try {
+                    getKeyRanges();
+                } catch (SocketCommunicatorException ex) {
+                    return new KVResult("Failed to connect to KVServer");
+                } catch (NoSuchAlgorithmException ex) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return put(item);
+            }
+        }
+
+        SocketCommunicator communicator = communicatorMap.get(targetServer);
+
+        if (!communicator.isConnected()) {
+            return new KVResult("not connected");
         }
         try {
             KVItem sendItem = new KVItem(item.getKey(), item.getValueAs64());
@@ -75,7 +111,18 @@ public class KVLib {
             String result = communicator.send("put " + sendItem.toString());
             KVResult res = parser.parse(result);
             if (res == null) {
-                res = new KVResult("Empty response");
+                return new KVResult("Empty response");
+            } else if (res.getMessage().equals("server_not_responsible") ||
+                        res.getMessage().equals("server_stopped")) {
+
+                try {
+                    getKeyRanges();
+                } catch (NoSuchAlgorithmException e) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return put(item);
+            } else if (res.getMessage().equals("server_write_lock")) {
+                return new KVResult("server locked, please try later");
             }
             return res;
         } catch (SocketCommunicatorException e) {
@@ -86,22 +133,53 @@ public class KVLib {
 
     /**
      * Get a key-value pair
-     * @param keyItem Key to query, given as {@link KVItem}. The value is ignored.
+     * @param item Key to query, given as {@link KVItem}. The value is ignored.
      * @return Server reply encoded as {@link KVResult}, which also contains the respective {@link KVItem} if
      *  found.
      */
-    public KVResult get(KVItem keyItem) {
+    public KVResult get(KVItem item) {
+
+        if (!item.isValid()) {
+            return new KVResult("Invalid key");
+        }
+
+        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+
+        if (!communicatorMap.containsKey(targetServer)) {
+            String address = targetServer.getHostString();
+            int port = targetServer.getPort();
+            try {
+                connect(address, port);
+            } catch (SocketCommunicatorException e) {
+                try {
+                    getKeyRanges();
+                } catch (SocketCommunicatorException ex) {
+                    return new KVResult("Failed to connect to KVServer");
+                } catch (NoSuchAlgorithmException ex) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return get(item);
+            }
+        }
+
+        SocketCommunicator communicator = communicatorMap.get(targetServer);
+
         if (!communicator.isConnected()) {
             return new KVResult("not connected");
         }
-        if (!keyItem.isValid()) {
-            return new KVResult("Invalid key");
-        }
         try {
-            String result = communicator.send("get " + keyItem.getKey());
+            String result = communicator.send("get " + item.getKey());
             KVResult res = parser.parse(result);
             if (res == null || res.getItem() == null) {
                 res = new KVResult("Empty response");
+            } else if (res.getMessage().equals("server_not_responsible") ||
+                        res.getMessage().equals("server_stopped")) {
+                try {
+                    getKeyRanges();
+                } catch (NoSuchAlgorithmException e) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return get(item);
             } else if (res.getMessage().equals("get_success")) {
                 // if successful, we need to decode the value before returning it
                 KVItem decodedItem = new KVItem(res.getItem().getKey());
@@ -121,21 +199,55 @@ public class KVLib {
     /**
      * Delete a key-value pair.
      *
-     * @param keyItem Key to query, given as {@link KVItem}. The value is ignored.
+     * @param item Key to query, given as {@link KVItem}. The value is ignored.
      * @return Server reply encoded as {@link KVResult}
      */
-    public KVResult delete(KVItem keyItem) {
+    public KVResult delete(KVItem item) {
+
+        if (!item.isValid()) {
+            return new KVResult("Invalid key");
+        }
+
+        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+
+        if (!communicatorMap.containsKey(targetServer)) {
+            String address = targetServer.getHostString();
+            int port = targetServer.getPort();
+            try {
+                connect(address, port);
+            } catch (SocketCommunicatorException e) {
+                try {
+                    getKeyRanges();
+                } catch (SocketCommunicatorException ex) {
+                    return new KVResult("Failed to connect to KVServer");
+                } catch (NoSuchAlgorithmException ex) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return delete(item);
+            }
+        }
+
+        SocketCommunicator communicator = communicatorMap.get(targetServer);
+
         if (!communicator.isConnected()) {
             return new KVResult("not connected");
         }
-        if (!keyItem.isValid()) {
-            return new KVResult("Invalid key");
-        }
+
         try {
-            String result = communicator.send("delete " + keyItem.getKey());
+            String result = communicator.send("delete " + item.getKey());
             KVResult res = parser.parse(result);
             if (res == null) {
                 res = new KVResult("Empty response");
+            } else if (res.getMessage().equals("server_not_responsible") ||
+                    res.getMessage().equals("server_stopped")) {
+                try {
+                    getKeyRanges();
+                } catch (NoSuchAlgorithmException e) {
+                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
+                }
+                return delete(item);
+            } else if (res.getMessage().equals("server_write_lock")) {
+                return new KVResult("server locked, please try later");
             }
             return res;
         } catch (SocketCommunicatorException e) {
@@ -150,7 +262,9 @@ public class KVLib {
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
     void disconnect() throws SocketCommunicatorException {
-        communicator.disconnect();
+        for (Map.Entry<InetSocketAddress, SocketCommunicator> s : communicatorMap.entrySet()) {
+            s.getValue().disconnect();
+        }
     }
 
 }
