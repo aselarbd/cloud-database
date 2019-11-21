@@ -93,6 +93,51 @@ public class ECSMessage {
     }
 
     /**
+     * Generates a new instance based on a raw argument string. This is intended for parsing.
+     * Use the constructor taking type only to build messages.
+     *
+     * @param type Expected message type
+     * @param rawArgs Arguments to be parsed
+     * @throws IllegalArgumentException if the arguments do not match the message type
+     */
+    public ECSMessage(MsgType type, String[] rawArgs)
+            throws IllegalArgumentException {
+        this(type);
+        if (rawArgs.length != type.args.length) {
+            throw new IllegalArgumentException("Non-matching argument count");
+        }
+        for (int i = 0; i < rawArgs.length; i++) {
+            this.arguments.add(rawArgs[i]);
+            // try to interpret the values according to their type. Abort if something goes wrong,
+            // otherwise assume the raw data is valid.
+            try {
+                switch (type.args[i]) {
+                    case IP_PORT:
+                        getIpPort(i);
+                        break;
+                    case BASE64_STR:
+                        getBase64(i);
+                        break;
+                    case KEYRANGE:
+                        getKeyrange(i);
+                        break;
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Could not construct message", e);
+            }
+        }
+    }
+
+    /**
+     * Gets the message type of this instance.
+     *
+     * @return The {@link ECSMessage.MsgType}
+     */
+    public ECSMessage.MsgType getType() {
+        return this.messageType;
+    }
+
+    /**
      * Appends or updates an argument to the argument list.
      *
      * @param index Index to add the item at
