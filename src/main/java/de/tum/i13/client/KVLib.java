@@ -79,7 +79,7 @@ public class KVLib {
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
-                    communicatorMap.remove(anyCom.getKey());
+                    it.remove();
                 }
             }
             communicatorMap = new HashMap<>();
