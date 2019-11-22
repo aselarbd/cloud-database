@@ -39,10 +39,12 @@ public class ConsistentHashMap {
      * @return ArrayList of InetSocketAddress IP:PORT
      */
     public ArrayList<InetSocketAddress> getIPAddressList(){
+        rwl.readLock().lock();
         ArrayList<InetSocketAddress> ipList = new ArrayList<>();
         for (String key : consistentHashMap.keySet()){
             ipList.add(consistentHashMap.get(key));
         }
+        rwl.readLock().unlock();
         return ipList;
     }
 
