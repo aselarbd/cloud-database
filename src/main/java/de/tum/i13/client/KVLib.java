@@ -135,7 +135,8 @@ public class KVLib {
             } else if (res.getMessage().equals("server_write_lock")) {
                 return new KVResult("server locked, please try later");
             }
-            return res;
+            // decode the value if present
+            return res.decoded();
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in put()", e);
             return new KVResult("Server error");
@@ -181,16 +182,9 @@ public class KVLib {
                         res.getMessage().equals("server_stopped")) {
                 getKeyRanges();
                 return get(item);
-            } else if (res.getMessage().equals("get_success")) {
-                // if successful, we need to decode the value before returning it
-                KVItem decodedItem = new KVItem(res.getItem().getKey());
-                decodedItem.setValueFrom64(res.getItem().getValue());
-                if (!decodedItem.isValid()) {
-                    decodedItem = null;
-                }
-                return new KVResult(res.getMessage(), decodedItem);
             }
-            return res;
+            // decode the value if present
+            return res.decoded();
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in get()", e);
             return new KVResult("Server error");

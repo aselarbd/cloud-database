@@ -58,6 +58,20 @@ public class TestKVLib {
     }
 
     @Test
+    public void putValueErr() throws SocketCommunicatorException {
+        when(communicatorMock.isConnected()).thenReturn(true);
+        final String encVal = new String(Base64.getEncoder().encode("val".getBytes()));
+        when(communicatorMock.send(anyString())).thenReturn("put_error key " + encVal);
+
+        // when
+        KVResult result = this.library.put(new KVItem("key", "val"));
+
+        // then
+        verify(communicatorMock).send("put key " + encVal);
+        assertTrue(result.getMessage().contains("put_error"));
+    }
+
+    @Test
     public void putNullValue() throws SocketCommunicatorException {
         when(communicatorMock.isConnected()).thenReturn(true);
 

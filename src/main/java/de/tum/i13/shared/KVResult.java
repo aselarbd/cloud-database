@@ -25,6 +25,21 @@ public class KVResult {
         return message;
     }
 
+    /**
+     * Decodes the item value, if present. Assumes that the value of this instance is base64 encoded.
+     *
+     * @return A new instance with a decoded value, if an item is present.
+     *      If no item is available, this instance is returned.
+     */
+    public KVResult decoded() {
+        if (this.item == null) {
+            return this;
+        }
+        KVItem decodedItem = new KVItem(this.item.getKey());
+        decodedItem.setValueFrom64(this.item.getValue());
+        return new KVResult(message, decodedItem);
+    }
+
     @Override
     public String toString() {
         String itemStr = (this.item != null) ? " " + this.item.toString() : "";
