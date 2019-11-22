@@ -1,4 +1,4 @@
-package de.tum.i13.server.lsm;
+package de.tum.i13.lsm;
 
 import de.tum.i13.shared.KVItem;
 
