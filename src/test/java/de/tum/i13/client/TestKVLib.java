@@ -1,125 +1,150 @@
 package de.tum.i13.client;
 
+import de.tum.i13.TestConstants;
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@Disabled
 public class TestKVLib {
-    private SocketCommunicator communicatorMock = mock(SocketCommunicator.class);
+    // contains mocks for each call of the communicator factory
+    private ArrayList<SocketCommunicator> communicators;
+    private int currentCommunicator;
 
     private KVLib library;
 
     @BeforeEach
-    public void initializeMocks() {
-        reset(communicatorMock);
-        this.library = new KVLib();
+    public void initializeMocks() throws SocketCommunicatorException {
+        // reset all communicators
+        communicators = new ArrayList<>();
+        currentCommunicator = 0;
+        // create a new mock to be used for the first server
+        communicators.add(mock(SocketCommunicator.class));
+        when(communicators.get(0).send("keyrange")).thenReturn(
+                TestConstants.KEYRANGE_SIMPLE);
+        // return the corresponding mock, depending on call count
+        this.library = new KVLib(() -> {
+            SocketCommunicator c = communicators.get(currentCommunicator);
+            currentCommunicator++;
+            return c;
+        });
+        // initialize the lib with one server
+        this.library.connect("192.168.1.1", 80);
+        // reset again to allow changing send behavior of the first server
+        reset(communicators.get(0));
     }
 
     @Test
     public void connect() throws SocketCommunicatorException {
+        // given
+        this.communicators.add(mock(SocketCommunicator.class));
+        // a random communicator can reply when keyrange is called
+        when(communicators.get(0).send("keyrange")).thenReturn(
+                TestConstants.KEYRANGE_SIMPLE);
+        when(communicators.get(1).send("keyrange")).thenReturn(
+                TestConstants.KEYRANGE_SIMPLE);
+
         // when
         this.library.connect("localhost", 80);
 
-        // then - check if connection is properly forwarded to communicator
-        verify(communicatorMock).connect("localhost", 80);
+        // then - check if connection is properly forwarded to new communicator
+        verify(communicators.get(1)).connect("localhost", 80);
     }
 
     @Test
     public void putNotConnected() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(false);
+        when(communicators.get(0).isConnected()).thenReturn(false);
         // when
         this.library.put(new KVItem("key", "value"));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putValue() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("put_success key");
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn("put_success key");
 
         // when
         KVResult result = this.library.put(new KVItem("key", "val"));
 
         // then
-        verify(communicatorMock).send("put key " + new String(Base64.getEncoder().encode("val".getBytes())));
+        verify(communicators.get(0)).send("put key " + new String(Base64.getEncoder().encode("val".getBytes())));
         assertTrue(result.getMessage().contains("put_success"));
     }
 
     @Test
     public void putValueErr() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         final String encVal = new String(Base64.getEncoder().encode("val".getBytes()));
-        when(communicatorMock.send(anyString())).thenReturn("put_error key " + encVal);
+        when(communicators.get(0).send(anyString())).thenReturn("put_error key " + encVal);
 
         // when
         KVResult result = this.library.put(new KVItem("key", "val"));
 
         // then
-        verify(communicatorMock).send("put key " + encVal);
+        verify(communicators.get(0)).send("put key " + encVal);
         assertTrue(result.getMessage().contains("put_error"));
     }
 
     @Test
     public void putNullValue() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
 
         // when
         this.library.put(new KVItem("key"));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putNullItem() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
 
         // when
         this.library.put(null);
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putKeyTooLong() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         String testKey = new String(new byte[21]);
 
         // when
         this.library.put(new KVItem(testKey, "value"));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putValueTooLong() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         String testVal = new String(new byte[120001]);
 
         // when
         this.library.put(new KVItem("key", testVal));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putValue64TooLong() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         // would be short enough, but Base 64 string of 0 bytes still exceeds the limit
         String testVal = new String(new byte[119900]);
 
@@ -127,45 +152,45 @@ public class TestKVLib {
         this.library.put(new KVItem("key", testVal));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
     }
 
     @Test
     public void putValueServerNull() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn(null);
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn(null);
 
         // when
         KVResult result = this.library.put(new KVItem("key", "val"));
 
         // then
-        verify(communicatorMock).send("put key " + new String(Base64.getEncoder().encode("val".getBytes())));
+        verify(communicators.get(0)).send("put key " + new String(Base64.getEncoder().encode("val".getBytes())));
         assertTrue(result.getMessage().toLowerCase().contains("empty"));
     }
 
     @Test
     public void getNotConnected() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(false);
+        when(communicators.get(0).isConnected()).thenReturn(false);
 
         // when
         KVResult res = this.library.get(new KVItem("key"));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
         assertNull(res.getItem());
     }
 
     @Test
     public void getValue() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("get_success key "
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn("get_success key "
                 + new String(Base64.getEncoder().encode("val".getBytes())));
 
         // when
         KVResult res = this.library.get(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("get key");
+        verify(communicators.get(0)).send("get key");
         assertEquals("get_success", res.getMessage());
         assertEquals("key", res.getItem().getKey());
         assertEquals("val", res.getItem().getValue());
@@ -173,122 +198,106 @@ public class TestKVLib {
 
     @Test
     public void getKeyTooLong() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         String testKey = new String(new byte[21]);
 
         // when
         KVResult res = this.library.get(new KVItem(testKey));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
         assertNull(res.getItem());
     }
 
     @Test
     public void getValueServerNull() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn(null);
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn(null);
 
         // when
         KVResult result = this.library.get(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("get key");
+        verify(communicators.get(0)).send("get key");
         assertTrue(result.getMessage().toLowerCase().contains("empty"));
     }
 
     @Test
     public void getValueServerNoItem() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("put_success");
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn("put_success");
 
         // when
         KVResult result = this.library.get(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("get key");
+        verify(communicators.get(0)).send("get key");
         assertTrue(result.getMessage().toLowerCase().contains("empty"));
     }
 
     @Test
-    public void getValueServerTooLong() throws SocketCommunicatorException {
-        byte[] testVal = new byte[120001];
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("get_success key "
-                + new String(Base64.getEncoder().encode(testVal)));
-
-        // when
-        KVResult res = this.library.get(new KVItem("key"));
-
-        // then
-        verify(communicatorMock).send("get key");
-        assertEquals("get_success", res.getMessage());
-        assertNull(res.getItem());
-    }
-
-    @Test
     public void deleteNotConnected() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(false);
+        when(communicators.get(0).isConnected()).thenReturn(false);
 
         // when
         KVResult res = this.library.delete(new KVItem("key"));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
         assertNull(res.getItem());
     }
 
     @Test
     public void deleteValue() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("delete_success key");
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn("delete_success key");
 
         // when
         KVResult res = this.library.delete(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("delete key");
+        verify(communicators.get(0)).send("delete key");
         assertEquals("delete_success", res.getMessage());
         assertEquals("key", res.getItem().getKey());
     }
 
     @Test
     public void deleteValueError() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn("delete_error key");
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn("delete_error key");
 
         // when
         KVResult res = this.library.delete(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("delete key");
+        verify(communicators.get(0)).send("delete key");
         assertEquals("delete_error", res.getMessage());
         assertEquals("key", res.getItem().getKey());
     }
 
     @Test
     public void deleteKeyTooLong() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
+        when(communicators.get(0).isConnected()).thenReturn(true);
         String testKey = new String(new byte[21]);
 
         // when
         KVResult res = this.library.delete(new KVItem(testKey));
 
         // then
-        verify(communicatorMock, never()).send(anyString());
+        verify(communicators.get(0), never()).send(anyString());
         assertNull(res.getItem());
     }
 
     @Test
     public void deleteServerNull() throws SocketCommunicatorException {
-        when(communicatorMock.isConnected()).thenReturn(true);
-        when(communicatorMock.send(anyString())).thenReturn(null);
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        when(communicators.get(0).send(anyString())).thenReturn(null);
 
         // when
         KVResult result = this.library.delete(new KVItem("key"));
 
         // then
-        verify(communicatorMock).send("delete key");
+        verify(communicators.get(0)).send("delete key");
         assertTrue(result.getMessage().toLowerCase().contains("empty"));
     }
 
@@ -298,6 +307,6 @@ public class TestKVLib {
         this.library.disconnect();
 
         // then
-        verify(communicatorMock).disconnect();
+        verify(communicators.get(0)).disconnect();
     }
 }

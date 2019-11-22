@@ -1,5 +1,6 @@
 package de.tum.i13.shared.parsers;
 
+import de.tum.i13.TestConstants;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.ECSMessage;
 import org.junit.jupiter.api.Test;
@@ -59,8 +60,7 @@ public class ECSMessageParserTest {
 
     @Test
     public void parseKeyrange() {
-        ECSMessage msg = parser.parse("keyrange be8e4f546de43337d7f0d4637a796478," +
-                "be8e4f546de43337d7f0d4637a796478,192.168.1.1:80;");
+        ECSMessage msg = parser.parse("keyrange " + TestConstants.KEYRANGE_SIMPLE);
         assertNotNull(msg);
         assertEquals(ECSMessage.MsgType.KEYRANGE, msg.getType());
         ConsistentHashMap testMap = msg.getKeyrange(0);

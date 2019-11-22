@@ -36,6 +36,10 @@ public abstract class Parser<T> {
      */
     protected abstract T parseArgs(String name, String[] args);
 
+    public boolean requiresArguments() {
+        return (getArgCount() > 0);
+    }
+
     /**
      * Parses the given input string to be interpreted as this command.
      *

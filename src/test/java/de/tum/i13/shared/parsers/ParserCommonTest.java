@@ -48,8 +48,8 @@ public class ParserCommonTest {
         Object result;
 
         for (Parser<?> parser : parsers) {
-            if (parser.getClass().equals(ECSMessageParser.class)) {
-                // skip ECSMessages as they may have no arguments
+            if (!parser.requiresArguments()) {
+                // skip parsers which do not require arguments
                 continue;
             }
             // when
