@@ -5,6 +5,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Class {@link ConsistentHashMap} offers a wrapper datastructure to
@@ -17,6 +19,7 @@ public class ConsistentHashMap {
 
     private MessageDigest messageDigest;
     private TreeMap<String, InetSocketAddress> consistentHashMap = new TreeMap<>();
+    ReadWriteLock rwl = new ReentrantReadWriteLock();
 
     /**
      * Create a new {@link ConsistentHashMap}.
@@ -62,7 +65,9 @@ public class ConsistentHashMap {
      * @param addr The IP:Port value as InetSocketAddress
      */
     public void put(InetSocketAddress addr) {
+        rwl.writeLock().lock();
         consistentHashMap.put(addressHash(addr), addr);
+        rwl.writeLock().unlock();
     }
 
     /**
@@ -77,11 +82,13 @@ public class ConsistentHashMap {
      * is empty.
      */
     public InetSocketAddress get(String key) {
+        rwl.readLock().lock();
         Map.Entry<String, InetSocketAddress> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
-        if (ceiling != null) {
-            return ceiling.getValue();
+        if (ceiling == null) {
+            ceiling = consistentHashMap.firstEntry();
         }
-        return consistentHashMap.firstEntry().getValue();
+        rwl.readLock().unlock();
+        return (ceiling == null) ? null : ceiling.getValue();
     }
 
     public InetSocketAddress get(InetSocketAddress key) {
@@ -89,11 +96,13 @@ public class ConsistentHashMap {
     }
 
     public InetSocketAddress getPredecessor(InetSocketAddress address) {
+        rwl.readLock().lock();
         Map.Entry<String, InetSocketAddress> floor = consistentHashMap.lowerEntry(addressHash(address));
-        if (floor != null) {
-            return floor.getValue();
+        if (floor == null) {
+            floor = consistentHashMap.lastEntry();
         }
-        return consistentHashMap.lastEntry().getValue();
+        rwl.readLock().unlock();
+        return (floor == null) ? null : floor.getValue();
     }
 
     /**
@@ -101,7 +110,9 @@ public class ConsistentHashMap {
      * @param addr The server address to remove
      */
     public void remove(InetSocketAddress addr) {
+        rwl.writeLock().lock();
         consistentHashMap.remove(addressHash(addr));
+        rwl.writeLock().unlock();
     }
 
     /**
@@ -109,6 +120,7 @@ public class ConsistentHashMap {
      * @return
      */
     public String getKeyrangeString() {
+        rwl.readLock().lock();
         String items = "";
         String startHash = "";
         String endHash = "";
@@ -128,6 +140,7 @@ public class ConsistentHashMap {
         if (!startHash.equals("")) {
             items += startHash + "," + endHash + "," + ipPort + ";";
         }
+        rwl.readLock().unlock();
         return items;
     }
 
