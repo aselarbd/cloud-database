@@ -162,11 +162,7 @@ public class KvClient {
      * @param args The input arguments splitted by spaces
      */
     private void disconnect(String[] args) {
-        try {
-            kvLib.disconnect();
-        } catch (SocketCommunicatorException e) {
-            writeAndWarn("Unable to disconnect: " + e.getMessage());
-        }
+        write(kvLib.disconnect());
     }
 
     /**

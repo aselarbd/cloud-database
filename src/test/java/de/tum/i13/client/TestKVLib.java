@@ -21,6 +21,13 @@ public class TestKVLib {
 
     private KVLib library;
 
+    protected void mockAllKeyrange() throws SocketCommunicatorException {
+        for (SocketCommunicator cMock : communicators) {
+            when(cMock.send("keyrange")).thenReturn(
+                    TestConstants.KEYRANGE_SIMPLE);
+        }
+    }
+
     @BeforeEach
     public void initializeMocks() throws SocketCommunicatorException {
         // reset all communicators
@@ -28,8 +35,7 @@ public class TestKVLib {
         currentCommunicator = 0;
         // create a new mock to be used for the first server
         communicators.add(mock(SocketCommunicator.class));
-        when(communicators.get(0).send("keyrange")).thenReturn(
-                TestConstants.KEYRANGE_SIMPLE);
+        mockAllKeyrange();
         // return the corresponding mock, depending on call count
         this.library = new KVLib(() -> {
             SocketCommunicator c = communicators.get(currentCommunicator);
@@ -47,10 +53,7 @@ public class TestKVLib {
         // given
         this.communicators.add(mock(SocketCommunicator.class));
         // a random communicator can reply when keyrange is called
-        when(communicators.get(0).send("keyrange")).thenReturn(
-                TestConstants.KEYRANGE_SIMPLE);
-        when(communicators.get(1).send("keyrange")).thenReturn(
-                TestConstants.KEYRANGE_SIMPLE);
+        mockAllKeyrange();
 
         // when
         this.library.connect("localhost", 80);
@@ -303,10 +306,17 @@ public class TestKVLib {
 
     @Test
     public void disconnect() throws SocketCommunicatorException {
+        // given
+        communicators.add(mock(SocketCommunicator.class));
+        mockAllKeyrange();
+        // issue connect for second server
+        this.library.connect("localhost", 80);
+
         // when
         this.library.disconnect();
 
         // then
         verify(communicators.get(0)).disconnect();
+        verify(communicators.get(1)).disconnect();
     }
 }
