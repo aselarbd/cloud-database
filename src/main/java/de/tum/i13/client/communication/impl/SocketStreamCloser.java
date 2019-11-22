@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * SocketStreamCloser provides an implementation of StreamCloser
@@ -27,6 +28,16 @@ public class SocketStreamCloser implements StreamCloser {
     @Override
     public void connect(String address, int port) throws IOException {
         socket = new Socket(address, port);
+    }
+
+    /**
+     * create timeout for a socket
+     * @param time: timeout in milliseconds
+     * @throws SocketException if error occurs in setting timeout
+     */
+    @Override
+    public void setTimeOut(int time) throws SocketException {
+        socket.setSoTimeout(time);
     }
 
     /**

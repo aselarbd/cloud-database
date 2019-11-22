@@ -3,6 +3,7 @@ package de.tum.i13.client.communication;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketException;
 
 /**
  * StreamCloser provides an interface to create, close and
@@ -19,6 +20,13 @@ public interface StreamCloser {
      * @throws IOException if the connection fails.
      */
     void connect(String address, int port) throws IOException;
+
+    /**
+     * set socket timeout
+     * @param time: time in milliseconds
+     * @throws SocketException if error in setting timeout
+     */
+    void setTimeOut(int time) throws SocketException;
 
     /**
      * returns whether the socket is connected

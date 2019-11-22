@@ -3,6 +3,7 @@ package de.tum.i13.client.communication.impl;
 import de.tum.i13.client.communication.StreamCloser;
 
 import java.io.*;
+import java.net.SocketException;
 
 public class MockStreamCloser implements StreamCloser {
 
@@ -20,6 +21,17 @@ public class MockStreamCloser implements StreamCloser {
         isConnected = true;
         outputStream = new ByteArrayOutputStream(128);
         inputStream = new ByteArrayInputStream(connectedResponse.getBytes());
+    }
+
+    /**
+     * set socket timeout
+     *
+     * @param time : time in milliseconds
+     * @throws SocketException if error in setting timeout
+     */
+    @Override
+    public void setTimeOut(int time) throws SocketException {
+        //TODO implement
     }
 
     @Override

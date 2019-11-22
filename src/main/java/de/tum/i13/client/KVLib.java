@@ -12,9 +12,11 @@ import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,6 +29,10 @@ public class KVLib {
 
     private ConsistentHashMap keyRanges;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
+
+    private int getRequestFailureCount = 0;
+    private int putRequestFailureCount = 0;
+    private int deleteRequestFailureCount = 0;
 
     public KVLib() {
         this.parser = new KVResultParser();
@@ -113,6 +119,7 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
+                putRequestFailureCount ++;
                 getKeyRanges();
                 return put(item);
             }
@@ -136,15 +143,25 @@ public class KVLib {
             } else if (res.getMessage().equals("server_not_responsible") ||
                         res.getMessage().equals("server_stopped")) {
 
+                putRequestFailureCount++;
+                int timeout = getBackOffTime(putRequestFailureCount);
+                communicator.setTimeOut(timeout);
                 getKeyRanges();
                 return put(item);
             } else if (res.getMessage().equals("server_write_lock")) {
+                putRequestFailureCount =0;
                 return new KVResult("server locked, please try later");
             }
+            putRequestFailureCount =0;
             // decode the value if present
             return res.decoded();
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in put()", e);
+            putRequestFailureCount =0;
+            return new KVResult("Server error");
+        } catch (SocketException e) {
+            LOGGER.log(Level.WARNING, "Error in put() -> timeout()", e);
+            putRequestFailureCount =0;
             return new KVResult("Server error");
         }
     }
@@ -172,6 +189,7 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
+                getRequestFailureCount++;
                 getKeyRanges();
                 return get(item);
             }
@@ -189,13 +207,22 @@ public class KVLib {
                 res = new KVResult("Empty response");
             } else if (res.getMessage().equals("server_not_responsible") ||
                         res.getMessage().equals("server_stopped")) {
+                getRequestFailureCount++;
+                int timeout = getBackOffTime(getRequestFailureCount);
+                communicator.setTimeOut(timeout);
                 getKeyRanges();
                 return get(item);
             }
+            getRequestFailureCount =0;
             // decode the value if present
             return res.decoded();
         } catch (SocketCommunicatorException e) {
+            getRequestFailureCount =0;
             LOGGER.log(Level.WARNING, "Error in get()", e);
+            return new KVResult("Server error");
+        } catch (SocketException e) {
+            getRequestFailureCount =0;
+            LOGGER.log(Level.WARNING, "error in get()-> timeout()");
             return new KVResult("Server error");
         }
     }
@@ -223,6 +250,7 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
+                deleteRequestFailureCount++;
                 getKeyRanges();
                 return delete(item);
             }
@@ -240,14 +268,24 @@ public class KVLib {
             if (res == null) {
                 res = new KVResult("Empty response");
             } else if (res.getMessage().equals("server_not_responsible") || res.getMessage().equals("server_stopped")) {
+                deleteRequestFailureCount++;
+                int timeout = getBackOffTime(deleteRequestFailureCount);
+                communicator.setTimeOut(timeout);
                 getKeyRanges();
                 return delete(item);
             } else if (res.getMessage().equals("server_write_lock")) {
+                deleteRequestFailureCount =0;
                 return new KVResult("server locked, please try later");
             }
+            deleteRequestFailureCount =0;
             return res;
         } catch (SocketCommunicatorException e) {
+            deleteRequestFailureCount =0;
             LOGGER.log(Level.WARNING, "Error in delete()", e);
+            return new KVResult("Server error");
+        } catch (SocketException e) {
+            deleteRequestFailureCount =0;
+            LOGGER.log(Level.WARNING, "Error in delete() -> timeout()", e);
             return new KVResult("Server error");
         }
     }
@@ -263,6 +301,13 @@ public class KVLib {
         }
     }
 
+    private int getBackOffTime(int attempt) {
+        final int maxBackoffTime = 1000;
+        final int baseBackOffTime = 10;
 
+        int backOffTime = Math.min(maxBackoffTime, baseBackOffTime * 2 ^ attempt);
+        Random random = new Random();
+        return random.ints(0,(backOffTime+1)).findFirst().getAsInt();
+    }
 
 }

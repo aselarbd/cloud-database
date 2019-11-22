@@ -1,5 +1,7 @@
 package de.tum.i13.client.communication;
 
+import java.net.SocketException;
+
 /**
  * TCP socket communication interface.
  */
@@ -37,6 +39,13 @@ public interface SocketCommunicator {
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
     void disconnect() throws SocketCommunicatorException;
+
+    /**
+     * set a timeout
+     * @param time : time in milliseconds
+     * @throws SocketException: if error in setting timeout
+     */
+    void setTimeOut(int time) throws SocketException;
 
     /**
      * Send a message

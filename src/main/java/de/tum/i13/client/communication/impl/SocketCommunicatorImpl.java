@@ -6,6 +6,7 @@ import de.tum.i13.client.communication.StreamCloser;
 import de.tum.i13.client.communication.StreamCloserFactory;
 
 import java.io.*;
+import java.net.SocketException;
 import java.util.logging.Logger;
 
 public class SocketCommunicatorImpl implements SocketCommunicator {
@@ -52,6 +53,11 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
     @Override
     public boolean isConnected() {
         return streamCloser != null && streamCloser.isConnected();
+    }
+
+    @Override
+    public void setTimeOut(int time) throws SocketException {
+        streamCloser.setTimeOut(time);
     }
 
     /**
