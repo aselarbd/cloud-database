@@ -39,21 +39,13 @@ public class KVLib {
      * if server not responding
      */
     public String keyRange() {
-        if (!communicator.isConnected()) {
-            return "not connected";
+        getKeyRanges();
+        if (keyRanges == null){
+            LOGGER.log(Level.WARNING, "Metadata table on the kV Client is empty");
+            return "Server Doesn't have key range values";
         }
-        try {
-            String result = communicator.send("keyrange");
-            // TODO parse result according to key range meta data format
-            // TODO update meta data table in client side using parsed results
-            if (result.contains("\r\n"))
-                result = result.substring(0, result.length()-2);
-            return result;
-
-        } catch (SocketCommunicatorException e) {
-            LOGGER.log(Level.WARNING, "Error in get()", e);
-            return "Server error";
-        }
+        LOGGER.log(Level.INFO, "Generate Key range");
+        return keyRanges.getKeyrangeString();
     }
 
     /**
@@ -68,19 +60,26 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-        SocketCommunicator communicator = new SocketCommunicatorImpl();
-        communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
-        String res = communicator.connect(address, port);
-        communicatorMap.put(new InetSocketAddress(address, port), communicator);
-        getKeyRanges();
-        return res;
+            SocketCommunicator communicator = new SocketCommunicatorImpl();
+            communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+            String res = communicator.connect(address, port);
+            communicatorMap.put(new InetSocketAddress(address, port), communicator);
+            getKeyRanges();
+            return res;
     }
 
-    private void getKeyRanges() throws SocketCommunicatorException {
+    private void getKeyRanges() {
         if (!communicatorMap.isEmpty()) {
-            Map.Entry<InetSocketAddress, SocketCommunicator> anyComm = communicatorMap.entrySet().iterator().next();
-            String keyRangeString = anyComm.getValue().send("keyrange");
-            keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
+            for (InetSocketAddress ip : communicatorMap.keySet()){
+                try {
+                    String keyRangeString = communicatorMap.get(ip).send("keyrange");
+                    keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
+                    return;
+                } catch (SocketCommunicatorException e) {
+                    communicatorMap.put(ip,null);
+                }
+            }
+            communicatorMap = null;
         }
     }
 
@@ -105,11 +104,7 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
-                try {
-                    getKeyRanges();
-                } catch (SocketCommunicatorException ex) {
-                    return new KVResult("Failed to connect to KVServer");
-                }
+                getKeyRanges();
                 return put(item);
             }
         }
@@ -164,11 +159,7 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
-                try {
-                    getKeyRanges();
-                } catch (SocketCommunicatorException ex) {
-                    return new KVResult("Failed to connect to KVServer");
-                }
+                getKeyRanges();
                 return get(item);
             }
         }
@@ -223,12 +214,8 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
-                try {
-                    getKeyRanges();
-                } catch (SocketCommunicatorException ex) {
-                    return new KVResult("Failed to connect to KVServer");
-                }
-                return delete(item);
+              getKeyRanges();
+              return delete(item);
             }
         }
 
@@ -243,8 +230,7 @@ public class KVLib {
             KVResult res = parser.parse(result);
             if (res == null) {
                 res = new KVResult("Empty response");
-            } else if (res.getMessage().equals("server_not_responsible") ||
-                    res.getMessage().equals("server_stopped")) {
+            } else if (res.getMessage().equals("server_not_responsible") || res.getMessage().equals("server_stopped")) {
                 getKeyRanges();
                 return delete(item);
             } else if (res.getMessage().equals("server_write_lock")) {
