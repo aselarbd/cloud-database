@@ -3,7 +3,7 @@ package de.tum.i13.client.communication.impl;
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.StreamCloser;
-import de.tum.i13.client.communication.StreamCloserFactory;
+import de.tum.i13.shared.Factory;
 
 import java.io.*;
 import java.net.SocketException;
@@ -15,7 +15,7 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
 
     private String encoding;
 
-    private StreamCloserFactory streamCloserFactory;
+    private Factory<StreamCloser> streamCloserFactory;
 
     private StreamCloser streamCloser;
 
@@ -23,7 +23,7 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
     private BufferedReader input;
 
     @Override
-    public void init(StreamCloserFactory streamCloserFactory, String encoding) {
+    public void init(Factory<StreamCloser> streamCloserFactory, String encoding) {
         this.streamCloserFactory = streamCloserFactory;
         this.encoding = encoding;
     }
@@ -36,7 +36,7 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
         }
         try {
             LOGGER.info("Connecting to server");
-            streamCloser = streamCloserFactory.createStreamCloser();
+            streamCloser = streamCloserFactory.getInstance();
             streamCloser.connect(address, port);
 
             LOGGER.info("Getting the outputstream and inputstream");

@@ -4,11 +4,8 @@ package de.tum.i13.client;
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
-import de.tum.i13.client.communication.impl.SocketStreamCloserFactory;
-import de.tum.i13.shared.ConsistentHashMap;
-import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.KVItem;
-import de.tum.i13.shared.KVResult;
+import de.tum.i13.client.communication.impl.SocketStreamCloser;
+import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
@@ -28,6 +25,7 @@ public class KVLib {
     private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
     private ConsistentHashMap keyRanges;
+    private Factory<SocketCommunicator> communicatorFactory;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
     private int getRequestFailureCount = 0;
@@ -35,9 +33,14 @@ public class KVLib {
     private int deleteRequestFailureCount = 0;
 
     public KVLib() {
-        this.parser = new KVResultParser();
+        // Use a factory which returns new SocketCommunicatorImpl instances by default
+        this(SocketCommunicatorImpl::new);
     }
 
+    public KVLib(Factory<SocketCommunicator> communicatorFactory) {
+        this.parser = new KVResultParser();
+        this.communicatorFactory = communicatorFactory;
+    }
 
     /**
      * get key range for new servers
@@ -67,8 +70,12 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-        SocketCommunicator communicator = new SocketCommunicatorImpl();
-        communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+        InetSocketAddress addr = new InetSocketAddress(address, port);
+        if (communicatorMap.get(addr) != null) {
+            return "already connected";
+        }
+        SocketCommunicator communicator = this.communicatorFactory.getInstance();
+        communicator.init(SocketStreamCloser::new, Constants.TELNET_ENCODING);
         String res = communicator.connect(address, port);
         communicatorMap.put(new InetSocketAddress(address, port), communicator);
         getKeyRanges();
@@ -81,7 +88,7 @@ public class KVLib {
             while (it.hasNext()){
                     Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
-                    String keyRangeString = communicatorMap.get(anyCom.getKey()).send("keyrange");
+                    String keyRangeString = anyCom.getValue().send("keyrange");
                     if (keyRangeString.equals("server_stopped")) {
                         continue;
                     }
@@ -295,10 +302,21 @@ public class KVLib {
      *
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
-    void disconnect() throws SocketCommunicatorException {
+    public String disconnect() {
+        String res = "";
         for (Map.Entry<InetSocketAddress, SocketCommunicator> s : communicatorMap.entrySet()) {
-            s.getValue().disconnect();
+            try {
+                s.getValue().disconnect();
+                res += "Disconnected from " + InetSocketAddressTypeConverter.addrString(s.getKey()) + "\n";
+            } catch (SocketCommunicatorException e) {
+                LOGGER.log(Level.WARNING, "Could not close connection", e);
+                res += "Unable to disconnect from " + InetSocketAddressTypeConverter.addrString(s.getKey())
+                        + " - " + e.getMessage() + "\n";
+            }
         }
+        // use an empty map again for the next connection
+        communicatorMap = new HashMap<>();
+        return res;
     }
 
     private int getBackOffTime(int attempt) {
