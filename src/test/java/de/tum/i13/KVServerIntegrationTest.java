@@ -34,7 +34,7 @@ public class KVServerIntegrationTest {
                     }
                     // shutdown server
                     Runtime.getRuntime().exit(0);
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }

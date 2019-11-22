@@ -54,6 +54,10 @@ public class ECSClientProcessor implements CommandProcessor {
         ECSMessageParser parser = new ECSMessageParser();
         ECSMessage msg = parser.parse(command);
 
+        if (msg == null) {
+            return null;
+        }
+
         switch(msg.getType()) {
             case RESPONSE_OK:
             case RESPONSE_ERROR:
@@ -79,7 +83,7 @@ public class ECSClientProcessor implements CommandProcessor {
                 // predecessor and our new predecessor to some other server(s).
                 // If no, our keyrange grew larger, which just means, that another server
                 // is soon going to start putting new items to this server.
-                if (newKeyRange.get(previousPredecessor).equals(kvCommandProcessor.getAddr())) {
+                if (kvCommandProcessor.getAddr().equals(newKeyRange.get(previousPredecessor))) {
                     // handoff keys
                 }
                 // just set the new keyrange, new keys will come soon.

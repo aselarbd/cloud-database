@@ -51,6 +51,7 @@ public class HeartbeatSender {
                     logger.fine("got " + new String(response.getData(), Constants.TELNET_ENCODING_CHARSET) + " from " + response.getAddress() + ":" + response.getPort());
 
                 } catch (IOException e) {
+                    logger.warning("lost connection, shutting server " + receiver.getHostString() + " down: " + e.getMessage());
                     exiter.run();
                     s.close();
                 }

@@ -67,7 +67,7 @@ public class Server {
 
     public void connectTo(InetSocketAddress address, CommandProcessor ecsProcessor) throws IOException {
         SocketChannel sc = SocketChannel.open();
-        boolean connected = sc.connect(address);
+        sc.connect(address);
         sc.configureBlocking(false);
 
         if (this.selector == null) {
@@ -78,8 +78,8 @@ public class Server {
         key.attach(ecsProcessor);
         this.socketChannels.put(address, sc);
 
-        if (connected) {
-            connect(key);
+        if (!sc.isConnectionPending()) {
+            sc.finishConnect();
         }
     }
 

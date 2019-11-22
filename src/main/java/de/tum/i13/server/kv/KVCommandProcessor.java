@@ -39,33 +39,39 @@ public class KVCommandProcessor implements CommandProcessor {
     @Override
     public String process(InetSocketAddress src, String input) {
 
-        if (input.toLowerCase().equals("keyrange")) {
-            return keyRange.getKeyrangeString();
-        }
-
         KVResultParser parser = new KVResultParser();
         KVResult command = parser.parse(input);
 
-        String key = command.getItem().getKey();
-        InetSocketAddress targetServerAddress = keyRange.get(key);
+        String cmdMsg = command.getMessage();
 
-        if (targetServerAddress == null) {
+        if (cmdMsg.equals("keyrange")) {
+            if (keyRange != null && keyRange.size() > 0) {
+                return keyRange.getKeyrangeString();
+            } else {
+                return "server_stopped";
+            }
+        }
+
+        KVItem item = command.getItem();
+        String key = item.getKey();
+
+        if (keyRange == null || keyRange.get(key) == null) {
             return "server_stopped";
         }
-        if (!targetServerAddress.equals(address)) {
+        if (!keyRange.get(key).equals(address)) {
             return "server_not_responsible";
         }
-        if (!command.getMessage().toLowerCase().equals("get") && writeLock) {
+        if (!cmdMsg.toLowerCase().equals("get") && writeLock) {
             return "server_write_lock";
         }
 
-        switch(command.getMessage().toLowerCase()) {
+        switch(cmdMsg.toLowerCase()) {
             case "get":
-                return get(command.getItem().getKey());
+                return get(item.getKey());
             case "put":
-                return put(command.getItem());
+                return put(item);
             case "delete":
-                return delete(command.getItem());
+                return delete(item);
             default:
                 return "unknown command";
         }

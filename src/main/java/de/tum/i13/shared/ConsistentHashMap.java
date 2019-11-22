@@ -92,7 +92,10 @@ public class ConsistentHashMap {
     }
 
     public InetSocketAddress get(InetSocketAddress key) {
-        return get(addressHash(key));
+        if (key != null) {
+            return get(addressHash(key));
+        }
+        return null;
     }
 
     public InetSocketAddress getPredecessor(InetSocketAddress address) {
@@ -188,5 +191,9 @@ public class ConsistentHashMap {
         }
 
         return newInstance;
+    }
+
+    public int size() {
+        return consistentHashMap.size();
     }
 }

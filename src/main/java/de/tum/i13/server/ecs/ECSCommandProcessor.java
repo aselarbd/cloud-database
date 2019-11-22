@@ -43,6 +43,8 @@ public class ECSCommandProcessor implements CommandProcessor {
             case ANNOUNCE_SHUTDOWN:
 
             case PUT_DONE:
+                releaseLock(src);
+                return null;
 
             default:
                 return new ECSMessage(ECSMessage.MsgType.RESPONSE_ERROR).getFullMessage();
@@ -80,6 +82,11 @@ public class ECSCommandProcessor implements CommandProcessor {
             sender.sendTo(predecessor.getECS(), keyRangeString);
             ssm.setState(predecessor, ServerState.State.BALANCE);
         }
+    }
+
+    private void releaseLock(InetSocketAddress src) {
+        ECSMessage releaseMsg = new ECSMessage(ECSMessage.MsgType.REL_LOCK);
+        sender.sendTo(src, releaseMsg.getFullMessage());
     }
 
     private void heartbeat(ServerState receveiver) {

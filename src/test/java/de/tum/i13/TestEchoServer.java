@@ -24,7 +24,7 @@ public class TestEchoServer {
             public void run() {
                 try {
                     Main.main(new String[]{"-p", port.toString()});
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -51,7 +51,7 @@ public class TestEchoServer {
             public void run() {
                 try {
                     Main.main(new String[]{"-p", port.toString()});
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }

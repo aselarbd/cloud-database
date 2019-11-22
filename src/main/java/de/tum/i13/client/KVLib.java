@@ -76,6 +76,9 @@ public class KVLib {
                     Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
                     String keyRangeString = communicatorMap.get(anyCom.getKey()).send("keyrange");
+                    if (keyRangeString.equals("server_stopped")) {
+                        continue;
+                    }
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
@@ -97,6 +100,9 @@ public class KVLib {
 
         if (item == null || !item.isValid() || item.getValue() == null) {
             return new KVResult("Invalid key-value item");
+        }
+        if (keyRanges == null || keyRanges.size() <= 0) {
+            return new KVResult("no server started");
         }
 
         InetSocketAddress targetServer = keyRanges.get(item.getKey());
@@ -154,6 +160,9 @@ public class KVLib {
         if (!item.isValid()) {
             return new KVResult("Invalid key");
         }
+        if (keyRanges == null || keyRanges.size() <= 0) {
+            return new KVResult("no server started");
+        }
 
         InetSocketAddress targetServer = keyRanges.get(item.getKey());
 
@@ -201,6 +210,9 @@ public class KVLib {
 
         if (!item.isValid()) {
             return new KVResult("Invalid key");
+        }
+        if (keyRanges == null || keyRanges.size() <= 0) {
+            return new KVResult("no server started");
         }
 
         InetSocketAddress targetServer = keyRanges.get(item.getKey());

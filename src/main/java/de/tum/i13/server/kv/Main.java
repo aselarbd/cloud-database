@@ -15,7 +15,7 @@ import static de.tum.i13.shared.LogSetup.setupLogging;
 public class Main {
     public static Logger logger = Logger.getLogger(Main.class.getName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         Config cfg = parseCommandlineArgs(args);  //Do not change this
         setupLogging(cfg.logfile, cfg.loglevel);
 
@@ -41,9 +41,21 @@ public class Main {
 
 
         ECSClientProcessor ecsClientProcessor = new ECSClientProcessor(server, cfg.bootstrap, kvCommandProcessor);
-        server.connectTo(cfg.bootstrap, ecsClientProcessor);
-        ecsClientProcessor.register();
 
+        boolean connected = false;
+        while (!connected) {
+            try {
+                server.connectTo(cfg.bootstrap, ecsClientProcessor);
+            } catch (Exception e) {
+                logger.warning("Could not connect to ecs, retrying");
+                Thread.sleep(3000);
+                continue;
+            }
+            connected = true;
+        }
+
+
+        ecsClientProcessor.register();
 
         server.start();
     }
