@@ -8,7 +8,6 @@ import de.tum.i13.shared.parsers.ECSMessageParser;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 
@@ -20,7 +19,7 @@ public class ECSCommandProcessor implements CommandProcessor {
 
     private ServerStateMap ssm;
 
-    public ECSCommandProcessor(Server sender) throws NoSuchAlgorithmException {
+    public ECSCommandProcessor(Server sender) {
         this.sender = sender;
         this.ssm = new ServerStateMap();
     }

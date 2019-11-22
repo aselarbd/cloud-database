@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +34,7 @@ public class KVServerIntegrationTest {
                     }
                     // shutdown server
                     Runtime.getRuntime().exit(0);
-                } catch (IOException | NoSuchAlgorithmException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }

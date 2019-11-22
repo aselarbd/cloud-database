@@ -10,7 +10,6 @@ import de.tum.i13.shared.parsers.KVResultParser;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,7 +27,7 @@ public class KVCommandProcessor implements CommandProcessor {
 
     private boolean writeLock;
 
-    KVCommandProcessor(InetSocketAddress address, KVCache kvCache, KVStore kvStore) throws NoSuchAlgorithmException {
+    KVCommandProcessor(InetSocketAddress address, KVCache kvCache, KVStore kvStore) {
         this.address = address;
         keyRange = new ConsistentHashMap();
 

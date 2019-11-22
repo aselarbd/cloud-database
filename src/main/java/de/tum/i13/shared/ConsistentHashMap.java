@@ -21,11 +21,13 @@ public class ConsistentHashMap {
     /**
      * Create a new {@link ConsistentHashMap}.
      *
-     * @throws NoSuchAlgorithmException when MD5 is not available
-     * (should never happen)
      */
-    public ConsistentHashMap() throws NoSuchAlgorithmException {
-        this.messageDigest = MessageDigest.getInstance("MD5");
+    public ConsistentHashMap() {
+        try {
+            this.messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -136,11 +138,10 @@ public class ConsistentHashMap {
      *
      * @return A new instance with the respective entries
      *
-     * @throws NoSuchAlgorithmException If MD5 is not available (should never happen)
      * @throws IllegalArgumentException If the input string cannot be parsed as keyrange representation
      */
     public static ConsistentHashMap fromKeyrangeString(String keyrange)
-            throws NoSuchAlgorithmException, IllegalArgumentException {
+            throws IllegalArgumentException {
         if (!keyrange.contains(";")) {
             throw new IllegalArgumentException("Bad format: No semicolon found");
         }

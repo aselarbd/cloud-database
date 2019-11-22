@@ -3,7 +3,6 @@ package de.tum.i13.server.ecs;
 import de.tum.i13.shared.ConsistentHashMap;
 
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +15,7 @@ public class ServerStateMap {
     private Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
     private ConsistentHashMap keyRangeMap = new ConsistentHashMap();
 
-    public ServerStateMap() throws NoSuchAlgorithmException {
+    public ServerStateMap() {
     }
 
     public void add(ServerState serverState) {

@@ -12,7 +12,6 @@ import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -44,20 +43,15 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-
-        try {
-            SocketCommunicator communicator = new SocketCommunicatorImpl();
-            communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
-            String res = communicator.connect(address, port);
-            communicatorMap.put(new InetSocketAddress(address, port), communicator);
-            getKeyRanges();
-            return res;
-        } catch (NoSuchAlgorithmException e) {
-            return "Failed to connect to host: " + e.getMessage();
-        }
+        SocketCommunicator communicator = new SocketCommunicatorImpl();
+        communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+        String res = communicator.connect(address, port);
+        communicatorMap.put(new InetSocketAddress(address, port), communicator);
+        getKeyRanges();
+        return res;
     }
 
-    private void getKeyRanges() throws SocketCommunicatorException, NoSuchAlgorithmException {
+    private void getKeyRanges() throws SocketCommunicatorException {
         if (!communicatorMap.isEmpty()) {
             Map.Entry<InetSocketAddress, SocketCommunicator> anyComm = communicatorMap.entrySet().iterator().next();
             String keyRangeString = anyComm.getValue().send("keyrange");
@@ -90,8 +84,6 @@ public class KVLib {
                     getKeyRanges();
                 } catch (SocketCommunicatorException ex) {
                     return new KVResult("Failed to connect to KVServer");
-                } catch (NoSuchAlgorithmException ex) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
                 }
                 return put(item);
             }
@@ -115,11 +107,7 @@ public class KVLib {
             } else if (res.getMessage().equals("server_not_responsible") ||
                         res.getMessage().equals("server_stopped")) {
 
-                try {
-                    getKeyRanges();
-                } catch (NoSuchAlgorithmException e) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
-                }
+                getKeyRanges();
                 return put(item);
             } else if (res.getMessage().equals("server_write_lock")) {
                 return new KVResult("server locked, please try later");
@@ -155,8 +143,6 @@ public class KVLib {
                     getKeyRanges();
                 } catch (SocketCommunicatorException ex) {
                     return new KVResult("Failed to connect to KVServer");
-                } catch (NoSuchAlgorithmException ex) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
                 }
                 return get(item);
             }
@@ -174,11 +160,7 @@ public class KVLib {
                 res = new KVResult("Empty response");
             } else if (res.getMessage().equals("server_not_responsible") ||
                         res.getMessage().equals("server_stopped")) {
-                try {
-                    getKeyRanges();
-                } catch (NoSuchAlgorithmException e) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
-                }
+                getKeyRanges();
                 return get(item);
             } else if (res.getMessage().equals("get_success")) {
                 // if successful, we need to decode the value before returning it
@@ -220,8 +202,6 @@ public class KVLib {
                     getKeyRanges();
                 } catch (SocketCommunicatorException ex) {
                     return new KVResult("Failed to connect to KVServer");
-                } catch (NoSuchAlgorithmException ex) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
                 }
                 return delete(item);
             }
@@ -240,11 +220,7 @@ public class KVLib {
                 res = new KVResult("Empty response");
             } else if (res.getMessage().equals("server_not_responsible") ||
                     res.getMessage().equals("server_stopped")) {
-                try {
-                    getKeyRanges();
-                } catch (NoSuchAlgorithmException e) {
-                    return new KVResult("Could not get responsible servers. Client does not support Algorithm" + e.getMessage());
-                }
+                getKeyRanges();
                 return delete(item);
             } else if (res.getMessage().equals("server_write_lock")) {
                 return new KVResult("server locked, please try later");

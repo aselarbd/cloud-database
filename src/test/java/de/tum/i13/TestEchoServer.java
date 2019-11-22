@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,7 +24,7 @@ public class TestEchoServer {
             public void run() {
                 try {
                     Main.main(new String[]{"-p", port.toString()});
-                } catch (IOException | NoSuchAlgorithmException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -52,7 +51,7 @@ public class TestEchoServer {
             public void run() {
                 try {
                     Main.main(new String[]{"-p", port.toString()});
-                } catch (IOException | NoSuchAlgorithmException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }

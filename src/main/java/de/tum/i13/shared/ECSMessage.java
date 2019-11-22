@@ -1,7 +1,6 @@
 package de.tum.i13.shared;
 
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -274,10 +273,9 @@ public class ECSMessage {
      * @return A new {@link ConsistentHashMap} based on the argument values
      * @throws IndexOutOfBoundsException if the index is invalid
      * @throws IllegalArgumentException if there is no KEYRANGE item allowed at this position or if parsing failed
-     * @throws NoSuchAlgorithmException if MD5 is unavailable (should never happen)
      */
     public ConsistentHashMap getKeyrange(int index)
-            throws IndexOutOfBoundsException, IllegalArgumentException, NoSuchAlgorithmException {
+            throws IndexOutOfBoundsException, IllegalArgumentException {
         checkLength(index);
         expectAt(index, MsgArg.KEYRANGE);
         return ConsistentHashMap.fromKeyrangeString(arguments.get(index));

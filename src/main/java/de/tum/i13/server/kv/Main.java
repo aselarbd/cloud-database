@@ -4,11 +4,9 @@ import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
-import de.tum.i13.shared.InetSocketAddressTypeConverter;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -17,7 +15,7 @@ import static de.tum.i13.shared.LogSetup.setupLogging;
 public class Main {
     public static Logger logger = Logger.getLogger(Main.class.getName());
 
-    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
+    public static void main(String[] args) throws IOException {
         Config cfg = parseCommandlineArgs(args);  //Do not change this
         setupLogging(cfg.logfile, cfg.loglevel);
 

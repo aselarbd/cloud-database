@@ -5,7 +5,6 @@ import de.tum.i13.shared.ECSMessage;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
-import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -59,7 +58,7 @@ public class ECSMessageParserTest {
     }
 
     @Test
-    public void parseKeyrange() throws NoSuchAlgorithmException {
+    public void parseKeyrange() {
         ECSMessage msg = parser.parse("keyrange be8e4f546de43337d7f0d4637a796478," +
                 "be8e4f546de43337d7f0d4637a796478,192.168.1.1:80;");
         assertNotNull(msg);

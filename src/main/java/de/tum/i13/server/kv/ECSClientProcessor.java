@@ -10,7 +10,6 @@ import de.tum.i13.shared.parsers.ECSMessageParser;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 
@@ -70,27 +69,22 @@ public class ECSClientProcessor implements CommandProcessor {
             case BROADCAST_REM:
                 break;
             case KEYRANGE:
-                try {
-                    ConsistentHashMap newKeyRange = msg.getKeyrange(0);
+                ConsistentHashMap newKeyRange = msg.getKeyrange(0);
 
-                    InetSocketAddress previousPredecessor = kvCommandProcessor.getKeyRange().getPredecessor(kvCommandProcessor.getAddr());
+                InetSocketAddress previousPredecessor = kvCommandProcessor.getKeyRange().getPredecessor(kvCommandProcessor.getAddr());
 
-                    // this checks, whether the previousPredecessor (it's position
-                    // on the ConsistentHash-ring) is now part of our key range.
-                    // If yes, that means, we have to hand of the data between our previous
-                    // predecessor and our new predecessor to some other server(s).
-                    // If no, our keyrange grew larger, which just means, that another server
-                    // is soon going to start putting new items to this server.
-                    if (newKeyRange.get(previousPredecessor).equals(kvCommandProcessor.getAddr())) {
-                        // handoff keys
-                    }
-                    // just set the new keyrange, new keys will come soon.
-                    kvCommandProcessor.setKeyRange(newKeyRange);
-                    sender.sendTo(ecsAddr, "done"); // tell that you're done
-                } catch (NoSuchAlgorithmException e) {
-                    logger.severe("Could not create Consistent Hash Map");
-                    // TODO: Maybe get rid of these stupid NoSuchAlgorithmExceptions, we can't do anything about it anyway.
+                // this checks, whether the previousPredecessor (it's position
+                // on the ConsistentHash-ring) is now part of our key range.
+                // If yes, that means, we have to hand of the data between our previous
+                // predecessor and our new predecessor to some other server(s).
+                // If no, our keyrange grew larger, which just means, that another server
+                // is soon going to start putting new items to this server.
+                if (newKeyRange.get(previousPredecessor).equals(kvCommandProcessor.getAddr())) {
+                    // handoff keys
                 }
+                // just set the new keyrange, new keys will come soon.
+                kvCommandProcessor.setKeyRange(newKeyRange);
+                sender.sendTo(ecsAddr, "done"); // tell that you're done
                 return null;
         }
         return null;
