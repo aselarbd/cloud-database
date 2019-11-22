@@ -60,12 +60,12 @@ public class KVLib {
      * @throws SocketCommunicatorException if the connection fails.
      */
     String connect(String address, int port) throws SocketCommunicatorException {
-            SocketCommunicator communicator = new SocketCommunicatorImpl();
-            communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
-            String res = communicator.connect(address, port);
-            communicatorMap.put(new InetSocketAddress(address, port), communicator);
-            getKeyRanges();
-            return res;
+        SocketCommunicator communicator = new SocketCommunicatorImpl();
+        communicator.init(new SocketStreamCloserFactory(), Constants.TELNET_ENCODING);
+        String res = communicator.connect(address, port);
+        communicatorMap.put(new InetSocketAddress(address, port), communicator);
+        getKeyRanges();
+        return res;
     }
 
     private void getKeyRanges() {
@@ -76,10 +76,10 @@ public class KVLib {
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
-                    communicatorMap.put(ip,null);
+                    communicatorMap.remove(ip);
                 }
             }
-            communicatorMap = null;
+            communicatorMap = new HashMap<>();
         }
     }
 
@@ -214,8 +214,8 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
-              getKeyRanges();
-              return delete(item);
+                getKeyRanges();
+                return delete(item);
             }
         }
 
