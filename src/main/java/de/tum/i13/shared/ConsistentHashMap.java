@@ -3,6 +3,7 @@ package de.tum.i13.shared;
 import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -31,6 +32,18 @@ public class ConsistentHashMap {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Get currently associated IP list
+     * @return ArrayList of InetSocketAddress IP:PORT
+     */
+    public ArrayList<InetSocketAddress> getIPAddressList(){
+        ArrayList<InetSocketAddress> ipList = new ArrayList<>();
+        for (String key : consistentHashMap.keySet()){
+            ipList.add(consistentHashMap.get(key));
+        }
+        return ipList;
     }
 
     /**
