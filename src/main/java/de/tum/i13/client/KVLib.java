@@ -13,6 +13,7 @@ import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,13 +71,15 @@ public class KVLib {
 
     private void getKeyRanges() {
         if (!communicatorMap.isEmpty()) {
-            for (InetSocketAddress ip : communicatorMap.keySet()){
+            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+            while (it.hasNext()){
+                    Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
-                    String keyRangeString = communicatorMap.get(ip).send("keyrange");
+                    String keyRangeString = communicatorMap.get(anyCom.getKey()).send("keyrange");
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
-                    communicatorMap.remove(ip);
+                    communicatorMap.remove(anyCom.getKey());
                 }
             }
             communicatorMap = new HashMap<>();
