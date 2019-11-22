@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="KVServer" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="de.tum.i13.server.kv.Main" />
+    <module name="cdbms1" />
+    <option name="PROGRAM_PARAMETERS" value="-b 127.0.0.1:5150" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="de.tum.i13.server.kv.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

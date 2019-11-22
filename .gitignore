@@ -13,7 +13,9 @@ buildNumber.properties
 
 # Intellij files
 *.iml
-.idea/
+.idea/*
+# cf https://stackoverflow.com/questions/987142/make-gitignore-ignore-everything-except-a-few-files/16318111#16318111
+!.idea/runConfigurations
 
 # project specifi
 *.log*
