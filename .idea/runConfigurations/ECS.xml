@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ECS" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="de.tum.i13.server.ecs.Main" />
+    <option name="MAIN_CLASS_NAME" value="de.tum.i13.server.ecs.ECSMain" />
     <module name="cdbms1" />
     <option name="PROGRAM_PARAMETERS" value="-p 5150" />
     <extension name="coverage">

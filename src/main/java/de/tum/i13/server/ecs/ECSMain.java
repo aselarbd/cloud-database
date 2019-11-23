@@ -10,9 +10,9 @@ import java.util.logging.Logger;
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
-public class Main {
+public class ECSMain {
 
-    public static Logger logger = Logger.getLogger(Main.class.getName());
+    public static Logger logger = Logger.getLogger(ECSMain.class.getName());
 
     public static void main(String[] args) throws IOException {
         Config cfg = parseCommandlineArgs(args);

@@ -37,7 +37,7 @@
                             <appendAssemblyId>false</appendAssemblyId>
                             <archive>
                                 <manifest>
-                                    <mainClass>de.tum.i13.server.ecs.Main</mainClass>
+                                    <mainClass>de.tum.i13.server.ecs.ECSMain</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
@@ -56,7 +56,7 @@
                             <appendAssemblyId>false</appendAssemblyId>
                             <archive>
                                 <manifest>
-                                    <mainClass>de.tum.i13.server.nio.StartNioServer</mainClass> <!-- Point this to your implementation-->
+                                    <mainClass>de.tum.i13.server.kv.KVMain</mainClass> <!-- Point this to your implementation-->
                                 </manifest>
                             </archive>
                             <descriptorRefs>

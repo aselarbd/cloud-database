@@ -1,6 +1,5 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
@@ -12,8 +11,8 @@ import java.util.logging.Logger;
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
-public class Main {
-    public static Logger logger = Logger.getLogger(Main.class.getName());
+public class KVMain {
+    public static Logger logger = Logger.getLogger(KVMain.class.getName());
 
     public static void main(String[] args) throws IOException, InterruptedException {
         Config cfg = parseCommandlineArgs(args);  //Do not change this

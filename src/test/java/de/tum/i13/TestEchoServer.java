@@ -1,6 +1,6 @@
 package de.tum.i13;
 
-import de.tum.i13.server.kv.Main;
+import de.tum.i13.server.kv.KVMain;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ public class TestEchoServer {
             @Override
             public void run() {
                 try {
-                    Main.main(new String[]{"-p", port.toString()});
+                    KVMain.main(new String[]{"-p", port.toString()});
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -50,7 +50,7 @@ public class TestEchoServer {
             @Override
             public void run() {
                 try {
-                    Main.main(new String[]{"-p", port.toString()});
+                    KVMain.main(new String[]{"-p", port.toString()});
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
