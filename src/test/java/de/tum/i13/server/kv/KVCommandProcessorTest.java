@@ -1,5 +1,7 @@
 package de.tum.i13.server.kv;
 
+import de.tum.i13.TestConstants;
+import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -163,12 +165,16 @@ class KVCommandProcessorTest {
                 .map(c -> DynamicTest.dynamicTest(
                     c.action + " " + c.key + ":" + c.value,
                     () -> {
-                        KVCommandProcessor kvcp = new KVCommandProcessor(null, c.cache, c.store);
+                        ConsistentHashMap testRange = ConsistentHashMap
+                                .fromKeyrangeString(TestConstants.KEYRANGE_SIMPLE);
+                        // use get with any string as the simple test string only contains one address
+                        KVCommandProcessor kvcp = new KVCommandProcessor(testRange.get("any"), c.cache, c.store);
+                        kvcp.setKeyRange(testRange);
                         String processed = kvcp.process(
                                 null,
                                 c.action + " " + c.key + (c.value != null ? " " + c.value : "")
                         );
-                        assertEquals(c.result  + "\r\n", processed);
+                        assertEquals(c.result, processed);
                     })
                 );
     }

@@ -9,6 +9,10 @@ public class ECSUtils {
 
     private Server sender;
 
+    public ECSUtils(Server sender) {
+        this.sender = sender;
+    }
+
     /**
      * add new ip:port to a ECS server
      * @param address : newly added server IP:PORT

@@ -1,11 +1,15 @@
 package de.tum.i13.shared;
 
+import de.tum.i13.kvtp.Server;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 class ECSUtilsTest {
 
@@ -25,8 +29,15 @@ class ECSUtilsTest {
         consistentHashMap.put(ip2);
         consistentHashMap.put(ip3);
 
-        ECSUtils ecsUtils =  new ECSUtils();
+        Server testSender = mock(Server.class);
+        ECSUtils ecsUtils =  new ECSUtils(testSender);
         ecsUtils.rebalancedServerRangesRemove(ip1,consistentHashMap);
+
+        verify(testSender, never()).sendTo(eq(ip1), anyString());
+        verify(testSender).sendTo(eq(ip2), anyString());
+        verify(testSender).sendTo(eq(ip3), anyString());
+
+        // TODO actually check keyrange
     }
 
     @Test
@@ -40,7 +51,14 @@ class ECSUtilsTest {
         consistentHashMap.put(ip1);
         consistentHashMap.put(ip2);
 
-        ECSUtils ecsUtils =  new ECSUtils();
+        Server testSender = mock(Server.class);
+        ECSUtils ecsUtils =  new ECSUtils(testSender);
         ecsUtils.rebalancedServerRangesAdd(ip3,consistentHashMap);
+
+        verify(testSender).sendTo(eq(ip1), anyString());
+        verify(testSender).sendTo(eq(ip2), anyString());
+        verify(testSender).sendTo(eq(ip3), anyString());
+
+        // TODO actually check keyrange
     }
 }
