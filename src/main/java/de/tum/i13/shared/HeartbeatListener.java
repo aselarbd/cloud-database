@@ -25,6 +25,7 @@ public class HeartbeatListener {
 
                     byte[] ping = new byte[pong.length];
                     DatagramPacket p = new DatagramPacket(ping, ping.length);
+                    s.setSoTimeout(3000);
                     s.receive(p);
 
                     logger.fine("Got " + new String(p.getData(), Constants.TELNET_ENCODING_CHARSET) + " from " + p.getAddress() + ":" + p.getPort());
@@ -34,7 +35,7 @@ public class HeartbeatListener {
                     }
                 }
             } catch (IOException e) {
-                ses.shutdown();
+                logger.warning(e.getMessage());
             }
         }, 0, TimeUnit.MILLISECONDS);
         return ses;

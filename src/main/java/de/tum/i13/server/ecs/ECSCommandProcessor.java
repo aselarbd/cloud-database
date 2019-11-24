@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 
 public class ECSCommandProcessor implements CommandProcessor {
 
+    private static final boolean DEBUG = true;
     private static Logger logger = Logger.getLogger(ECSCommandProcessor.class.getName());
 
     private Server sender;
@@ -43,7 +44,7 @@ public class ECSCommandProcessor implements CommandProcessor {
             case ANNOUNCE_SHUTDOWN:
 
             case PUT_DONE:
-                releaseLock(src);
+                handleOK(src);
                 return null;
 
             default:
@@ -73,6 +74,7 @@ public class ECSCommandProcessor implements CommandProcessor {
         keyRangeMessage.addKeyrange(0, ssm.getKeyRanges());
         String keyRangeString = keyRangeMessage.getFullMessage();
         sender.sendTo(ecsAddr, keyRangeString);
+        serverState.setState(ServerState.State.ACTIVE);
 
         ServerState predecessor = ssm.getKVPredecessor(serverState);
 
@@ -84,23 +86,32 @@ public class ECSCommandProcessor implements CommandProcessor {
         }
     }
 
-    private void releaseLock(InetSocketAddress src) {
-        ECSMessage releaseMsg = new ECSMessage(ECSMessage.MsgType.REL_LOCK);
-        sender.sendTo(src, releaseMsg.getFullMessage());
-    }
-
     private void heartbeat(ServerState receveiver) {
         HeartbeatSender heartbeatSender = new HeartbeatSender(receveiver.getKV());
         ScheduledExecutorService heartBeatService = heartbeatSender.start(() -> {
-            ssm.remove(receveiver);
-            braodcastKeyrange();
+            if (!DEBUG) {
+                ssm.remove(receveiver);
+                broadcastKeyrange(); // TODO check this
+            }
         });
-        receveiver.addShutdownHook(() -> {
-            heartBeatService.shutdown();
-        });
+        receveiver.addShutdownHook(heartBeatService::shutdown);
     }
 
-    private void braodcastKeyrange() {
+    private void handleOK(InetSocketAddress src) {
+        ServerState server = ssm.getByECSAddress(src);
+        if (!server.isActive()) {
+            releaseLock(server);
+            broadcastKeyrange();
+        }
+    }
+
+    private void releaseLock(ServerState server) {
+        ECSMessage releaseMsg = new ECSMessage(ECSMessage.MsgType.REL_LOCK);
+        sender.sendTo(server.getECS(), releaseMsg.getFullMessage());
+        server.setState(ServerState.State.ACTIVE);
+    }
+
+    private void broadcastKeyrange() {
         ECSMessage keyRangeMsg = new ECSMessage(ECSMessage.MsgType.KEYRANGE);
         keyRangeMsg.addKeyrange(0, ssm.getKeyRanges());
         String msg = keyRangeMsg.getFullMessage();

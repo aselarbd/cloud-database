@@ -10,6 +10,8 @@ import de.tum.i13.shared.parsers.KVResultParser;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -90,6 +92,23 @@ public class KVCommandProcessor implements CommandProcessor {
         return "put_" + result + " " + item.getKey() + " " + item.getValue();
     }
 
+    public KVItem getItem(String key) {
+        KVItem kvItem = kvCache.get(key);
+        if (kvItem != null) {
+            return kvItem;
+        }
+
+        KVItem value;
+        try {
+            value = kvStore.get(key);
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Could not get value from Database", e);
+            return null;
+        }
+
+        return new KVItem(key, value.getValue());
+    }
+
     private String get(String key) {
         KVItem kvItem = kvCache.get(key);
         if (kvItem != null) {
@@ -113,7 +132,7 @@ public class KVCommandProcessor implements CommandProcessor {
         return "get_error " + key;
     }
 
-    private String delete(KVItem item) {
+    public String delete(KVItem item) {
         try {
             if (kvStore.get(item.getKey()) != null) {
                 kvStore.put(new KVItem(item.getKey(), Constants.DELETE_MARKER));
@@ -136,6 +155,15 @@ public class KVCommandProcessor implements CommandProcessor {
     @Override
     public void connectionClosed(InetAddress address) {
         logger.info("connection closed: " + address.toString());
+    }
+
+    public Set<String> getAllKeys(Predicate<String> predicate) {
+        try {
+            return kvStore.getAllKeys(predicate);
+        } catch (IOException e) {
+            logger.warning("Could not read all keys for predicate from disk");
+        }
+        return null;
     }
 
     public void setKeyRange(ConsistentHashMap keyRange) {

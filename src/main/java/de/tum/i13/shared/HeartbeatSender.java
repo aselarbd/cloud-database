@@ -54,6 +54,7 @@ public class HeartbeatSender {
                     logger.warning("lost connection, shutting server " + receiver.getHostString() + " down: " + e.getMessage());
                     exiter.run();
                     s.close();
+                    ses.shutdown();
                 }
             }, 0, 1000, TimeUnit.MILLISECONDS);
         } catch (IOException e) {

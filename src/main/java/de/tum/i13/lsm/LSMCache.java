@@ -2,6 +2,7 @@ package de.tum.i13.lsm;
 
 import de.tum.i13.shared.KVItem;
 
+import java.util.Collections;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -69,6 +70,10 @@ public class LSMCache {
         } finally {
             rwl.writeLock().unlock();
         }
+    }
+
+    public TreeMap<String, KVItem> getShallowLsmCopy() {
+        return new TreeMap<>(lsmCache);
     }
 
     /**

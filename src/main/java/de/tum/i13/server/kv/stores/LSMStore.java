@@ -13,9 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -132,7 +131,9 @@ public class LSMStore implements KVStore {
 
         KVItem cachedItem = lsmCache.get(key);
         if (cachedItem != null) {
-            return cachedItem;
+            if (!cachedItem.getValue().equals(Constants.DELETE_MARKER)) {
+                return cachedItem;
+            }
         }
 
         ArrayList<Lookup> lookUps = new ArrayList<>();
@@ -161,5 +162,30 @@ public class LSMStore implements KVStore {
         }
 
         return null;
+    }
+
+    @Override
+    public Set<String> getAllKeys(Predicate<String> predicate) throws IOException {
+
+        TreeMap<String, KVItem> cacheSnapshot = lsmCache.getShallowLsmCopy();
+
+        Set<String> matchingKeys = cacheSnapshot.keySet()
+                .stream()
+                .filter(predicate)
+                .collect(Collectors.toSet());
+
+        List<LSMFile> lsmFiles = listLSMFiles(lsmFileDir);
+
+        for (LSMFile f : lsmFiles) {
+            TreeMap<String, Long> node = f.readIndex();
+            matchingKeys.addAll(
+                    node.keySet()
+                            .stream()
+                            .filter(predicate)
+                            .collect(Collectors.toSet())
+            );
+        }
+
+        return matchingKeys;
     }
 }

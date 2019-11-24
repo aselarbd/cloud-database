@@ -2,14 +2,14 @@ package de.tum.i13.server.kv;
 
 import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.kvtp.Server;
-import de.tum.i13.shared.ConsistentHashMap;
-import de.tum.i13.shared.ECSMessage;
-import de.tum.i13.shared.HeartbeatListener;
+import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.ECSMessageParser;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Logger;
 
@@ -75,18 +75,29 @@ public class ECSClientProcessor implements CommandProcessor {
             case KEYRANGE:
                 ConsistentHashMap newKeyRange = msg.getKeyrange(0);
 
-                InetSocketAddress previousPredecessor = kvCommandProcessor.getKeyRange().getPredecessor(kvCommandProcessor.getAddr());
+                InetSocketAddress newPredecessor = newKeyRange.getPredecessor(kvCommandProcessor.getAddr());
 
-                // this checks, whether the previousPredecessor (it's position
-                // on the ConsistentHash-ring) is now part of our key range.
-                // If yes, that means, we have to hand of the data between our previous
-                // predecessor and our new predecessor to some other server(s).
-                // If no, our keyrange grew larger, which just means, that another server
-                // is soon going to start putting new items to this server.
-                if (kvCommandProcessor.getAddr().equals(newKeyRange.get(previousPredecessor))) {
-                    // handoff keys
+                // this checks, whether the new predecessor is part of the old keyrange.
+                // If so, we have to give him all the data up to his position.
+                if (kvCommandProcessor.getAddr().equals(kvCommandProcessor.getKeyRange().get(newPredecessor))) {
+
+                    ECSClientProcessor ecsClientProcessor = this;
+                    Set<String> handOffKeys = kvCommandProcessor.getAllKeys((s) -> !newKeyRange.get(s).equals(kvCommandProcessor.getAddr()));
+                    handOffKeys.forEach((s) -> {
+                        try {
+                            sender.connectTo(newKeyRange.get(s), ecsClientProcessor);
+                            KVItem item = kvCommandProcessor.getItem(s);
+                            if (!item.getValue().equals(Constants.DELETE_MARKER)) {
+                                sender.sendTo(newKeyRange.get(s), "put " + item.getKey() + " " + item.getValue());
+                            }
+                            kvCommandProcessor.delete(new KVItem(s));
+                        } catch (IOException e) {
+                            logger.warning("Failed to put off key value pair for key: " + s + " continue without deleting");
+                        }
+                    });
                 }
-                // just set the new keyrange, new keys will come soon.
+
+                // no just set the new keyrange, new keys (if any) will come soon.
                 kvCommandProcessor.setKeyRange(newKeyRange);
                 sender.sendTo(ecsAddr, "done"); // tell that you're done
                 return null;

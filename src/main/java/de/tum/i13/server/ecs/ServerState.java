@@ -15,7 +15,6 @@ public class ServerState {
     private InetSocketAddress ecs;
     private InetSocketAddress kv;
     private State state;
-
     private List<Runnable> shutdownHooks = new ArrayList<>();
 
     public ServerState(InetSocketAddress ecs, InetSocketAddress kv) {
@@ -38,6 +37,10 @@ public class ServerState {
 
     public State getState() {
         return this.state;
+    }
+
+    public boolean isActive() {
+        return this.state == State.ACTIVE;
     }
 
     public void addShutdownHook(Runnable runner) {

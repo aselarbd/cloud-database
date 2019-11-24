@@ -8,12 +8,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class ServerStateMap {
 
     private Map<InetSocketAddress, ServerState> ecsAddrToServerState = new HashMap<>();
     private Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
     private ConsistentHashMap keyRangeMap = new ConsistentHashMap();
+    private boolean broadcasting;
 
     public ServerStateMap() {
     }
@@ -39,12 +41,37 @@ public class ServerStateMap {
         return kvAddrToServerState.get(keyRangeMap.getPredecessor(serverState.getKV()));
     }
 
-    public void setState(ServerState predecessor, ServerState.State state) {
-        ecsAddrToServerState.get(predecessor.getECS()).setState(state);
-        assert(kvAddrToServerState.get(predecessor.getKV()).getState() == state); // TODO: shoud be updated by previous line via reference. If this doesn't crash, remove this line. Otherwise, set the state separately again.
+    public void setState(ServerState server, ServerState.State state) {
+        ecsAddrToServerState.get(server.getECS()).setState(state);
+        assert(kvAddrToServerState.get(server.getKV()).getState() == state); // TODO: shoud be updated by previous line via reference. If this doesn't crash, remove this line. Otherwise, set the state separately again.
     }
 
     public Collection<InetSocketAddress> getECSBroadcastSet() {
         return ecsAddrToServerState.keySet();
+    }
+
+    public ServerState getByECSAddress(InetSocketAddress addr) {
+        return ecsAddrToServerState.get(addr);
+    }
+
+    public void startBroadcasting() {
+        this.broadcasting = true;
+    }
+
+    public boolean isBroadcasting() {
+        return broadcasting;
+    }
+
+    public void finishBroadcasting() {
+        if (ecsAddrToServerState.values()
+            .stream()
+            .filter((s) ->
+                    s.getState() == ServerState.State.BALANCE ||
+                    s.getState() == ServerState.State.BOOTSTRAPPING
+            )
+            .collect(Collectors.toSet())
+            .size() <= 0) {
+            broadcasting = false;
+        }
     }
 }

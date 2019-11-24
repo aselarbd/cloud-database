@@ -3,6 +3,8 @@ package de.tum.i13.server.kv;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * KVStore provides a common interface for different persistent storage
@@ -31,4 +33,6 @@ public interface KVStore {
      * @throws IOException if some error occurs on IO
      */
     KVItem get(String key) throws IOException;
+
+    Set<String> getAllKeys(Predicate<String> predicate) throws IOException;
 }
