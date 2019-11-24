@@ -27,9 +27,7 @@ public class KVLib {
     private Factory<SocketCommunicator> communicatorFactory;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
-    private int getRequestFailureCount = 0;
-    private int putRequestFailureCount = 0;
-    private int deleteRequestFailureCount = 0;
+    private Map<String, Integer> requestFailureCounts = new HashMap<>();
 
     public KVLib() {
         // Use a factory which returns new SocketCommunicatorImpl instances by default
@@ -39,6 +37,9 @@ public class KVLib {
     public KVLib(Factory<SocketCommunicator> communicatorFactory) {
         this.parser = new KVResultParser();
         this.communicatorFactory = communicatorFactory;
+        this.requestFailureCounts.put("put", 0);
+        this.requestFailureCounts.put("get", 0);
+        this.requestFailureCounts.put("delete", 0);
     }
 
     /**
@@ -101,16 +102,19 @@ public class KVLib {
         }
     }
 
+    private void incrementFailures(String op) {
+        requestFailureCounts.put(op, requestFailureCounts.get(op) + 1);
+    }
 
     /**
-     * Put a key-value pair to the server.
+     * Common logic for all operations
      *
-     * @param item the Key-Value item to put
+     * @param op operation name (get, put, delete)
+     * @param item Item to be processed
      * @return Server reply encoded as {@link KVResult}
      */
-    public KVResult put(KVItem item) {
-
-        if (item == null || !item.isValid() || item.getValue() == null) {
+    private KVResult kvOperation(String op, KVItem item) {
+        if (item == null || !item.isValid() || (op.equals("put") && item.getValue() == null)) {
             return new KVResult("Invalid key-value item");
         }
         if (keyRanges == null || keyRanges.size() <= 0) {
@@ -125,9 +129,9 @@ public class KVLib {
             try {
                 connect(address, port);
             } catch (SocketCommunicatorException e) {
-                putRequestFailureCount ++;
+                incrementFailures(op);
                 getKeyRanges();
-                return put(item);
+                return kvOperation(op, item);
             }
         }
 
@@ -137,39 +141,55 @@ public class KVLib {
             return new KVResult("not connected");
         }
         try {
-            KVItem sendItem = new KVItem(item.getKey(), item.getValueAs64());
-            // check encoded length again
-            if (!sendItem.isValid()) {
-                return new KVResult("Value too long");
+            // in case of put, we need to encode the value first
+            KVItem sendItem;
+            if (op.equals("put")) {
+                sendItem = new KVItem(item.getKey(), item.getValueAs64());
+                // check encoded length again
+                if (!sendItem.isValid()) {
+                    return new KVResult("Value too long");
+                }
+            } else {
+                sendItem = item;
             }
-            String result = communicator.send("put " + sendItem.toString());
+            String result = communicator.send(op + " " + sendItem.toString());
             KVResult res = parser.parse(result);
-            if (res == null) {
+            if (res == null || op.equals("get") && res.getItem() == null) {
                 return new KVResult("Empty response");
             } else if (res.getMessage().equals("server_not_responsible") ||
-                        res.getMessage().equals("server_stopped")) {
-
-                putRequestFailureCount++;
-                int timeout = getBackOffTime(putRequestFailureCount);
+                    res.getMessage().equals("server_stopped")) {
+                incrementFailures(op);
+                int timeout = getBackOffTime(requestFailureCounts.get(op));
                 Thread.sleep(timeout);
                 getKeyRanges();
-                return put(item);
-            } else if (res.getMessage().equals("server_write_lock")) {
-                putRequestFailureCount =0;
+                return kvOperation(op, item);
+            } else if (!op.equals("get") && res.getMessage().equals("server_write_lock")) {
+                requestFailureCounts.put(op, 0);
                 return new KVResult("server locked, please try later");
             }
-            putRequestFailureCount =0;
+            requestFailureCounts.put(op, 0);
             // decode the value if present
             return res.decoded();
         } catch (SocketCommunicatorException e) {
             LOGGER.log(Level.WARNING, "Error in put()", e);
-            putRequestFailureCount =0;
+            requestFailureCounts.put(op, 0);
             return new KVResult("Server error");
         } catch (InterruptedException e) {
             LOGGER.log(Level.WARNING, "Error in put() -> timeout()", e);
-            putRequestFailureCount =0;
+            requestFailureCounts.put(op, 0);
             return new KVResult("Server error");
         }
+    }
+
+
+    /**
+     * Put a key-value pair to the server.
+     *
+     * @param item the Key-Value item to put
+     * @return Server reply encoded as {@link KVResult}
+     */
+    public KVResult put(KVItem item) {
+        return kvOperation("put", item);
     }
 
     /**
@@ -179,58 +199,7 @@ public class KVLib {
      *  found.
      */
     public KVResult get(KVItem item) {
-
-        if (!item.isValid()) {
-            return new KVResult("Invalid key");
-        }
-        if (keyRanges == null || keyRanges.size() <= 0) {
-            return new KVResult("no server started");
-        }
-
-        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
-
-        if (!communicatorMap.containsKey(targetServer)) {
-            String address = targetServer.getHostString();
-            int port = targetServer.getPort();
-            try {
-                connect(address, port);
-            } catch (SocketCommunicatorException e) {
-                getRequestFailureCount++;
-                getKeyRanges();
-                return get(item);
-            }
-        }
-
-        SocketCommunicator communicator = communicatorMap.get(targetServer);
-
-        if (!communicator.isConnected()) {
-            return new KVResult("not connected");
-        }
-        try {
-            String result = communicator.send("get " + item.getKey());
-            KVResult res = parser.parse(result);
-            if (res == null || res.getItem() == null) {
-                res = new KVResult("Empty response");
-            } else if (res.getMessage().equals("server_not_responsible") ||
-                        res.getMessage().equals("server_stopped")) {
-                getRequestFailureCount++;
-                int timeout = getBackOffTime(getRequestFailureCount);
-                Thread.sleep(timeout);
-                getKeyRanges();
-                return get(item);
-            }
-            getRequestFailureCount =0;
-            // decode the value if present
-            return res.decoded();
-        } catch (SocketCommunicatorException e) {
-            getRequestFailureCount =0;
-            LOGGER.log(Level.WARNING, "Error in get()", e);
-            return new KVResult("Server error");
-        } catch (InterruptedException e) {
-            getRequestFailureCount =0;
-            LOGGER.log(Level.WARNING, "error in get()-> timeout()");
-            return new KVResult("Server error");
-        }
+        return kvOperation("get", item);
     }
 
     /**
@@ -240,60 +209,7 @@ public class KVLib {
      * @return Server reply encoded as {@link KVResult}
      */
     public KVResult delete(KVItem item) {
-
-        if (!item.isValid()) {
-            return new KVResult("Invalid key");
-        }
-        if (keyRanges == null || keyRanges.size() <= 0) {
-            return new KVResult("no server started");
-        }
-
-        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
-
-        if (!communicatorMap.containsKey(targetServer)) {
-            String address = targetServer.getHostString();
-            int port = targetServer.getPort();
-            try {
-                connect(address, port);
-            } catch (SocketCommunicatorException e) {
-                deleteRequestFailureCount++;
-                getKeyRanges();
-                return delete(item);
-            }
-        }
-
-        SocketCommunicator communicator = communicatorMap.get(targetServer);
-
-        if (!communicator.isConnected()) {
-            return new KVResult("not connected");
-        }
-
-        try {
-            String result = communicator.send("delete " + item.getKey());
-            KVResult res = parser.parse(result);
-            if (res == null) {
-                res = new KVResult("Empty response");
-            } else if (res.getMessage().equals("server_not_responsible") || res.getMessage().equals("server_stopped")) {
-                deleteRequestFailureCount++;
-                int timeout = getBackOffTime(deleteRequestFailureCount);
-                Thread.sleep(timeout);
-                getKeyRanges();
-                return delete(item);
-            } else if (res.getMessage().equals("server_write_lock")) {
-                deleteRequestFailureCount =0;
-                return new KVResult("server locked, please try later");
-            }
-            deleteRequestFailureCount =0;
-            return res;
-        } catch (SocketCommunicatorException e) {
-            deleteRequestFailureCount =0;
-            LOGGER.log(Level.WARNING, "Error in delete()", e);
-            return new KVResult("Server error");
-        } catch (InterruptedException e) {
-            deleteRequestFailureCount =0;
-            LOGGER.log(Level.WARNING, "Error in delete() -> timeout()", e);
-            return new KVResult("Server error");
-        }
+        return kvOperation("delete", item);
     }
 
     /**
