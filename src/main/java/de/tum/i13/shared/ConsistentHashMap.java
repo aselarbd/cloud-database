@@ -139,6 +139,9 @@ public class ConsistentHashMap {
      */
     public String getKeyrangeString() {
         rwl.readLock().lock();
+        if (consistentHashMap.isEmpty()) {
+            return "";
+        }
         String items = "";
         String startHash = "";
         String endHash = "";

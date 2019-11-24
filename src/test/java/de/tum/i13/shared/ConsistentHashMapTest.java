@@ -52,6 +52,15 @@ class ConsistentHashMapTest {
     }
 
     @Test
+    void testGetKeyrangeStringEmptyMap() {
+        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
+
+        String generatedKrString = consistentHashMap.getKeyrangeString();
+
+        assertEquals("", generatedKrString);
+    }
+
+    @Test
     void testFromKeyrangeString() {
         ConsistentHashMap parsedMap = ConsistentHashMap.fromKeyrangeString(keyrangeString);
 
