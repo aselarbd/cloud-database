@@ -96,7 +96,7 @@ public class ConsistentHashMap {
      * the hashed key or the first, if no such key exists, or null if the map
      * is empty.
      */
-    public InetSocketAddress get(String key) {
+    public InetSocketAddress getSuccessor(String key) {
         rwl.readLock().lock();
         Map.Entry<String, InetSocketAddress> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
         if (ceiling == null) {
@@ -106,9 +106,9 @@ public class ConsistentHashMap {
         return (ceiling == null) ? null : ceiling.getValue();
     }
 
-    public InetSocketAddress get(InetSocketAddress key) {
+    public InetSocketAddress getSuccessor(InetSocketAddress key) {
         if (key != null) {
-            return get(addressHash(key));
+            return getSuccessor(addressHash(key));
         }
         return null;
     }

@@ -9,8 +9,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 // TODO: Not happy with this whole idea of using a CommandProcessor
@@ -24,15 +27,26 @@ public class ECSClientProcessor implements CommandProcessor {
     private InetSocketAddress ecsAddr;
     private ScheduledExecutorService heartBeatService;
 
+    private Collection<String> deleteMarkers = new ArrayList<>();
+
+    private boolean shuttingDown = false;
+    private boolean shutdownComplete = false;
+    private Runnable shutdownHook;
+
     public ECSClientProcessor(Server sender, InetSocketAddress ecsAddr, KVCommandProcessor kvCommandProcessor) {
         this.sender = sender;
         this.ecsAddr = ecsAddr;
         this.kvCommandProcessor = kvCommandProcessor;
     }
 
-    // TODO: Call this where appropriate
-    public void shutdown() {
-        heartBeatService.shutdown();
+    public Future shutdown(Runnable shutdownHook) {
+        return Executors.newSingleThreadScheduledExecutor().submit(() -> {
+            shuttingDown = true;
+            this.shutdownHook = shutdownHook;
+            ECSMessage shutdownMessage = new ECSMessage(ECSMessage.MsgType.ANNOUNCE_SHUTDOWN);
+            shutdownMessage.addIpPort(0, kvCommandProcessor.getAddr());
+            sender.sendTo(ecsAddr, shutdownMessage.getFullMessage());
+        });
     }
 
     public void register() throws SocketException {
@@ -65,6 +79,12 @@ public class ECSClientProcessor implements CommandProcessor {
                 kvCommandProcessor.setWriteLock();
                 return null;
             case REL_LOCK:
+                if (shuttingDown) {
+                    transfer(kvCommandProcessor.getKeyRange(), kvCommandProcessor.getAllKeys((s) -> true));
+                    heartBeatService.shutdown();
+                    shutdownHook.run();
+                    return null;
+                }
                 kvCommandProcessor.releaseWriteLock();
                 return null;
             case NEXT_ADDR:
@@ -75,34 +95,51 @@ public class ECSClientProcessor implements CommandProcessor {
             case KEYRANGE:
                 ConsistentHashMap newKeyRange = msg.getKeyrange(0);
 
+                InetSocketAddress oldPredecessor = kvCommandProcessor.getKeyRange().getPredecessor(kvCommandProcessor.getAddr());
                 InetSocketAddress newPredecessor = newKeyRange.getPredecessor(kvCommandProcessor.getAddr());
 
-                // this checks, whether the new predecessor is part of the old keyrange.
-                // If so, we have to give him all the data up to his position.
-                if (kvCommandProcessor.getAddr().equals(kvCommandProcessor.getKeyRange().get(newPredecessor))) {
-
-                    ECSClientProcessor ecsClientProcessor = this;
-                    Set<String> handOffKeys = kvCommandProcessor.getAllKeys((s) -> !newKeyRange.get(s).equals(kvCommandProcessor.getAddr()));
-                    handOffKeys.forEach((s) -> {
-                        try {
-                            sender.connectTo(newKeyRange.get(s), ecsClientProcessor);
-                            KVItem item = kvCommandProcessor.getItem(s);
-                            if (!item.getValue().equals(Constants.DELETE_MARKER)) {
-                                sender.sendTo(newKeyRange.get(s), "put " + item.getKey() + " " + item.getValue());
-                            }
-                            kvCommandProcessor.delete(new KVItem(s));
-                        } catch (IOException e) {
-                            logger.warning("Failed to put off key value pair for key: " + s + " continue without deleting");
-                        }
-                    });
+                if (oldPredecessor != null && !oldPredecessor.equals(newPredecessor)) {
+                    Set<String> oldKeys = kvCommandProcessor.getAllKeys((s) ->
+                            !newKeyRange
+                                    .getSuccessor(s)
+                                    .equals(kvCommandProcessor.getAddr())
+                    );
+                    transfer(newKeyRange, oldKeys);
+                    deleteMarkers.addAll(oldKeys);
+                } else {
+                    deleteMarkedItems();
                 }
 
                 // no just set the new keyrange, new keys (if any) will come soon.
                 kvCommandProcessor.setKeyRange(newKeyRange);
-                sender.sendTo(ecsAddr, "done"); // tell that you're done
+                sender.sendTo(ecsAddr, new ECSMessage(ECSMessage.MsgType.RESPONSE_OK).getFullMessage()); // tell that you're done
                 return null;
         }
         return null;
+    }
+
+    private void deleteMarkedItems() {
+        for (String s : deleteMarkers) {
+            kvCommandProcessor.delete(new KVItem(s));
+        }
+        deleteMarkers = new ArrayList<>();
+    }
+
+    private void transfer(ConsistentHashMap newKeyRange, Collection<String> keys) {
+        ECSClientProcessor ecsClientProcessor = this;
+
+        keys.forEach((s) -> {
+            try {
+                // TODO: cache connections
+                sender.connectTo(newKeyRange.getSuccessor(s), ecsClientProcessor);
+                KVItem item = kvCommandProcessor.getItem(s);
+                if (item != null && !item.getValue().equals(Constants.DELETE_MARKER)) {
+                    sender.sendTo(newKeyRange.getSuccessor(s), "put " + item.getKey() + " " + item.getValue());
+                }
+            } catch (IOException e) {
+                logger.warning("Failed to put off key value pair for key: " + s + " continue without deleting");
+            }
+        });
     }
 
     @Override

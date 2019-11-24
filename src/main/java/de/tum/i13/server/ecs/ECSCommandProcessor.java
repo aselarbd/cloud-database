@@ -33,21 +33,32 @@ public class ECSCommandProcessor implements CommandProcessor {
         ECSMessage msg = parser.parse(command);
 
         switch(msg.getType()) {
-            case RESPONSE_ERROR:
-
-            case RESPONSE_OK:
-
             case REGISTER_SERVER:
                 register(src, msg);
                 return null;
 
             case ANNOUNCE_SHUTDOWN:
+                if (ssm.getByECSAddress(src) == null) {
+                    logger.info("dropping command from unknown kvServer: " + msg.getFullMessage());
+                    return null;
+                }
+                handleShutdown(src);
 
-            case PUT_DONE:
+            case RESPONSE_OK:
+                if (ssm.getByECSAddress(src) == null) {
+                    logger.info("dropping command from unknown kvServer: " + msg.getFullMessage());
+                    return null;
+                }
                 handleOK(src);
                 return null;
 
+            case RESPONSE_ERROR:
+            case PUT_DONE:
             default:
+                if (ssm.getByECSAddress(src) == null) {
+                    logger.info("dropping command from unknown kvServer: " + msg.getFullMessage());
+                    return null;
+                }
                 return new ECSMessage(ECSMessage.MsgType.RESPONSE_ERROR).getFullMessage();
         }
     }
@@ -73,17 +84,17 @@ public class ECSCommandProcessor implements CommandProcessor {
         ECSMessage keyRangeMessage = new ECSMessage(ECSMessage.MsgType.KEYRANGE);
         keyRangeMessage.addKeyrange(0, ssm.getKeyRanges());
         String keyRangeString = keyRangeMessage.getFullMessage();
+
+        ServerState successor = ssm.getKVSuccessor(serverState);
+        if (successor.getKV() != kvAddr) {
+            ECSMessage writeLockMessage = new ECSMessage(ECSMessage.MsgType.WRITE_LOCK);
+            sender.sendTo(successor.getECS(), writeLockMessage.getFullMessage());
+            sender.sendTo(successor.getECS(), keyRangeString);
+            ssm.setState(successor, ServerState.State.BALANCE);
+        }
+
         sender.sendTo(ecsAddr, keyRangeString);
         serverState.setState(ServerState.State.ACTIVE);
-
-        ServerState predecessor = ssm.getKVPredecessor(serverState);
-
-        if (predecessor.getKV() != kvAddr) {
-            ECSMessage writeLockMessage = new ECSMessage(ECSMessage.MsgType.WRITE_LOCK);
-            sender.sendTo(predecessor.getECS(), writeLockMessage.getFullMessage());
-            sender.sendTo(predecessor.getECS(), keyRangeString);
-            ssm.setState(predecessor, ServerState.State.BALANCE);
-        }
     }
 
     private void heartbeat(ServerState receveiver) {
@@ -91,7 +102,7 @@ public class ECSCommandProcessor implements CommandProcessor {
         ScheduledExecutorService heartBeatService = heartbeatSender.start(() -> {
             if (!DEBUG) {
                 ssm.remove(receveiver);
-                broadcastKeyrange(); // TODO check this
+                broadcastKeyrange();
             }
         });
         receveiver.addShutdownHook(heartBeatService::shutdown);
@@ -99,16 +110,42 @@ public class ECSCommandProcessor implements CommandProcessor {
 
     private void handleOK(InetSocketAddress src) {
         ServerState server = ssm.getByECSAddress(src);
-        if (!server.isActive()) {
+
+        if (server.isBalancing()) {
             releaseLock(server);
+            server.setState(ServerState.State.ACTIVE);
             broadcastKeyrange();
         }
+
+        if (server.isShuttingDown()) {
+            broadcastKeyrange();
+            shutdown(server);
+        }
+    }
+
+    private void shutdown(ServerState server) {
+        sender.sendTo(server.getECS(), new ECSMessage(ECSMessage.MsgType.REL_LOCK).getFullMessage());
+        ssm.remove(server);
     }
 
     private void releaseLock(ServerState server) {
         ECSMessage releaseMsg = new ECSMessage(ECSMessage.MsgType.REL_LOCK);
         sender.sendTo(server.getECS(), releaseMsg.getFullMessage());
         server.setState(ServerState.State.ACTIVE);
+    }
+
+    private void handleShutdown(InetSocketAddress src) {
+        ServerState server = ssm.getByECSAddress(src);
+        server.setState(ServerState.State.SHUTDOWN);
+        ssm.getKeyRanges().remove(server.getKV());
+
+        sender.sendTo(src, new ECSMessage(ECSMessage.MsgType.WRITE_LOCK).getFullMessage());
+
+        ServerState successor = ssm.getKVSuccessor(server);
+        ECSMessage keyRangeMsg = new ECSMessage(ECSMessage.MsgType.KEYRANGE);
+        keyRangeMsg.addKeyrange(0, ssm.getKeyRanges());
+        sender.sendTo(successor.getECS(), keyRangeMsg.getFullMessage());
+        sender.sendTo(src, keyRangeMsg.getFullMessage());
     }
 
     private void broadcastKeyrange() {

@@ -66,6 +66,11 @@ public class Server {
     }
 
     public void connectTo(InetSocketAddress address, CommandProcessor ecsProcessor) throws IOException {
+
+        if (socketChannels.containsKey(address)) {
+            return;
+        }
+
         SocketChannel sc = SocketChannel.open();
         sc.connect(address);
         sc.configureBlocking(false);

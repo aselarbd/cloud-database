@@ -168,7 +168,7 @@ class KVCommandProcessorTest {
                         ConsistentHashMap testRange = ConsistentHashMap
                                 .fromKeyrangeString(TestConstants.KEYRANGE_SIMPLE);
                         // use get with any string as the simple test string only contains one address
-                        KVCommandProcessor kvcp = new KVCommandProcessor(testRange.get("any"), c.cache, c.store);
+                        KVCommandProcessor kvcp = new KVCommandProcessor(testRange.getSuccessor("any"), c.cache, c.store);
                         kvcp.setKeyRange(testRange);
                         String processed = kvcp.process(
                                 null,

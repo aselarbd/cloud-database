@@ -27,7 +27,8 @@ public class KVItem {
         this.timestamp = timestamp;
     }
 
-    public boolean isValid() {
+    public boolean
+    isValid() {
         if (this.key == null || this.key.isEmpty()) {
             return false;
         }

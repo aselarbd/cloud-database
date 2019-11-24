@@ -6,6 +6,7 @@ import de.tum.i13.shared.Config;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -23,10 +24,6 @@ public class KVMain {
 
         Server server = new Server();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Closing NioServer");
-            server.close();
-        }));
 
         KVStore store = new LSMStore(cfg.dataDir);
         KVCache cache = CacheBuilder.newBuilder()
@@ -37,7 +34,6 @@ public class KVMain {
         InetSocketAddress isa = new InetSocketAddress(cfg.listenaddr, cfg.port);
         KVCommandProcessor kvCommandProcessor = new KVCommandProcessor(isa, cache, store);
         server.bindSockets(cfg.listenaddr, cfg.port, kvCommandProcessor);
-
 
         ECSClientProcessor ecsClientProcessor = new ECSClientProcessor(server, cfg.bootstrap, kvCommandProcessor);
 
@@ -53,6 +49,17 @@ public class KVMain {
             connected = true;
         }
 
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Closing NioServer");
+            Future shutdown = ecsClientProcessor.shutdown(server::close);
+            while (!shutdown.isDone()) {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    logger.info("interrupted while waiting for shutdown");
+                }
+            };
+        }));
 
         ecsClientProcessor.register();
 

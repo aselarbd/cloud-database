@@ -25,17 +25,17 @@ class ConsistentHashMapTest {
         consistentHashMap.put(ip2);
         consistentHashMap.put(ip3);
 
-        assertEquals(ip1, consistentHashMap.get(key));
+        assertEquals(ip1, consistentHashMap.getSuccessor(key));
 
         InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
         consistentHashMap.put(ip6);
 
-        assertEquals(ip6, consistentHashMap.get(key));
+        assertEquals(ip6, consistentHashMap.getSuccessor(key));
 
         consistentHashMap.remove(ip6);
         consistentHashMap.remove(ip1);
 
-        assertEquals(ip2, consistentHashMap.get(key));
+        assertEquals(ip2, consistentHashMap.getSuccessor(key));
     }
 
     @Test
@@ -56,11 +56,11 @@ class ConsistentHashMapTest {
         ConsistentHashMap parsedMap = ConsistentHashMap.fromKeyrangeString(keyrangeString);
 
         // IP1 is the closest to the hash of "key", cf. test case above
-        assertEquals(ip1, parsedMap.get("key"));
+        assertEquals(ip1, parsedMap.getSuccessor("key"));
         // test addresses themselves
-        assertEquals(ip1, parsedMap.get("192.168.1.1:80"));
-        assertEquals(ip2, parsedMap.get("192.168.1.2:80"));
-        assertEquals(ip3, parsedMap.get("192.168.1.3:80"));
+        assertEquals(ip1, parsedMap.getSuccessor("192.168.1.1:80"));
+        assertEquals(ip2, parsedMap.getSuccessor("192.168.1.2:80"));
+        assertEquals(ip3, parsedMap.getSuccessor("192.168.1.3:80"));
     }
 
     @Test

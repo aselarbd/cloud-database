@@ -118,7 +118,7 @@ public class KVLib {
             return new KVResult("no server started");
         }
 
-        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
 
         if (!communicatorMap.containsKey(targetServer)) {
             String address = targetServer.getHostString();
@@ -188,7 +188,7 @@ public class KVLib {
             return new KVResult("no server started");
         }
 
-        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
 
         if (!communicatorMap.containsKey(targetServer)) {
             String address = targetServer.getHostString();
@@ -249,7 +249,7 @@ public class KVLib {
             return new KVResult("no server started");
         }
 
-        InetSocketAddress targetServer = keyRanges.get(item.getKey());
+        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
 
         if (!communicatorMap.containsKey(targetServer)) {
             String address = targetServer.getHostString();

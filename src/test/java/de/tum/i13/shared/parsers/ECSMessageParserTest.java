@@ -64,6 +64,6 @@ public class ECSMessageParserTest {
         assertNotNull(msg);
         assertEquals(ECSMessage.MsgType.KEYRANGE, msg.getType());
         ConsistentHashMap testMap = msg.getKeyrange(0);
-        assertEquals(new InetSocketAddress("192.168.1.1", 80), testMap.get("test"));
+        assertEquals(new InetSocketAddress("192.168.1.1", 80), testMap.getSuccessor("test"));
     }
 }

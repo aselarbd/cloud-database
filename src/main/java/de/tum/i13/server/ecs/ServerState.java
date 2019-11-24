@@ -39,8 +39,20 @@ public class ServerState {
         return this.state;
     }
 
+    public boolean isBootstrapping() {
+        return this.state == State.BOOTSTRAPPING;
+    }
+
     public boolean isActive() {
         return this.state == State.ACTIVE;
+    }
+
+    public boolean isBalancing() {
+        return this.state == State.BALANCE;
+    }
+
+    public boolean isShuttingDown() {
+        return this.state == State.SHUTDOWN;
     }
 
     public void addShutdownHook(Runnable runner) {

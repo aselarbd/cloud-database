@@ -57,10 +57,10 @@ public class KVCommandProcessor implements CommandProcessor {
         KVItem item = command.getItem();
         String key = item.getKey();
 
-        if (keyRange == null || keyRange.get(key) == null) {
+        if (keyRange == null || keyRange.getSuccessor(key) == null) {
             return "server_stopped";
         }
-        if (!keyRange.get(key).equals(address)) {
+        if (!keyRange.getSuccessor(key).equals(address)) {
             return "server_not_responsible";
         }
         if (!cmdMsg.toLowerCase().equals("get") && writeLock) {
@@ -106,7 +106,10 @@ public class KVCommandProcessor implements CommandProcessor {
             return null;
         }
 
-        return new KVItem(key, value.getValue());
+        if (value != null) {
+            return new KVItem(key, value.getValue());
+        }
+        return null;
     }
 
     private String get(String key) {

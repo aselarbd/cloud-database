@@ -41,6 +41,10 @@ public class ServerStateMap {
         return kvAddrToServerState.get(keyRangeMap.getPredecessor(serverState.getKV()));
     }
 
+    public ServerState getKVSuccessor(ServerState serverState) {
+        return kvAddrToServerState.get(keyRangeMap.getSuccessor(serverState.getKV()));
+    }
+
     public void setState(ServerState server, ServerState.State state) {
         ecsAddrToServerState.get(server.getECS()).setState(state);
         assert(kvAddrToServerState.get(server.getKV()).getState() == state); // TODO: shoud be updated by previous line via reference. If this doesn't crash, remove this line. Otherwise, set the state separately again.
