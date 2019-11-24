@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * LSMStore provides a KVStore implementation using an LSM-tree
@@ -71,9 +72,11 @@ public class LSMStore implements KVStore {
      */
     private List<LSMFile> listLSMFiles(Path lsmFileDir) throws IOException {
         List<LSMFile> lsmFiles = new ArrayList<>();
-        List<Path> files = Files.list(lsmFileDir).collect(Collectors.toList());
-        for (Path f : files) {
-            lsmFiles.add(new LSMFile(f.getParent(), f.getFileName().toString()));
+        try (Stream<Path> paths = Files.list(lsmFileDir)) {
+            List<Path> files = paths.collect(Collectors.toList());
+            for (Path f : files) {
+                lsmFiles.add(new LSMFile(f.getParent(), f.getFileName().toString()));
+            }
         }
         return lsmFiles;
     }
@@ -143,6 +146,8 @@ public class LSMStore implements KVStore {
             Long position = f.readIndex().get(key);
             if (position != null) {
                 lookUps.add(new Lookup(f, position));
+            } else {
+                f.close();
             }
         }
 
@@ -152,6 +157,7 @@ public class LSMStore implements KVStore {
             if (kvItem != null) {
                 items.put(kvItem.getTimestamp(), kvItem);
             }
+            l.lsmFile.close();
         }
 
         if (items.size() > 0) {
@@ -184,6 +190,7 @@ public class LSMStore implements KVStore {
                             .filter(predicate)
                             .collect(Collectors.toSet())
             );
+            f.close();
         }
 
         return matchingKeys;

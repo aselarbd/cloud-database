@@ -8,9 +8,7 @@ import de.tum.i13.shared.LogSetup;
 import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.StringArrayParser;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,8 +27,12 @@ public class KvClient {
     private Map<String, Action> actions;
 
     public KvClient() {
+        this(new InputStreamReader(System.in));
+    }
+
+    public KvClient(Reader inReader) {
         this.kvLib = new KVLib();
-        this.inReader = new BufferedReader(new InputStreamReader(System.in));
+        this.inReader = new BufferedReader(inReader);
         this.actions = new HashMap<>();
         this.actions.put("connect", new Action<String[]>(
                 new StringArrayParser( 2, false), this::connect));

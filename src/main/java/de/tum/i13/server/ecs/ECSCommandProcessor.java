@@ -43,6 +43,7 @@ public class ECSCommandProcessor implements CommandProcessor {
                     return null;
                 }
                 handleShutdown(src);
+                return null;
 
             case RESPONSE_OK:
                 if (ssm.getByECSAddress(src) == null) {

@@ -39,7 +39,7 @@ public class ECSClientProcessor implements CommandProcessor {
         this.kvCommandProcessor = kvCommandProcessor;
     }
 
-    public Future shutdown(Runnable shutdownHook) {
+    Future shutdown(Runnable shutdownHook) {
         return Executors.newSingleThreadScheduledExecutor().submit(() -> {
             shuttingDown = true;
             this.shutdownHook = shutdownHook;

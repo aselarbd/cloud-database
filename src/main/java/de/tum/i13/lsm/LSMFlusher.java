@@ -17,8 +17,8 @@ public class LSMFlusher extends Thread {
 
     private static Logger logger = Logger.getLogger(LSMFlusher.class.getName());
 
-    private static final long CACHE_FLUSH_FREQUENCY = 5000;
-    private static final int MIN_FLUSH_SIZE = 3;
+    private static final long CACHE_FLUSH_FREQUENCY = 10000;
+    private static final int MIN_FLUSH_SIZE = 200;
     private LSMCache lsmCache;
     private Path lsmFileDir;
     private LSMLog lsmLog;
