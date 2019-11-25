@@ -13,8 +13,8 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class KVServerIntegrationTest {
-    public static Integer kvPort = 5154;
-    public static Integer ecsPort = 5150;
+    public static Integer kvPort = 5144;
+    public static Integer ecsPort = 5140;
 
     @Test
     public void putAndGet(@TempDir Path tmpDir) throws InterruptedException, IOException {
@@ -33,5 +33,7 @@ public class KVServerIntegrationTest {
         s.close();
         kvThread.interrupt();
         ecsThread.interrupt();
+        kvThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
+        ecsThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
     }
 }
