@@ -41,24 +41,6 @@ public class ECSMessageParserTest {
     }
 
     @Test
-    public void parseMultipleArgs() {
-        ECSMessage msg = parser.parse("transfer_range 127.0.0.1:82 10.1.2.3:5678 127.0.0.1:85");
-        assertNotNull(msg);
-        assertEquals(ECSMessage.MsgType.TRANSFER_RANGE, msg.getType());
-        assertEquals(new InetSocketAddress("127.0.0.1", 82), msg.getIpPort(0));
-        assertEquals(new InetSocketAddress("10.1.2.3", 5678), msg.getIpPort(1));
-        assertEquals(new InetSocketAddress("127.0.0.1", 85), msg.getIpPort(2));
-    }
-
-    @Test
-    public void parseBase64() {
-        ECSMessage msg = parser.parse("ecs_put Zm9vYmFy");
-        assertNotNull(msg);
-        assertEquals(ECSMessage.MsgType.ECS_PUT, msg.getType());
-        assertEquals("foobar", msg.getBase64(0));
-    }
-
-    @Test
     public void parseKeyrange() {
         ECSMessage msg = parser.parse("keyrange " + TestConstants.KEYRANGE_SIMPLE);
         assertNotNull(msg);

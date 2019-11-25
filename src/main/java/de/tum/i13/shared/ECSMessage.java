@@ -26,10 +26,6 @@ public class ECSMessage {
          */
         IP_PORT,
         /**
-         * A base64 String
-         */
-        BASE64_STR,
-        /**
          * Key range string in the format used by keyrange messages between clients and servers,
          * i.e. comma-separated start hash, end hash, ip values, which are then separated via
          * semicolons.
@@ -49,13 +45,6 @@ public class ECSMessage {
         WRITE_LOCK("write_lock", new MsgArg[]{}),
         REL_LOCK("release_lock", new MsgArg[]{}),
         REGISTER_SERVER("register", new MsgArg[]{MsgArg.IP_PORT}),
-        NEXT_ADDR("next_addr", new MsgArg[]{MsgArg.IP_PORT}),
-        TRANSFER_RANGE("transfer_range", new MsgArg[]{MsgArg.IP_PORT,
-            MsgArg.IP_PORT, MsgArg.IP_PORT}),
-        ECS_PUT("ecs_put", new MsgArg[]{MsgArg.BASE64_STR}),
-        PUT_DONE("done", new MsgArg[]{}),
-        BROADCAST_NEW("broadcast_new", new MsgArg[]{MsgArg.IP_PORT}),
-        BROADCAST_REM("broadcast_rem", new MsgArg[]{MsgArg.IP_PORT}),
         KEYRANGE("keyrange", new MsgArg[]{MsgArg.KEYRANGE}),
         ANNOUNCE_SHUTDOWN("announce_shutdown", new MsgArg[]{MsgArg.IP_PORT}),
         PING("ping", new MsgArg[]{}),
@@ -113,9 +102,6 @@ public class ECSMessage {
                 switch (type.args[i]) {
                     case IP_PORT:
                         getIpPort(i);
-                        break;
-                    case BASE64_STR:
-                        getBase64(i);
                         break;
                     case KEYRANGE:
                         getKeyrange(i);
@@ -213,40 +199,6 @@ public class ECSMessage {
         } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
-    }
-
-    /**
-     * Adds a Base64 string at the given position
-     *
-     * @param index
-     *  Index to add or modify
-     * @param cleartext
-     *  String to add. This is the cleartext value without Base64 encoding.
-     * @throws IndexOutOfBoundsException If the index is invalid
-     * @throws IllegalArgumentException if there is no Base64 string allowed at this position
-     */
-    public void addBase64(int index, String cleartext)
-            throws IndexOutOfBoundsException, IllegalArgumentException {
-        checkLength(index);
-        expectAt(index, MsgArg.BASE64_STR);
-        addOrUpdate(index, new String(Base64.getEncoder().encode(cleartext.getBytes())));
-    }
-
-    /**
-     * Reads the value at the given position as Base64 String.
-     *
-     * @param index Index to read from
-     * @return The decoded value
-     * @throws IndexOutOfBoundsException If the index is invalid
-     * @throws IllegalArgumentException If there is no Base64 string allowed at this position
-     */
-    public String getBase64(int index)
-            throws IndexOutOfBoundsException, IllegalArgumentException {
-        checkLength(index);
-        expectAt(index, MsgArg.BASE64_STR);
-        return new String(Base64.getDecoder().decode(
-                arguments.get(index).getBytes()
-        ));
     }
 
     /**

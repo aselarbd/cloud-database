@@ -73,8 +73,6 @@ public class ECSClientProcessor implements CommandProcessor {
         }
 
         switch(msg.getType()) {
-            case RESPONSE_OK:
-            case RESPONSE_ERROR:
             case WRITE_LOCK:
                 kvCommandProcessor.setWriteLock();
                 return null;
@@ -87,11 +85,6 @@ public class ECSClientProcessor implements CommandProcessor {
                 }
                 kvCommandProcessor.releaseWriteLock();
                 return null;
-            case NEXT_ADDR:
-            case TRANSFER_RANGE:
-            case BROADCAST_NEW:
-            case BROADCAST_REM:
-                break;
             case KEYRANGE:
                 ConsistentHashMap newKeyRange = msg.getKeyrange(0);
 
@@ -114,8 +107,9 @@ public class ECSClientProcessor implements CommandProcessor {
                 kvCommandProcessor.setKeyRange(newKeyRange);
                 sender.sendTo(ecsAddr, new ECSMessage(ECSMessage.MsgType.RESPONSE_OK).getFullMessage()); // tell that you're done
                 return null;
+            default:
+                return null;
         }
-        return null;
     }
 
     private void deleteMarkedItems() {

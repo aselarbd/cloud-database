@@ -53,7 +53,6 @@ public class ECSCommandProcessor implements CommandProcessor {
                 return null;
 
             case RESPONSE_ERROR:
-            case PUT_DONE:
             default:
                 if (ssm.getByECSAddress(src) == null) {
                     logger.info("dropping command from unknown kvServer: " + msg.getFullMessage());
