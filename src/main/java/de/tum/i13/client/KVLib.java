@@ -28,6 +28,7 @@ public class KVLib {
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
     private Map<String, Integer> requestFailureCounts = new HashMap<>();
+    private static final int MAX_RETRIES = 10;
 
     public KVLib() {
         // Use a factory which returns new SocketCommunicatorImpl instances by default
@@ -69,7 +70,7 @@ public class KVLib {
      *
      * @throws SocketCommunicatorException if the connection fails.
      */
-    String connect(String address, int port) throws SocketCommunicatorException {
+    public String connect(String address, int port) throws SocketCommunicatorException {
         InetSocketAddress addr = new InetSocketAddress(address, port);
         if (communicatorMap.get(addr) != null) {
             return "already connected";
@@ -80,6 +81,17 @@ public class KVLib {
         communicatorMap.put(new InetSocketAddress(address, port), communicator);
         getKeyRanges();
         return res;
+    }
+
+    private void dropCommunicator(SocketCommunicator comm) {
+        if (comm.isConnected()) {
+            try {
+                comm.disconnect();
+            } catch (SocketCommunicatorException e) {
+                // no problem, we want to drop the communicator anyway
+            }
+        }
+        communicatorMap.remove(comm);
     }
 
     private void getKeyRanges() {
@@ -98,8 +110,10 @@ public class KVLib {
                     it.remove();
                 }
             }
-            communicatorMap = new HashMap<>();
         }
+        // everything is empty. Reset keyranges and communicator map
+        keyRanges = null;
+        communicatorMap = new HashMap<>();
     }
 
     private void incrementFailures(String op) {
@@ -119,6 +133,11 @@ public class KVLib {
         }
         if (keyRanges == null || keyRanges.size() <= 0) {
             return new KVResult("no server started");
+        }
+        if (requestFailureCounts.get(op) > MAX_RETRIES) {
+            requestFailureCounts.put(op, 0);
+            LOGGER.info("Exceeded maximum retries. Aborting.");
+            return new KVResult("Server error");
         }
 
         InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
@@ -171,9 +190,18 @@ public class KVLib {
             // decode the value if present
             return res.decoded();
         } catch (SocketCommunicatorException e) {
-            LOGGER.log(Level.WARNING, "Error in put()", e);
-            requestFailureCounts.put(op, 0);
-            return new KVResult("Server error");
+            // server might just got removed, retry once before aborting
+            if (requestFailureCounts.get(op) < MAX_RETRIES - 1) {
+                requestFailureCounts.put(op, MAX_RETRIES - 1);
+                // delete the communicator and update key ranges
+                dropCommunicator(communicator);
+                getKeyRanges();
+                return kvOperation(op, item);
+            } else {
+                LOGGER.log(Level.WARNING, "Error in put()", e);
+                requestFailureCounts.put(op, 0);
+                return new KVResult("Server error");
+            }
         } catch (InterruptedException e) {
             LOGGER.log(Level.WARNING, "Error in put() -> timeout()", e);
             requestFailureCounts.put(op, 0);
