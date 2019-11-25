@@ -65,7 +65,7 @@ class KVCommandProcessorTest {
                         "get",
                         "key2",
                         null,
-                        "get_error key2",
+                        "get_error key2 Key not found in the Database",
                         null,
                         null,
                         mock(KVStore.class)
@@ -74,7 +74,7 @@ class KVCommandProcessorTest {
                         "get",
                         "exception",
                         null,
-                        "get_error exception",
+                        "get_error exception Could not get value from Database",
                         new IOException(),
                         null,
                         mock(KVStore.class)
@@ -92,7 +92,7 @@ class KVCommandProcessorTest {
                         "get",
                         "key2",
                         null,
-                        "get_error key2",
+                        "get_error key2 Key not found in the Database",
                         null,
                         mock(KVCache.class),
                         mock(KVStore.class)
@@ -101,7 +101,7 @@ class KVCommandProcessorTest {
                         "put",
                         "key",
                         "value",
-                        "put_success key value",
+                        "put_success key",
                         null,
                         mock(KVCache.class),
                         mock(KVStore.class)

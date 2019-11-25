@@ -174,7 +174,11 @@ public class KVLib {
             String result = communicator.send(op + " " + sendItem.toString());
             KVResult res = parser.parse(result);
             if (res == null || op.equals("get") && res.getItem() == null) {
+                requestFailureCounts.put(op, 0);
                 return new KVResult("Empty response");
+            } else if (res.getMessage().equals("get_error")) {
+                requestFailureCounts.put(op, 0);
+                return res;
             } else if (res.getMessage().equals("server_not_responsible") ||
                     res.getMessage().equals("server_stopped")) {
                 incrementFailures(op);

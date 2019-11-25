@@ -228,7 +228,7 @@ public class TestKVLib {
     @Test
     public void getValueServerNoItem() throws SocketCommunicatorException {
         when(communicators.get(0).isConnected()).thenReturn(true);
-        when(communicators.get(0).send(anyString())).thenReturn("put_success");
+        when(communicators.get(0).send(anyString())).thenReturn("get_success");
 
         // when
         KVResult result = this.library.get(new KVItem("key"));
@@ -236,6 +236,23 @@ public class TestKVLib {
         // then
         verify(communicators.get(0)).send("get key");
         assertTrue(result.getMessage().toLowerCase().contains("empty"));
+    }
+
+    @Test
+    public void getValueServerError() throws SocketCommunicatorException {
+        when(communicators.get(0).isConnected()).thenReturn(true);
+        final String errorMsg = "some Error Message with mixed Case";
+        when(communicators.get(0).send(anyString())).thenReturn("get_error key " + errorMsg);
+
+        // when
+        KVResult result = this.library.get(new KVItem("key"));
+
+        // then
+        verify(communicators.get(0)).send("get key");
+        assertEquals("get_error", result.getMessage());
+        assertEquals("key", result.getItem().getKey());
+        // value may not be de-coded in error case
+        assertEquals(errorMsg, result.getItem().getValue());
     }
 
     @Test

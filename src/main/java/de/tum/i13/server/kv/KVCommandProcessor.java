@@ -85,11 +85,11 @@ public class KVCommandProcessor implements CommandProcessor {
             result = kvStore.put(item);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not put value to Database", e);
-            return "put_error " + item.getKey() + " " + item.getValue();
+            return "put_error " + item.toString();
         }
         kvCache.put(item);
 
-        return "put_" + result + " " + item.getKey() + " " + item.getValue();
+        return "put_" + result + " " + item.getKey() ;
     }
 
     public KVItem getItem(String key) {
@@ -115,7 +115,7 @@ public class KVCommandProcessor implements CommandProcessor {
     private String get(String key) {
         KVItem kvItem = kvCache.get(key);
         if (kvItem != null) {
-            return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
+            return "get_success " + kvItem.toString();
         }
 
         KVItem value;
@@ -123,16 +123,18 @@ public class KVCommandProcessor implements CommandProcessor {
             value = kvStore.get(key);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not get value from Database", e);
-            return "get_error " + key;
+            KVItem kvItemError = new KVItem(key, "Could not get value from Database");
+            return "get_error " + kvItemError.toString();
         }
 
         if (value != null) {
             kvItem = new KVItem(key, value.getValue());
             kvCache.put(kvItem);
-            return "get_success " + kvItem.getKey() + " " + kvItem.getValue();
+            return "get_success " + kvItem.toString();
         }
 
-        return "get_error " + key;
+        KVItem kvItemError = new KVItem(key, "Key not found in the Database");
+        return "get_error " +  kvItemError.toString();
     }
 
     public String delete(KVItem item) {
