@@ -6,7 +6,7 @@ import de.tum.i13.server.kv.KVMain;
 import java.io.IOException;
 
 public class IntegrationTestHelpers {
-    public static final int START_WAIT = 1000;
+    public static final int START_WAIT = 4000;
 
     public static Thread startECS(int ecsPort) throws InterruptedException {
         Thread th = new Thread() {
@@ -42,7 +42,7 @@ public class IntegrationTestHelpers {
                 try {
                     // start server
                     KVMain.main(new String[]{"-p", Integer.toString(kvPort), "-d", folder,
-                            "-b", "127.0.0.1:" + ecsPort});
+                            "-b", "127.0.0.1:" + ecsPort, "-ll=INFO"});
                     // wait until interrupted
                     while (!Thread.currentThread().isInterrupted()) {
                         try {

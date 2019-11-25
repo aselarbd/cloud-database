@@ -33,8 +33,8 @@ public class ECSIntegrationTest {
         res = RequestUtils.doRequest(s, "put 127.0.0.1:5155 some  value");
         assertEquals("server_not_responsible", res);
 
-        //res = RequestUtils.doRequest(s, "get key");
-        //assertEquals("get_success key some  value", res);
+        res = RequestUtils.doRequest(s, "get 127.0.0.1:5155");
+        assertEquals("server_not_responsible", res);
 
         kvThread2.interrupt();
 

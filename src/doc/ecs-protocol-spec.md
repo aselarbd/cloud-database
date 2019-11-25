@@ -60,7 +60,7 @@ Messages are extending the standard telnet protocol used for client-server commu
      |           |             |                 
      |------------------------>|                 
      |         keyrange        |    server notices that
-     |           |             |    the successor changed
+     |           |             |    the predecessor changed
      |           |             |                 
      |           |<------------|                 
      |           |     put     |                 

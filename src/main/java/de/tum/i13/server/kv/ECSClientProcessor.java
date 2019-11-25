@@ -64,7 +64,7 @@ public class ECSClientProcessor implements CommandProcessor {
     @Override
     public String process(InetSocketAddress src, String command) {
 
-        logger.info("got ecs command: " + command);
+        logger.info(kvCommandProcessor.getAddr().getHostName() + ":" + kvCommandProcessor.getAddr().getPort() + " got ecs command: " + command);
         ECSMessageParser parser = new ECSMessageParser();
         ECSMessage msg = parser.parse(command);
 

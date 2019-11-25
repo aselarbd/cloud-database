@@ -84,12 +84,12 @@ public class ECSCommandProcessor implements CommandProcessor {
         keyRangeMessage.addKeyrange(0, ssm.getKeyRanges());
         String keyRangeString = keyRangeMessage.getFullMessage();
 
-        ServerState successor = ssm.getKVSuccessor(serverState);
-        if (successor.getKV() != kvAddr) {
+        ServerState predecessor = ssm.getKVPredecessor(serverState);
+        if (predecessor.getKV() != kvAddr) {
             ECSMessage writeLockMessage = new ECSMessage(ECSMessage.MsgType.WRITE_LOCK);
-            sender.sendTo(successor.getECS(), writeLockMessage.getFullMessage());
-            sender.sendTo(successor.getECS(), keyRangeString);
-            ssm.setState(successor, ServerState.State.BALANCE);
+            sender.sendTo(predecessor.getECS(), writeLockMessage.getFullMessage());
+            sender.sendTo(predecessor.getECS(), keyRangeString);
+            ssm.setState(predecessor, ServerState.State.BALANCE);
         }
 
         sender.sendTo(ecsAddr, keyRangeString);
