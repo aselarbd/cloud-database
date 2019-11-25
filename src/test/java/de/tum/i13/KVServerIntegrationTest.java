@@ -85,7 +85,7 @@ public class KVServerIntegrationTest {
 
         String res;
         res = RequestUtils.doRequest(s, "put key some  value");
-        assertEquals("put_success key some  value", res);
+        assertEquals("put_success key", res);
 
         res = RequestUtils.doRequest(s, "get key");
         assertEquals("get_success key some  value", res);
