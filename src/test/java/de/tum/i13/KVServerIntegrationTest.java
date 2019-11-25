@@ -19,7 +19,7 @@ public class KVServerIntegrationTest {
     @Test
     public void putAndGet(@TempDir Path tmpDir) throws InterruptedException, IOException {
         Thread ecsThread = IntegrationTestHelpers.startECS(ecsPort);
-        Thread kvThread = IntegrationTestHelpers.startKVServer(tmpDir.toString(), kvPort, ecsPort);
+        Thread kvThread = IntegrationTestHelpers.startKVServer(tmpDir.toString(), kvPort, ecsPort, 1);
 
         Socket s = IntegrationTestHelpers.connectToTestSvr(kvPort);
 

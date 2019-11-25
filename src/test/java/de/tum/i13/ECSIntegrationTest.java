@@ -16,13 +16,14 @@ public class ECSIntegrationTest {
     public static Integer kv2Port = 5155;
     public static Integer kv3Port = 5156;
     public static Integer ecsPort = 5150;
+    public static final Integer WAIT_TIME = 2000;
 
     @Test
     public void shutdownOneServer(@TempDir Path tmpDir1, @TempDir Path tmpDir2, @TempDir Path tmpDir3) throws InterruptedException, IOException {
         Thread ecsThread = IntegrationTestHelpers.startECS(ecsPort);
-        Thread kvThread1 = IntegrationTestHelpers.startKVServer(tmpDir1.toString(), kv1Port, ecsPort);
-        Thread kvThread2 = IntegrationTestHelpers.startKVServer(tmpDir2.toString(), kv2Port, ecsPort);
-        Thread kvThread3 = IntegrationTestHelpers.startKVServer(tmpDir3.toString(), kv3Port, ecsPort);
+        Thread kvThread1 = IntegrationTestHelpers.startKVServer(tmpDir1.toString(), kv1Port, ecsPort, 1);
+        Thread kvThread2 = IntegrationTestHelpers.startKVServer(tmpDir2.toString(), kv2Port, ecsPort, 2);
+        Thread kvThread3 = IntegrationTestHelpers.startKVServer(tmpDir3.toString(), kv3Port, ecsPort, 3);
 
         // start with server 1, which is not responsible for the test value
         Socket s = IntegrationTestHelpers.connectToTestSvr(kv1Port);
@@ -46,9 +47,9 @@ public class ECSIntegrationTest {
 
         // shutdown the server
         kvThread2.interrupt();
-        kvThread2.join(2000);
+        kvThread2.join(WAIT_TIME);
         // wait for rebalance
-        Thread.sleep(2000);
+        Thread.sleep(WAIT_TIME);
 
         // now use the server which actually is responsible
         s = IntegrationTestHelpers.connectToTestSvr(kv3Port);
@@ -58,6 +59,9 @@ public class ECSIntegrationTest {
 
         kvThread1.interrupt();
         kvThread3.interrupt();
+        kvThread1.join(WAIT_TIME);
+        kvThread3.join(WAIT_TIME);
         ecsThread.interrupt();
+        ecsThread.join(WAIT_TIME);
     }
 }
