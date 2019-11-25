@@ -4,7 +4,14 @@ import de.tum.i13.server.ecs.ECSMain;
 import de.tum.i13.server.kv.KVMain;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Common helper functions for integration tests
+ */
 public class IntegrationTestHelpers {
     public static final int START_WAIT = 4000;
 
@@ -61,5 +68,20 @@ public class IntegrationTestHelpers {
         th.start(); // started the server
         Thread.sleep(START_WAIT);
         return th;
+    }
+
+    /**
+     * Connects to a local test server instance and checks for a welcome message.
+     *
+     * @param port
+     * @return
+     * @throws IOException
+     */
+    public static Socket connectToTestSvr(int port) throws IOException {
+        Socket s = new Socket();
+        s.connect(new InetSocketAddress("127.0.0.1", port));
+        String welcome = RequestUtils.readMessage(s);
+        assertTrue(welcome.contains("connected"));
+        return s;
     }
 }

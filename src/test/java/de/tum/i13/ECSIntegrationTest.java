@@ -24,21 +24,38 @@ public class ECSIntegrationTest {
         Thread kvThread2 = IntegrationTestHelpers.startKVServer(tmpDir2.toString(), kv2Port, ecsPort);
         Thread kvThread3 = IntegrationTestHelpers.startKVServer(tmpDir3.toString(), kv3Port, ecsPort);
 
-        Socket s = new Socket();
-        s.connect(new InetSocketAddress("127.0.0.1", kv1Port));
-        String welcome = RequestUtils.readMessage(s);
-        assertTrue(welcome.contains("connected"));
-
+        // start with server 1, which is not responsible for the test value
+        Socket s = IntegrationTestHelpers.connectToTestSvr(kv1Port);
         String res;
-        res = RequestUtils.doRequest(s, "put 127.0.0.1:5155 some  value");
+
+        res = RequestUtils.doRequest(s, "put 127.0.0.1:5155 test val");
         assertEquals("server_not_responsible", res);
 
         res = RequestUtils.doRequest(s, "get 127.0.0.1:5155");
         assertEquals("server_not_responsible", res);
-
-        kvThread2.interrupt();
-
         s.close();
+
+        // now use the server which actually is responsible
+        s = IntegrationTestHelpers.connectToTestSvr(kv2Port);
+        res = RequestUtils.doRequest(s, "put 127.0.0.1:5155 test val");
+        assertEquals("put_success 127.0.0.1:5155", res);
+
+        res = RequestUtils.doRequest(s, "get 127.0.0.1:5155");
+        assertEquals("get_success 127.0.0.1:5155 test val", res);
+        s.close();
+
+        // shutdown the server
+        kvThread2.interrupt();
+        kvThread2.join(2000);
+        // wait for rebalance
+        Thread.sleep(2000);
+
+        // now use the server which actually is responsible
+        s = IntegrationTestHelpers.connectToTestSvr(kv3Port);
+        res = RequestUtils.doRequest(s, "get 127.0.0.1:5155");
+        assertEquals("get_success 127.0.0.1:5155 test val", res);
+        s.close();
+
         kvThread1.interrupt();
         kvThread3.interrupt();
         ecsThread.interrupt();

@@ -11,7 +11,6 @@ import java.net.Socket;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KVServerIntegrationTest {
     public static Integer kvPort = 5154;
@@ -22,10 +21,7 @@ public class KVServerIntegrationTest {
         Thread ecsThread = IntegrationTestHelpers.startECS(ecsPort);
         Thread kvThread = IntegrationTestHelpers.startKVServer(tmpDir.toString(), kvPort, ecsPort);
 
-        Socket s = new Socket();
-        s.connect(new InetSocketAddress("127.0.0.1", kvPort));
-        String welcome = RequestUtils.readMessage(s);
-        assertTrue(welcome.contains("connected"));
+        Socket s = IntegrationTestHelpers.connectToTestSvr(kvPort);
 
         String res;
         res = RequestUtils.doRequest(s, "put key some  value");
