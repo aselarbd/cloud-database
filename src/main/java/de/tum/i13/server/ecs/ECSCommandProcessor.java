@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class ECSCommandProcessor implements CommandProcessor {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static Logger logger = Logger.getLogger(ECSCommandProcessor.class.getName());
 
     private Server sender;
