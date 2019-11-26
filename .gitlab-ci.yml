@@ -46,6 +46,6 @@ test:jdk11:
     - 'mvn $MAVEN_CLI_OPTS package'
   artifacts:
     paths:
-      - target/*.war
+      - target/*.jar
   only:
     - master
