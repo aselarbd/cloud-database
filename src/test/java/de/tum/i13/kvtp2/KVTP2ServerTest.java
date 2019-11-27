@@ -28,33 +28,29 @@ class KVTP2ServerTest {
     }
 
     @Test
-    public void testNewServerThread() throws IOException {
+    public void testNewServerThread() throws IOException, InterruptedException {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         kvtp2Server.handle("greeting", (w,  m) -> {
             Message greeting = new Message(Message.Type.RESPONSE, "greeting");
             greeting.put("value", "hello, world");
+            w.write(greeting);
+            w.flush();
+        });
+
+        Thread t = new Thread(() -> {
             try {
-                String s = greeting.toString();
-                w.write(s, 0, s.length());
-                w.flush();
+                kvtp2Server.start("localhost", 9999);
             } catch (IOException e) {
                 fail(e);
             }
         });
 
-        kvtp2Server.start("localhost", 9999);
 
-//        Thread t = new Thread(() -> {
-//            try {
-//                kvtp2Server.start("localhost", 9999);
-//            } catch (IOException e) {
-//                fail(e);
-//            }
-//        });
-//
+        Thread.sleep(3000);
 
-//        KVTP2Client client = new KVTP2Client();
+        t.interrupt();
+        t.join(3000);
     }
 
 }

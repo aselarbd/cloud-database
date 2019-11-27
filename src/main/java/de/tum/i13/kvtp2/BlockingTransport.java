@@ -21,12 +21,14 @@ public class BlockingTransport implements KVTP2Transport {
         this.port = port;
     }
 
+    @Override
     public void connect() throws IOException {
         this.socket = new Socket(address, port);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream(), true, ENCODING);
     }
 
+    @Override
     public String send(String request) throws IOException {
         out.println(request);
         return in.readLine();

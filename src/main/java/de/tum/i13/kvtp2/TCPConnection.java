@@ -1,9 +1,7 @@
 package de.tum.i13.kvtp2;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -23,9 +21,9 @@ public class TCPConnection extends Connection {
     private ByteBuffer readBuffer;
     private ByteBuffer writeBuffer;
 
-    private BiConsumer<Writer, byte[]> receiver;
+    private BiConsumer<StringWriter, byte[]> receiver;
 
-    public TCPConnection(Selector selector, SocketChannel channel, BiConsumer<Writer, byte[]> receiver) throws ClosedChannelException {
+    TCPConnection(Selector selector, SocketChannel channel, BiConsumer<StringWriter, byte[]> receiver) throws ClosedChannelException {
         this.selector = selector;
         this.channel = channel;
         this.receiver = receiver;
@@ -57,18 +55,15 @@ public class TCPConnection extends Connection {
         readBuffer.clear();
 
         if (receiver != null) {
-            receiver.accept(new TCPConnWriter(), data);
+            receiver.accept(new TCPConnStringWriter(), data);
         }
         // drop message
     }
 
-    public class TCPConnWriter extends Writer {
-
+    public class TCPConnStringWriter implements StringWriter {
         @Override
-        public void write(char[] cbuf, int off, int len) {
-            String s = new String(cbuf, off, len);
-            byte[] bytes = s.getBytes(ENCODING);
-            writeBuffer.put(bytes, off, len);
+        public void write(String string) {
+            writeBuffer.put((string + "\r\n").getBytes(ENCODING));
         }
 
         @Override

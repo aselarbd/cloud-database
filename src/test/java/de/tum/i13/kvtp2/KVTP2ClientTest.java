@@ -1,5 +1,6 @@
 package de.tum.i13.kvtp2;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -10,6 +11,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class KVTP2ClientTest {
+    @Disabled
     @Test
     public void testNewClient() throws IOException {
 
@@ -28,13 +30,8 @@ class KVTP2ClientTest {
         kvtp2Server.handle("greeting", (w,  m) -> {
             Message greeting = new Message(Message.Type.RESPONSE, "greeting");
             greeting.put("value", "hello, world");
-            try {
-                String s = greeting.toString();
-                w.write(s, 0, s.length());
-                w.flush();
-            } catch (IOException e) {
-                assertThat(e.getMessage(), false);
-            }
+            w.write(greeting);
+            w.flush();
         });
 
         Thread th = new Thread(() -> {

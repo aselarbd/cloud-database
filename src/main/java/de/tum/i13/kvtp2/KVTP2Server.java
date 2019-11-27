@@ -16,7 +16,7 @@ public class KVTP2Server {
 
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
     private Selector selector;
-    private Map<String, BiConsumer<Writer, Message>> handlers;
+    private Map<String, BiConsumer<MessageWriter, Message>> handlers;
 
     private Decoder decoder = new Base64Decoder();
     private Encoder encoder = new Base64Encoder();
@@ -68,35 +68,11 @@ public class KVTP2Server {
         }
     }
 
-    private void serve(Writer w, byte[] request) {
+    private void serve(StringWriter w, byte[] request) {
         String in = new String(request, ENCODING).trim(); // TODO: Maybe trim manually, might be faster
         byte[] decodedRequest = decoder.decode(in.getBytes(ENCODING));
         Message msg = Message.parse(new String(decodedRequest, ENCODING));
-
-        if (handlers.containsKey(msg.getCommand())) {
-            Writer encodedWriter = new Writer() {
-                @Override
-                public void write(char[] cbuf, int off, int len) throws IOException {
-                    String encoded = encoder.encode(new String(cbuf, off, len), ENCODING);
-                    String newLine = "\r\n";
-                    char[] chars = (encoded + newLine).toCharArray();
-
-                    w.write(chars, 0, chars.length);
-                }
-
-                @Override
-                public void flush() throws IOException {
-                    w.flush();
-                }
-
-                @Override
-                public void close() throws IOException {
-                    w.close();
-                }
-            };
-
-            handlers.get(msg.getCommand()).accept(encodedWriter, msg);
-        }
+        serve(w, msg);
     }
 
     /**
@@ -105,10 +81,27 @@ public class KVTP2Server {
      * @param responseWriter Writer wo write a response
      * @param request the request to handle
      */
-    public void serve(Writer responseWriter, Message request) {
+    void serve(StringWriter responseWriter, Message request) {
         String command = request.getCommand();
         if (handlers.containsKey(command)) {
-            handlers.get(command).accept(responseWriter, request);
+            MessageWriter writer = new MessageWriter() {
+                @Override
+                public void write(Message message) {
+                    String encodedMessage = encoder.encode(message.toString(), ENCODING);
+                    responseWriter.write(encodedMessage);
+                }
+
+                @Override
+                public void flush() {
+                    responseWriter.flush();
+                }
+
+                @Override
+                public void close() {
+                    responseWriter.close();
+                }
+            };
+            handlers.get(command).accept(writer, request);
         }
         // silently drop unknown commands
         // TODO: Add default error handler and call it here
@@ -122,7 +115,7 @@ public class KVTP2Server {
      * @param command command to handle
      * @param handler handler to call for incoming message with command.
      */
-    public void handle(String command, BiConsumer<Writer, Message> handler) {
+    public void handle(String command, BiConsumer<MessageWriter, Message> handler) {
         this.handlers.put(command, handler);
     }
 }
