@@ -45,12 +45,8 @@ class KVTP2ServerTest {
                 fail(e);
             }
         });
-
-
-        Thread.sleep(3000);
-
-        t.interrupt();
-        t.join(3000);
+        t.setDaemon(false);
+        Thread.sleep(5000);
     }
 
 }

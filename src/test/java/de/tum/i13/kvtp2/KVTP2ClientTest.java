@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -41,6 +40,7 @@ class KVTP2ClientTest {
                 assertThat(e.getMessage(), false);
             }
         });
+        th.setDaemon(true);
         th.start();
         Thread.sleep(4000);
 
@@ -48,10 +48,22 @@ class KVTP2ClientTest {
         client.connect();
 
         Message request = new Message(Message.Type.REQUEST, "greeting");
-        Message response = client.send(request);
-        assertThat(response.get("value"), is(equalTo("hello, world")));
+        Message response1 = client.send(request);
+        assertThat(response1.get("value"), is(equalTo("hello, world")));
 
-        th.interrupt();
-        th.join(3000);
+        Message response2 = client.send(request);
+        assertThat(response2.get("value"), is(equalTo("hello, world")));
+
+        KVTP2Client client2 = new KVTP2Client("localhost", 9999);
+        client2.connect();
+
+        Message response3 = client2.send(request);
+        assertThat(response3.get("value"), is(equalTo("hello, world")));
+
+        Message response4 = client.send(request);
+        assertThat(response4.get("value"), is(equalTo("hello, world")));
+
+        Message response5 = client2.send(request);
+        assertThat(response5.get("value"), is(equalTo("hello, world")));
     }
 }

@@ -18,6 +18,8 @@ public class KVTP2Server {
     private Selector selector;
     private Map<String, BiConsumer<MessageWriter, Message>> handlers;
 
+    private TCPServerConnection serverConnection;
+
     private Decoder decoder = new Base64Decoder();
     private Encoder encoder = new Base64Encoder();
 
@@ -32,14 +34,19 @@ public class KVTP2Server {
 
     public void start(String address, int port) throws IOException {
         listenTCP(address, port);
+        // TODO: replace constant 'true' by some kind of shutdown variable
+        //  maybe it needs to be some kind of AtomicBoolean
         while (true) {
+            for (ChangeRequest cr : serverConnection.getPendingChanges()) {
+                cr.selectionKey.interestOps(cr.ops);
+            }
             this.selector.select();
             serve();
         }
     }
 
     public void listenTCP(String address, int port) throws IOException {
-        new TCPServerConnection(address, port, this.selector, this::serve);
+        serverConnection = new TCPServerConnection(address, port, this.selector, this::serve);
     }
 
     private void serve() throws IOException {
@@ -97,7 +104,7 @@ public class KVTP2Server {
                 }
 
                 @Override
-                public void close() {
+                public void close() throws IOException {
                     responseWriter.close();
                 }
             };
