@@ -14,8 +14,6 @@ public class Message {
         public String toString() {
             return super.toString().stripLeading().stripTrailing();
         }
-
-
     }
 
     private static int nextID = 1;

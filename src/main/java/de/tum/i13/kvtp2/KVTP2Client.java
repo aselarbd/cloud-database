@@ -14,7 +14,7 @@ public class KVTP2Client {
     private Decoder decoder;
 
     public KVTP2Client(String address, int port) {
-        this.transport = new BlockingKVTP2Transport(address, port);
+        this(new BlockingKVTP2Transport(address, port));
         this.encoder = new Base64Encoder();
         this.decoder = new Base64Decoder();
     }

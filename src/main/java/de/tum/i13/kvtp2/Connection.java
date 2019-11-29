@@ -1,11 +1,9 @@
 package de.tum.i13.kvtp2;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
+import java.nio.channels.*;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -15,40 +13,52 @@ public abstract class Connection {
 
     protected SelectionKey key;
 
-    protected List<ChangeRequest> pendingChanges;
-    protected List<ByteBuffer> pendingWrites;
+    protected final List<ChangeRequest> pendingChanges;
+    protected final List<ByteBuffer> pendingWrites;
 
-    public Connection() {
+    AbstractSelectableChannel channel;
+
+    public Connection(AbstractSelectableChannel channel) {
         this.pendingChanges = new LinkedList<>();
         this.pendingWrites = new ArrayList<>();
+        this.channel = channel;
     }
 
     public synchronized List<ChangeRequest> getPendingChanges() {
-        List<ChangeRequest> pcs = this.pendingChanges;
-        this.pendingChanges = new LinkedList<>();
+        List<ChangeRequest> pcs = new LinkedList<>(this.pendingChanges);
+        this.pendingChanges.clear();
         return pcs;
     }
 
     public synchronized List<ByteBuffer> getPendingWrites() {
-        List<ByteBuffer> pws = this.pendingWrites;
-        this.pendingWrites = new ArrayList<>();
+        List<ByteBuffer> pws = new ArrayList<>(this.pendingWrites);
+        this.pendingWrites.clear();
         return pws;
     }
 
-    void accept() throws IOException {
-        throw new UnsupportedOperationException("accept not supported on " + this);
+    public void register(Selector selector, int ops) throws ClosedChannelException {
+        this.key = channel.register(selector, ops, this);
     }
 
-    void connect() {
-        throw new UnsupportedOperationException("accept not supported on " + this);
+
+    // TODO: refactor Connection classes. Maybe use composition instead of inheritance to avoid this:
+    void accept() throws IOException {
+        throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
+    }
+
+    void connect() throws IOException {
+        throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
     }
 
     void read() throws IOException {
-        throw new UnsupportedOperationException("accept not supported on " + this);
+        throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
     }
 
     void write() throws IOException {
-        throw new UnsupportedOperationException("accept not supported on " + this);
+        throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
     }
 
+    StringWriter getStringWriter() {
+        throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
+    }
 }

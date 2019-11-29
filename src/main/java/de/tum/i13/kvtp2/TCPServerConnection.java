@@ -11,19 +11,16 @@ import java.util.function.BiConsumer;
 
 class TCPServerConnection extends Connection {
 
-    private final Selector selector;
-
     private ServerSocketChannel ssc;
-
     private List<Connection> connections;
 
     private BiConsumer<StringWriter, byte[]> receiver;
 
     TCPServerConnection(String address, int port, Selector selector, BiConsumer<StringWriter, byte[]> receiver) throws IOException {
-        this.selector = selector;
+        super(ServerSocketChannel.open());
         this.receiver = receiver;
 
-        this.ssc = ServerSocketChannel.open();
+        this.ssc = (ServerSocketChannel) super.channel;
 
         ssc.configureBlocking(false);
         ssc.socket().bind(new InetSocketAddress(address, port));
@@ -35,7 +32,7 @@ class TCPServerConnection extends Connection {
     void accept() throws IOException {
         SocketChannel sc = ssc.accept();
         sc.configureBlocking(false);
-        this.connections.add(new TCPConnection(this.selector, sc, this.receiver));
+        this.connections.add(new TCPConnection(sc, this.receiver));
     }
 
     @Override

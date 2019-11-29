@@ -6,6 +6,12 @@ public class ChangeRequest {
 
     public SelectionKey selectionKey;
     public int ops;
+    public Connection connection;
+
+    public ChangeRequest(Connection connection, int ops) {
+        this.connection = connection;
+        this.ops = ops;
+    }
 
     public ChangeRequest(SelectionKey selectionKey, int ops) {
         this.selectionKey = selectionKey;

@@ -1,7 +1,6 @@
 package de.tum.i13.kvtp2;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
@@ -38,7 +37,11 @@ public class KVTP2Server {
         //  maybe it needs to be some kind of AtomicBoolean
         while (true) {
             for (ChangeRequest cr : serverConnection.getPendingChanges()) {
-                cr.selectionKey.interestOps(cr.ops);
+                if (cr.selectionKey != null) {
+                    cr.selectionKey.interestOps(cr.ops);
+                } else {
+                    cr.connection.register(selector, cr.ops);
+                }
             }
             this.selector.select();
             serve();
@@ -91,23 +94,7 @@ public class KVTP2Server {
     void serve(StringWriter responseWriter, Message request) {
         String command = request.getCommand();
         if (handlers.containsKey(command)) {
-            MessageWriter writer = new MessageWriter() {
-                @Override
-                public void write(Message message) {
-                    String encodedMessage = encoder.encode(message.toString(), ENCODING);
-                    responseWriter.write(encodedMessage);
-                }
-
-                @Override
-                public void flush() {
-                    responseWriter.flush();
-                }
-
-                @Override
-                public void close() throws IOException {
-                    responseWriter.close();
-                }
-            };
+            MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING);
             handlers.get(command).accept(writer, request);
         }
         // silently drop unknown commands
@@ -125,4 +112,5 @@ public class KVTP2Server {
     public void handle(String command, BiConsumer<MessageWriter, Message> handler) {
         this.handlers.put(command, handler);
     }
+
 }
