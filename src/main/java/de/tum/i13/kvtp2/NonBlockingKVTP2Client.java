@@ -8,7 +8,12 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 public class NonBlockingKVTP2Client {
@@ -74,25 +79,64 @@ public class NonBlockingKVTP2Client {
         }
     }
 
-    public void connect(String address, int port) throws IOException {
+    public Future<Boolean> connect(String address, int port) throws IOException {
         InetSocketAddress isa = new InetSocketAddress(address, port);
-        connect(isa);
+        return connect(isa);
     }
 
-    private void connect(InetSocketAddress address) throws IOException {
+    private Future<Boolean> connect(InetSocketAddress address) throws IOException {
         SocketChannel sc = SocketChannel.open();
         sc.configureBlocking(false);
         sc.connect(address);
         TCPConnection connection = new TCPConnection(sc, this::receive);
         this.connections.put(address, connection);
+        return new Future<>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return connection.key != null;
+            }
+
+            @Override
+            public Boolean get() throws InterruptedException {
+                while (!isDone()) {
+                    Thread.sleep(500);
+                }
+                return true;
+            }
+
+            @Override
+            public Boolean get(long timeout, TimeUnit unit) throws InterruptedException {
+                Instant start = Instant.now();
+                while (!isDone()) {
+                    Thread.sleep(100);
+                    Instant now = Instant.now();
+                    Duration duration = Duration.between(start, now);
+                    long convertDuration = unit.convert(duration);
+                    if (convertDuration > timeout) {
+                        return isDone();
+                    }
+                }
+                return true;
+            }
+        };
     }
 
-    public void send(Message m, BiConsumer<MessageWriter, Message> r) throws IOException {
+    public void send(Message m, BiConsumer<MessageWriter, Message> r) throws IOException, ExecutionException, InterruptedException {
         // TODO: find the correct connection or create a new connection, encode and send the data and store the response handler
         InetSocketAddress target = new InetSocketAddress(m.get("host"), Integer.parseInt(m.get("port")));
 
         if (!connections.containsKey(target)) {
-            connect(target);
+            connect(target).get();
         }
         this.handlers.put(m.getID(), r);
         Connection connection = connections.get(target);

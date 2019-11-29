@@ -33,12 +33,4 @@ public class KVTP2Client {
         String decodedResponse = decoder.decode(response, ENCODING);
         return Message.parse(decodedResponse);
     }
-//
-//    public void send(Message request, Consumer<Message> responseHandler) {
-//        this.transport.transport(request);
-//    }
-//
-//    public void receive(byte[] data) {
-//
-//    }
 }
