@@ -1,12 +1,13 @@
 package de.tum.i13.kvtp2;
 
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Message {
 
-    private static Map<String, Factory<Parser>> oldStyleKeyWords = new HashMap<>() {
+    private static Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
             put("put", () -> new Parser().with(Type.REQUEST));
             put("get", () -> new Parser().with(Type.REQUEST));
@@ -122,7 +123,7 @@ public class Message {
 
     private static Message parseOldStyleMessage(String input) {
         String[] parts = input.split("\\s+");
-        Parser parser = oldStyleKeyWords.get(parts[0]).getInstance();
+        Parser parser = oldStyleKeyWords.get(parts[0]).get();
         if (parser == null) {
             throw new IllegalArgumentException("Invalid old style message " + input);
         }
