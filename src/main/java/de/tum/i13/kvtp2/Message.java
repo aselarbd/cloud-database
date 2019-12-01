@@ -6,14 +6,6 @@ import java.util.regex.Pattern;
 
 public class Message {
 
-    private Parser getInstance() {
-        Parser parser = new Parser() {
-
-
-        };
-        return parser.with(Type.RESPONSE).with("keyrange_read_success");
-    }
-
     private static Map<String, Factory<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
             put("put", () -> new Parser().with(Type.REQUEST));
