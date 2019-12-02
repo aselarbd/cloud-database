@@ -2,7 +2,6 @@ package de.tum.i13.kvtp2;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -39,6 +38,7 @@ class TCPConnection extends Connection {
 
         // only called from main client thread so this is fine
         key.interestOps(key.interestOps() & ~SelectionKey.OP_CONNECT);
+        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
     }
 
     @Override

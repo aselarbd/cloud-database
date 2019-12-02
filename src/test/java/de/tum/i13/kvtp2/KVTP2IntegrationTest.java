@@ -26,7 +26,7 @@ class KVTP2IntegrationTest {
 
         Thread th = new Thread(() -> {
             try {
-                kvtp2Server.start("localhost", 9999);
+                kvtp2Server.start("localhost", 9998);
             } catch (IOException e) {
                 assertThat(e.getMessage(), false);
             }
@@ -35,7 +35,7 @@ class KVTP2IntegrationTest {
         th.start();
         Thread.sleep(4000);
 
-        KVTP2Client client = new KVTP2Client("localhost", 9999);
+        KVTP2Client client = new KVTP2Client("localhost", 9998);
         client.connect();
 
         Message request = new Message(Message.Type.REQUEST, "greeting");
@@ -45,7 +45,7 @@ class KVTP2IntegrationTest {
         Message response2 = client.send(request);
         assertThat(response2.get("value"), is(equalTo("hello, world")));
 
-        KVTP2Client client2 = new KVTP2Client("localhost", 9999);
+        KVTP2Client client2 = new KVTP2Client("localhost", 9998);
         client2.connect();
 
         Message response3 = client2.send(request);
@@ -64,7 +64,9 @@ class KVTP2IntegrationTest {
 
         kvtp2Server.handle("greeting", (w,  m) -> {
             Message greeting = new Message(Message.Type.RESPONSE, "greeting");
-            greeting.put("value", "hello, world");
+            String name = m.get("name");
+            greeting.put("name", name);
+            greeting.setID(m.getID());
             w.write(greeting);
             w.flush();
         });
@@ -80,8 +82,8 @@ class KVTP2IntegrationTest {
         th.start();
         Thread.sleep(4000);
 
-        BiConsumer<MessageWriter, Message> assertion = (w, r) -> {
-            assertThat(r.get("value"), is(equalTo("hello, world")));
+        BiConsumer<String, Message> assertion = (n, r) -> {
+            assertThat(r.get("name"), is(equalTo(n)));
         };
 
         NonBlockingKVTP2Client client = new NonBlockingKVTP2Client();
@@ -102,8 +104,17 @@ class KVTP2IntegrationTest {
         request.put("host", "localhost");
         request.put("port", "9999");
 
-        client.send(request, assertion);
-        client.send(request, assertion);
+        request = new Message(Message.Type.REQUEST, "greeting");
+        request.put("name", "Mathis");
+        request.put("host", "localhost");
+        request.put("port", "9999");
+        client.send(request, (w, r) -> assertion.accept("Mathis", r));
+
+        request = new Message(Message.Type.REQUEST, "greeting");
+        request.put("name", "Nico");
+        request.put("host", "localhost");
+        request.put("port", "9999");
+        client.send(request, (w, r) -> assertion.accept("Nico", r));
 
         NonBlockingKVTP2Client client2 = new NonBlockingKVTP2Client();
         Thread ct2 = new Thread(() -> {
@@ -119,10 +130,64 @@ class KVTP2IntegrationTest {
 
         connected2.get();
 
-        client2.send(request, assertion);
-        client.send(request, assertion);
-        client2.send(request, assertion);
+        request = new Message(Message.Type.REQUEST, "greeting");
+        request.put("name", "Asela");
+        request.put("host", "localhost");
+        request.put("port", "9999");
+        client2.send(request, (w, r) -> assertion.accept("Asela", r));
+
+        request = new Message(Message.Type.REQUEST, "greeting");
+        request.put("name", "Christoph");
+        request.put("host", "localhost");
+        request.put("port", "9999");
+        client.send(request, (w, r) -> assertion.accept("Christoph", r));
+
+        request = new Message(Message.Type.REQUEST, "greeting");
+        request.put("name", "Pezhman");
+        request.put("host", "localhost");
+        request.put("port", "9999");
+        client2.send(request, (w, r) -> assertion.accept("Pezhman", r));
 
         Thread.sleep(4000);
+    }
+
+    @Test
+    public void testMultipleRequests() throws IOException, InterruptedException, ExecutionException {
+        KVTP2Server kvtp2Server = new KVTP2Server();
+
+        kvtp2Server.handle("greeting", (w,  m) -> {
+            Message greeting = new Message(Message.Type.RESPONSE, "greeting");
+            String name = greeting.get("name");
+            greeting.put("value", name);
+            w.write(greeting);
+            w.flush();
+        });
+
+        Thread th = new Thread(() -> {
+            try {
+                kvtp2Server.start("localhost", 9999);
+            } catch (IOException e) {
+                assertThat(e.getMessage(), false);
+            }
+        });
+        th.setDaemon(true);
+        th.start();
+        Thread.sleep(4000);
+
+        NonBlockingKVTP2Client client = new NonBlockingKVTP2Client();
+        Thread ct = new Thread(() -> {
+            try {
+                client.start();
+            } catch (IOException e) {
+                assertThat(e.getMessage(), false);
+            }
+        });
+        ct.setDaemon(true);
+        Future<Boolean> connected = client.connect("localhost", 9999);
+        ct.start();
+
+        connected.get();
+
+//        client.send("");
     }
 }

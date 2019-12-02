@@ -147,7 +147,7 @@ public class Message {
         return id;
     }
 
-    private void setID(int id) {
+    public void setID(int id) {
         this.id = id;
     }
 

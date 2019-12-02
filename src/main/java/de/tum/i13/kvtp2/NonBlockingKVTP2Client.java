@@ -147,9 +147,12 @@ public class NonBlockingKVTP2Client {
 
     private void receive(StringWriter w, byte[] request) {
         String in = new String(request, ENCODING).trim(); // TODO: Maybe trim manually, might be faster
-        byte[] decodedRequest = decoder.decode(in.getBytes(ENCODING));
-        Message msg = Message.parse(new String(decodedRequest, ENCODING));
-        receive(w, msg);
+        String[] msgs = in.split("\r\n");
+        for (String s : msgs) {
+            byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
+            Message msg = Message.parse(new String(decodedRequest, ENCODING));
+            receive(w, msg);
+        }
     }
 
     private void receive(StringWriter w, Message m) {
