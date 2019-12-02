@@ -4,11 +4,11 @@ import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.StreamCloser;
 import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.Factory;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,7 +20,7 @@ public class TestSocketCommunicatorImpl {
     @Test
     public void testConnect() throws SocketCommunicatorException {
         // given
-        Factory<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
+        Supplier<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
         SocketCommunicator socketCommunicator = new SocketCommunicatorImpl();
 
         // when
@@ -34,7 +34,7 @@ public class TestSocketCommunicatorImpl {
     @Test
     public void testDoubleConnect() throws SocketCommunicatorException {
         // given
-        Factory<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
+        Supplier<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
         SocketCommunicator socketCommunicator = new SocketCommunicatorImpl();
 
         // when
@@ -50,7 +50,7 @@ public class TestSocketCommunicatorImpl {
     @Test
     public void testDisconnectUnconnected() throws SocketCommunicatorException {
         // given
-        Factory<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
+        Supplier<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
         SocketCommunicator socketCommunicator = new SocketCommunicatorImpl();
 
         // when
@@ -64,7 +64,7 @@ public class TestSocketCommunicatorImpl {
     @Test
     public void testDisconnect() throws SocketCommunicatorException {
         // given
-        Factory<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
+        Supplier<StreamCloser> mockStreamCloserFactory = new MockStreamCloserFactory(connectedResponse);
         SocketCommunicator socketCommunicator = new SocketCommunicatorImpl();
 
         // when

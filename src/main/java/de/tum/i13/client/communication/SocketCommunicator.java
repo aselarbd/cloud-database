@@ -1,7 +1,7 @@
 package de.tum.i13.client.communication;
 
-import de.tum.i13.shared.Factory;
 import java.net.SocketException;
+import java.util.function.Supplier;
 
 /**
  * TCP socket communication interface.
@@ -12,7 +12,7 @@ public interface SocketCommunicator {
      *
      * @param encoding The encoding used for sending and receiving.
      */
-    void init(Factory<StreamCloser> streamCloserFactory, String encoding);
+    void init(Supplier<StreamCloser> streamCloserFactory, String encoding);
 
     /**
      * Connect to the given server.

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,7 +25,7 @@ public class KVLib {
     private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
     private ConsistentHashMap keyRanges;
-    private Factory<SocketCommunicator> communicatorFactory;
+    private Supplier<SocketCommunicator> communicatorFactory;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
     private Map<String, Integer> requestFailureCounts = new HashMap<>();
@@ -35,7 +36,7 @@ public class KVLib {
         this(SocketCommunicatorImpl::new);
     }
 
-    public KVLib(Factory<SocketCommunicator> communicatorFactory) {
+    public KVLib(Supplier<SocketCommunicator> communicatorFactory) {
         this.parser = new KVResultParser();
         this.communicatorFactory = communicatorFactory;
         this.requestFailureCounts.put("put", 0);
@@ -75,7 +76,7 @@ public class KVLib {
         if (communicatorMap.get(addr) != null) {
             return "already connected";
         }
-        SocketCommunicator communicator = this.communicatorFactory.getInstance();
+        SocketCommunicator communicator = this.communicatorFactory.get();
         communicator.init(SocketStreamCloser::new, Constants.TELNET_ENCODING);
         String res = communicator.connect(address, port);
         communicatorMap.put(new InetSocketAddress(address, port), communicator);

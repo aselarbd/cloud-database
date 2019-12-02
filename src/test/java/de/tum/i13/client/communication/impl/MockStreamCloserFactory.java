@@ -1,11 +1,11 @@
 package de.tum.i13.client.communication.impl;
 
 import de.tum.i13.client.communication.StreamCloser;
-import de.tum.i13.shared.Factory;
+
+import java.util.function.Supplier;
 
 
-
-public class MockStreamCloserFactory implements Factory<StreamCloser> {
+public class MockStreamCloserFactory implements Supplier<StreamCloser> {
 
     String connectedResponse;
 
@@ -16,7 +16,7 @@ public class MockStreamCloserFactory implements Factory<StreamCloser> {
     }
 
     @Override
-    public StreamCloser getInstance() {
+    public StreamCloser get() {
         MockStreamCloser mockStreamCloser = new MockStreamCloser();
         mockStreamCloser.setConnectedResponse(connectedResponse);
         this.mockStreamCloser = mockStreamCloser;
