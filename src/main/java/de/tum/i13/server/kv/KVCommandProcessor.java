@@ -44,6 +44,10 @@ public class KVCommandProcessor implements CommandProcessor {
         KVResultParser parser = new KVResultParser();
         KVResult command = parser.parse(input);
 
+        if (command == null) {
+            return "unknown command";
+        }
+
         String cmdMsg = command.getMessage();
 
         if (cmdMsg.equals("keyrange")) {
@@ -55,6 +59,10 @@ public class KVCommandProcessor implements CommandProcessor {
         }
 
         KVItem item = command.getItem();
+        if (item == null) {
+            // TODO: probably return more specific get_error etc.
+            return "key needed";
+        }
         String key = item.getKey();
 
         if (keyRange == null || keyRange.getSuccessor(key) == null) {

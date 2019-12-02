@@ -98,6 +98,15 @@ class KVCommandProcessorTest {
                         mock(KVStore.class)
                 ),
                 new TestCase(
+                        "get",
+                        "",
+                        null,
+                        "key needed",
+                        null,
+                        mock(KVCache.class),
+                        mock(KVStore.class)
+                ),
+                new TestCase(
                         "put",
                         "key",
                         "value",
@@ -112,6 +121,15 @@ class KVCommandProcessorTest {
                         "exception",
                         "put_error key exception",
                         new IOException(),
+                        mock(KVCache.class),
+                        mock(KVStore.class)
+                ),
+                new TestCase(
+                        "put",
+                        "",
+                        null,
+                        "key needed",
+                        null,
                         mock(KVCache.class),
                         mock(KVStore.class)
                 ),
@@ -139,6 +157,33 @@ class KVCommandProcessorTest {
                         "value",
                         "delete_error key",
                         new IOException(),
+                        mock(KVCache.class),
+                        mock(KVStore.class)
+                ),
+                new TestCase(
+                        "delete",
+                        "",
+                        null,
+                        "key needed",
+                        null,
+                        mock(KVCache.class),
+                        mock(KVStore.class)
+                ),
+                new TestCase(
+                        "",
+                        "",
+                        "",
+                        "unknown command",
+                        null,
+                        mock(KVCache.class),
+                        mock(KVStore.class)
+                ),
+                new TestCase(
+                        "foo bar",
+                        "some long",
+                        "unknown values",
+                        "unknown command",
+                        null,
                         mock(KVCache.class),
                         mock(KVStore.class)
                 )
