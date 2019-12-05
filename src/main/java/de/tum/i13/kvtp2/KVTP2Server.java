@@ -94,10 +94,16 @@ public class KVTP2Server {
      * @param responseWriter Writer wo write a response
      * @param request the request to handle
      */
-    void serve(StringWriter responseWriter, Message request) {
+    public void serve(StringWriter responseWriter, Message request) {
         String command = request.getCommand();
         if (handlers.containsKey(command)) {
-            MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING);
+            MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING) {
+                @Override
+                public void write(Message message) {
+                    message.setID(request.getID());
+                    super.write(message);
+                }
+            };
             handlers.get(command).accept(writer, request);
         }
         // silently drop unknown commands

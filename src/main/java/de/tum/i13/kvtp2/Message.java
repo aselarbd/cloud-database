@@ -57,12 +57,22 @@ public class Message {
 
     private Map<String, String> pairs = new LinkedHashMap<>();
 
+    @Deprecated
     public Message(Type t, String command) {
-        id = nextID;
-        nextID++;
+        this.id = getNextID();
         this.type = t;
         this.command = command;
         this.version = Version.V2;
+    }
+
+    public Message(String command) {
+        this.id = getNextID();
+        this.type = Type.REQUEST;
+        this.command = command;
+    }
+
+    private int getNextID() {
+        return id++;
     }
 
     public void put(String key, String value) {
@@ -138,6 +148,13 @@ public class Message {
         return msg;
     }
 
+    public static Message getResponse(Message request) {
+        Message response = new Message(request.getCommand());
+        response.type = Type.RESPONSE;
+        response.id = request.id;
+        return response;
+    }
+
     public Type getType() {
         return type;
     }
@@ -146,6 +163,7 @@ public class Message {
         return id;
     }
 
+    @Deprecated
     public void setID(int id) {
         this.id = id;
     }
@@ -160,6 +178,10 @@ public class Message {
 
     public String getCommand() {
         return this.command;
+    }
+
+    public void setCommand(String command) {
+        this.command = command;
     }
 
     public String get(String key) {

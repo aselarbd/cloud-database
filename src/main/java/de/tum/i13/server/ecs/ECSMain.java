@@ -1,7 +1,5 @@
 package de.tum.i13.server.ecs;
 
-import de.tum.i13.kvtp.Server;
-import de.tum.i13.kvtp.CommandProcessor;
 import de.tum.i13.shared.Config;
 
 import java.io.IOException;
@@ -22,10 +20,7 @@ public class ECSMain {
         logger.info("Starting ECS Server");
         logger.info("Config: " + cfg.toString());
 
-        server = new Server();
-        CommandProcessor ecs = new ECSCommandProcessor(server);
-
-        server.bindSockets(cfg.listenaddr, cfg.port, ecs);
+        server = new Server(cfg.listenaddr, cfg.port);
     }
 
     public void run() throws IOException {
