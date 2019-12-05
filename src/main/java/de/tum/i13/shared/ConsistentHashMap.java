@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -19,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class ConsistentHashMap {
 
     private MessageDigest messageDigest;
-    private TreeMap<String, InetSocketAddress> consistentHashMap = new TreeMap<>();
+    private TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
     ReadWriteLock rwl = new ReentrantReadWriteLock();
 
     /**
@@ -32,20 +33,6 @@ public class ConsistentHashMap {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Get currently associated IP list
-     * @return ArrayList of InetSocketAddress IP:PORT
-     */
-    public ArrayList<InetSocketAddress> getIPAddressList(){
-        rwl.readLock().lock();
-        ArrayList<InetSocketAddress> ipList = new ArrayList<>();
-        for (String key : consistentHashMap.keySet()){
-            ipList.add(consistentHashMap.get(key));
-        }
-        rwl.readLock().unlock();
-        return ipList;
     }
 
     /**
@@ -81,7 +68,9 @@ public class ConsistentHashMap {
      */
     public void put(InetSocketAddress addr) {
         rwl.writeLock().lock();
-        consistentHashMap.put(addressHash(addr), addr);
+        ArrayList<InetSocketAddress> items = new ArrayList<>();
+        items.add(addr);
+        consistentHashMap.put(addressHash(addr), items);
         rwl.writeLock().unlock();
     }
 
@@ -98,12 +87,12 @@ public class ConsistentHashMap {
      */
     public InetSocketAddress getSuccessor(String key) {
         rwl.readLock().lock();
-        Map.Entry<String, InetSocketAddress> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
+        Map.Entry<String, List<InetSocketAddress>> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
         if (ceiling == null) {
             ceiling = consistentHashMap.firstEntry();
         }
         rwl.readLock().unlock();
-        return (ceiling == null) ? null : ceiling.getValue();
+        return (ceiling == null) ? null : ceiling.getValue().get(0);
     }
 
     public InetSocketAddress getSuccessor(InetSocketAddress key) {
@@ -115,12 +104,12 @@ public class ConsistentHashMap {
 
     public InetSocketAddress getPredecessor(InetSocketAddress address) {
         rwl.readLock().lock();
-        Map.Entry<String, InetSocketAddress> floor = consistentHashMap.lowerEntry(addressHash(address));
+        Map.Entry<String, List<InetSocketAddress>> floor = consistentHashMap.lowerEntry(addressHash(address));
         if (floor == null) {
             floor = consistentHashMap.lastEntry();
         }
         rwl.readLock().unlock();
-        return (floor == null) ? null : floor.getValue();
+        return (floor == null) ? null : floor.getValue().get(0);
     }
 
     /**
@@ -146,7 +135,7 @@ public class ConsistentHashMap {
         String startHash = "";
         String endHash = "";
         String ipPort = "";
-        for (Map.Entry<String, InetSocketAddress> entry : consistentHashMap.entrySet()) {
+        for (Map.Entry<String, List<InetSocketAddress>> entry : consistentHashMap.entrySet()) {
             // current hash is end hash for previous one
             endHash = entry.getKey();
             if (!startHash.equals("")) {
@@ -154,7 +143,7 @@ public class ConsistentHashMap {
             }
             // prepare items to be written in the next iteration
             startHash = entry.getKey();
-            ipPort = InetSocketAddressTypeConverter.addrString(entry.getValue());
+            ipPort = InetSocketAddressTypeConverter.addrString(entry.getValue().get(0));
         }
         // process the last item - it has the first item's hash as end hash
         endHash = consistentHashMap.firstKey();
