@@ -22,14 +22,25 @@ public class ConsistentHashMap {
     private MessageDigest messageDigest;
     private TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
     ReadWriteLock rwl = new ReentrantReadWriteLock();
+    boolean multiEntries;
 
     /**
      * Create a new {@link ConsistentHashMap}.
      *
      */
     public ConsistentHashMap() {
+        this(false);
+    }
+
+    /**
+     * Create a new {@link ConsistentHashMap}.
+     *
+     * @param multiEntries If true, more than one address per hash can be added.
+     */
+    public ConsistentHashMap(boolean multiEntries) {
         try {
             this.messageDigest = MessageDigest.getInstance("MD5");
+            this.multiEntries = multiEntries;
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -60,6 +71,15 @@ public class ConsistentHashMap {
         return getMD5DigestHEX(toHash);
     }
 
+    private List<InetSocketAddress> getSuccessorList(String key) {
+        Map.Entry<String, List<InetSocketAddress>> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
+        if (ceiling == null) {
+            ceiling = consistentHashMap.firstEntry();
+        }
+        // again perform a null check as list might be empty
+        return (ceiling == null) ? null : ceiling.getValue();
+    }
+
     /**
      * Save a server entry in the HashMap. The key will be the HEX-String of the hash
      * of the given IP:Port string.
@@ -77,8 +97,8 @@ public class ConsistentHashMap {
     /**
      * Get a key from the map given a plaintext key. The key will be hashed.
      * Afterwards this function returns value, which is stored under the
-     * lexicographically next (hash-)key. If no such key exists, it returns the
-     * first available key.
+     * lexicographically next (hash-)key. If no such key exists, the first
+     * available key is used.
      *
      * @param key plain text key
      * @return The server address saved under the key, which lexicographically next to
@@ -87,17 +107,44 @@ public class ConsistentHashMap {
      */
     public InetSocketAddress getSuccessor(String key) {
         rwl.readLock().lock();
-        Map.Entry<String, List<InetSocketAddress>> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
-        if (ceiling == null) {
-            ceiling = consistentHashMap.firstEntry();
-        }
+        List<InetSocketAddress> allItems = getSuccessorList(key);
+        InetSocketAddress result = (allItems == null) ? null : allItems.get(0);
         rwl.readLock().unlock();
-        return (ceiling == null) ? null : ceiling.getValue().get(0);
+        return result;
     }
 
     public InetSocketAddress getSuccessor(InetSocketAddress key) {
         if (key != null) {
             return getSuccessor(addressHash(key));
+        }
+        return null;
+    }
+
+    /**
+     * Gets all addresses responsible for the lexicographically next hash of key.
+     * If no such hash exists, the first available hash is used.
+     *
+     * @param key plain text key
+     * @return All server addresses for the given key, either lexicographically next
+     *  or the first. If the map is empty, null is returned.
+     */
+    public InetSocketAddress[] getAllSuccessors(String key) {
+        rwl.readLock().lock();
+        List<InetSocketAddress> allItems = getSuccessorList(key);
+        InetSocketAddress[] elements;
+        // again perform a null check as list might be empty
+        if (allItems == null) {
+            elements = null;
+        } else {
+            elements = allItems.toArray(InetSocketAddress[]::new);
+        }
+        rwl.readLock().unlock();
+        return elements;
+    }
+
+    public InetSocketAddress[] getAllSuccessors(InetSocketAddress key) {
+        if (key != null) {
+            return getAllSuccessors(addressHash(key));
         }
         return null;
     }
@@ -118,7 +165,19 @@ public class ConsistentHashMap {
      */
     public void remove(InetSocketAddress addr) {
         rwl.writeLock().lock();
-        consistentHashMap.remove(addressHash(addr));
+        String addrHash = addressHash(addr);
+        boolean dropList = true;
+        // for multiple entries, we need to check the entire list
+        if (multiEntries && consistentHashMap.containsKey(addrHash)) {
+            List<InetSocketAddress> items = consistentHashMap.get(addrHash);
+            items.remove(addr);
+            // remove everything if list got empty
+            dropList = items.isEmpty();
+        }
+
+        if (dropList) {
+            consistentHashMap.remove(addressHash(addr));
+        }
         rwl.writeLock().unlock();
     }
 
