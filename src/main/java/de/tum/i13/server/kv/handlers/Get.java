@@ -20,7 +20,6 @@ public class Get implements BiConsumer<MessageWriter, Message> {
     private final KVStore kvStore;
 
     public Get(KVCache kvCache, KVStore kvStore) {
-
         this.kvCache = kvCache;
         this.kvStore = kvStore;
     }
