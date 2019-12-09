@@ -9,10 +9,7 @@ import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -152,8 +149,8 @@ public class KVLib {
         InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
 
         if (op.equals("get")){
-            InetSocketAddress[] ipList = keyRanges.getAllSuccessors(item.getKey());
-            targetServer = ipList[new Random().nextInt(ipList.length)];
+            List <InetSocketAddress> ipList = keyRanges.getAllSuccessors(item.getKey());
+            targetServer = ipList.get(new Random().nextInt(ipList.size()));
         }
 
         if (!communicatorMap.containsKey(targetServer)) {
