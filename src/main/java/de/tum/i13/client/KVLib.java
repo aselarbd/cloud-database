@@ -153,8 +153,7 @@ public class KVLib {
 
         if (op.equals("get")){
             InetSocketAddress[] ipList = keyRanges.getAllSuccessors(item.getKey());
-            Random random = new Random();
-            targetServer = ipList[getRandomNumberInRange(0,ipList.length - 1)];
+            targetServer = ipList[new Random().nextInt(ipList.length)];
         }
 
         if (!communicatorMap.containsKey(targetServer)) {
@@ -291,22 +290,7 @@ public class KVLib {
         final int baseBackOffTime = 10;
 
         int backOffTime = Math.min(maxBackoffTime, baseBackOffTime * 2 ^ attempt);
-        return getRandomNumberInRange(0,backOffTime);
-    }
-
-    /**
-     * return a random integer in range of min and max (inclusive)
-     * @param min : range minimum
-     * @param max : range maximum
-     * @return random number between min and max(inclusive)
-     */
-    private static int getRandomNumberInRange(int min, int max) {
-
-        if (min >= max) {
-            throw new IllegalArgumentException("max must be greater than min");
-        }
-        Random r = new Random();
-        return r.nextInt((max - min) + 1) + min;
+        return new Random().nextInt(backOffTime +1);
     }
 
 }
