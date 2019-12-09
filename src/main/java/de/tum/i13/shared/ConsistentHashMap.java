@@ -19,22 +19,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class ConsistentHashMap {
 
-    private MessageDigest messageDigest;
     private TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
     private TreeMap<String, List<String>> replicaOfMapping = new TreeMap<>();
     ReadWriteLock rwl = new ReentrantReadWriteLock();
-
-    /**
-     * Create a new {@link ConsistentHashMap}.
-     *
-     */
-    public ConsistentHashMap() {
-        try {
-            this.messageDigest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * getMD5DigestHEX returns the HEX-String representation of MD5 Hash
@@ -44,7 +31,13 @@ public class ConsistentHashMap {
      *
      * @return HEX-Representation of the MD5 hash of s
      */
-    private String getMD5DigestHEX(String s) {
+    private static String getMD5DigestHEX(String s) {
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         messageDigest.reset();
         messageDigest.update(s.getBytes());
         byte[] digest = messageDigest.digest();
@@ -56,7 +49,7 @@ public class ConsistentHashMap {
         return sb.toString();
     }
 
-    private String addressHash(InetSocketAddress addr) {
+    private static String addressHash(InetSocketAddress addr) {
         String toHash = InetSocketAddressTypeConverter.addrString(addr);
         return getMD5DigestHEX(toHash);
     }
@@ -168,28 +161,30 @@ public class ConsistentHashMap {
     public void remove(InetSocketAddress addr) {
         rwl.writeLock().lock();
         String addrHash = addressHash(addr);
-        if (consistentHashMap.containsKey(addrHash)) {
-            List<InetSocketAddress> items = consistentHashMap.get(addrHash);
-            items.remove(addr);
-            // remove everything if list got empty
-            if (items.isEmpty()) {
-                consistentHashMap.remove(addrHash);
-            }
-        }
+        // If the address is a read/write node, its hash is stored in the map. Remove the entire range
+        // in that case.
+        // If it is just used as replica, remove will not do anything, as its hash is not a key.
+        consistentHashMap.remove(addrHash);
         // delete this address from all elements it is a replica of
         if (replicaOfMapping.containsKey(addrHash)) {
             List<String> replicaOf = replicaOfMapping.get(addr);
             for (String hash : replicaOf) {
                 List<InetSocketAddress> otherKeyServers = consistentHashMap.get(hash);
                 otherKeyServers.remove(addr);
-                // replica are never the only element, so list removal is not necessary here
+                // replica are never the only element, so removal from consistentHashMap is not necessary here
             }
+            replicaOfMapping.remove(addrHash);
         }
         rwl.writeLock().unlock();
     }
 
-    private String buildKeyrange(String startHash, String endHash, List<InetSocketAddress> ipList) {
+    private String buildKeyrangeElement(String startHash, String endHash, List<InetSocketAddress> ipList,
+                                 boolean withReplica) {
         String items = "";
+        if (!withReplica) {
+            // only use the first element for all hashes
+            ipList = ipList.subList(0, 1);
+        }
         for (InetSocketAddress addr : ipList) {
             String ipPort = InetSocketAddressTypeConverter.addrString(addr);
             items += startHash + "," + endHash + "," + ipPort + ";";
@@ -197,12 +192,7 @@ public class ConsistentHashMap {
         return items;
     }
 
-    /**
-     * Get keyrange arguments in the format start_hash,end_hash,IP:Port;start_hash,...
-     * @return
-     */
-    public String getKeyrangeString() {
-        rwl.readLock().lock();
+    private String buildKeyrangeString(boolean withReplica) {
         if (consistentHashMap.isEmpty()) {
             return "";
         }
@@ -214,7 +204,7 @@ public class ConsistentHashMap {
             // current hash is end hash for previous one
             endHash = entry.getKey();
             if (ipList != null) {
-                items += buildKeyrange(startHash, endHash, ipList);
+                items += buildKeyrangeElement(startHash, endHash, ipList, withReplica);
             }
             // prepare items to be written in the next iteration
             startHash = entry.getKey();
@@ -223,10 +213,90 @@ public class ConsistentHashMap {
         // process the last item - it has the first item's hash as end hash
         endHash = consistentHashMap.firstKey();
         if (ipList != null) {
-            items += buildKeyrange(startHash, endHash, ipList);
+            items += buildKeyrangeElement(startHash, endHash, ipList, withReplica);
         }
+        return items;
+    }
+
+    /**
+     * Get keyrange arguments in the format start_hash,end_hash,IP:Port;start_hash,...
+     * @return
+     */
+    public String getKeyrangeString() {
+        rwl.readLock().lock();
+        String items = buildKeyrangeString(false);
         rwl.readLock().unlock();
         return items;
+    }
+
+    /**
+     * Get keyrange arguments in the format start_hash,end_hash,IP:Port;start_hash,...
+     * including all replica nodes.
+     * @return
+     */
+    public String getKeyrangeReadString() {
+        rwl.readLock().lock();
+        String items = buildKeyrangeString(true);
+        rwl.readLock().unlock();
+        return items;
+    }
+
+    private static ConsistentHashMap readKeyrangeString(String keyrange, boolean withReplica)
+            throws IllegalArgumentException {
+        if (!keyrange.contains(";")) {
+            throw new IllegalArgumentException("Bad format: No semicolon found");
+        }
+
+        String[] elements = keyrange.split(";");
+        ConsistentHashMap newInstance = new ConsistentHashMap();
+        List<String> replicaHashes = new ArrayList<>();
+        List<InetSocketAddress> replicaAddresses = new ArrayList<>();
+        InetSocketAddressTypeConverter converter = new InetSocketAddressTypeConverter();
+        // process items
+        for (String element : elements) {
+            String[] elemParts = element.split(",");
+
+            if (elemParts.length != 3) {
+                throw new IllegalArgumentException(
+                        "Bad format: expecting start_hash,end_hash,ip:port but got "
+                                + element);
+            }
+
+            try {
+                InetSocketAddress addr = converter.convert(elemParts[2]);
+                if (withReplica) {
+                    String startHash = elemParts[0];
+                    if (startHash.equals(addressHash(addr))) {
+                        newInstance.put(addr);
+                    } else {
+                        // the address this one replicates might not have been added until now.
+                        // Remember it and add it later.
+                        replicaAddresses.add(addr);
+                        replicaHashes.add(startHash);
+                    }
+                } else {
+                    // no replica - just add all IPs, the hashes are checked later to ensure only read/write nodes
+                    // are added
+                    newInstance.put(addr);
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Could not parse ip:port", e);
+            }
+        }
+
+        // we might have replica to add
+        if (replicaHashes.size() > 0) {
+            for (int i = 0; i < replicaHashes.size(); i++) {
+                final String repHash = replicaHashes.get(i);
+                InetSocketAddress baseAddr = newInstance.getSuccessor(repHash);
+                if (baseAddr == null) {
+                    throw new IllegalArgumentException("Invalid replica node with start hash " + repHash);
+                }
+                newInstance.putReplica(baseAddr, replicaAddresses.get(i));
+            }
+        }
+
+        return newInstance;
     }
 
     /**
@@ -240,36 +310,30 @@ public class ConsistentHashMap {
      */
     public static ConsistentHashMap fromKeyrangeString(String keyrange)
             throws IllegalArgumentException {
-        if (!keyrange.contains(";")) {
-            throw new IllegalArgumentException("Bad format: No semicolon found");
-        }
-
-        String[] elements = keyrange.split(";");
-        ConsistentHashMap newInstance = new ConsistentHashMap();
-        InetSocketAddressTypeConverter converter = new InetSocketAddressTypeConverter();
-        // process items
-        for (String element : elements) {
-            String[] elemParts = element.split(",");
-
-            if (elemParts.length != 3) {
-                throw new IllegalArgumentException(
-                        "Bad format: expecting start_hash,end_hash,ip:port but got "
-                        + element);
-            }
-
-            try {
-                // only parse IP and add it, the hashes are checked later
-                InetSocketAddress addr = converter.convert(elemParts[2]);
-                newInstance.put(addr);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Could not parse ip:port", e);
-            }
-        }
+       ConsistentHashMap newInstance = readKeyrangeString(keyrange, false);
 
         // check if all input hashes and the order were correct by generating a string from the parsed result again
         String expectedInput = newInstance.getKeyrangeString();
         if (!keyrange.equals(expectedInput)) {
             throw new IllegalArgumentException("Given hash ranges do not match a consistent hash map ordering");
+        }
+
+        return newInstance;
+    }
+
+    public static ConsistentHashMap fromKeyrangeReadString(String keyrange)
+            throws IllegalArgumentException {
+        ConsistentHashMap newInstance = readKeyrangeString(keyrange, true);
+        String generatedKeyrange = newInstance.getKeyrangeReadString();
+
+        // iterate over the entire input again and check if all items were added
+        String[] elements = keyrange.split(";");
+        for (String elem : elements) {
+            generatedKeyrange = generatedKeyrange.replace(elem + ";", "");
+        }
+        // all items should have been removed
+        if (!generatedKeyrange.isEmpty()) {
+            throw new IllegalArgumentException("Invalid elements: " + generatedKeyrange);
         }
 
         return newInstance;
