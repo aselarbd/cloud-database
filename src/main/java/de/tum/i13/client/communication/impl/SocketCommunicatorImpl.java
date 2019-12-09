@@ -43,7 +43,8 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
             output = streamCloser.getOutputStream();
             input = new BufferedReader(new InputStreamReader(streamCloser.getInputStream()));
 
-            return receiveResponse();
+            return "connected";
+//            return receiveResponse();
         } catch (Exception e){
             LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "connect", e);
             throw new SocketCommunicatorException(e);

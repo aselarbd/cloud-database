@@ -10,23 +10,23 @@ class MessageTest {
 
     @Test
     public void testNewMessage() {
-        Message m = new Message(Message.Type.REQUEST, "command");
+        Message m = new Message("command");
         m.put("key", "value");
         m.put("key2", "value2");
 
         assertThat(m.getID(), is(not(equalTo(0))));
 
-        assertThat("key:value\r\nkey2:value2\r\n", is(equalTo(m.body())));
-        assertThat(m.toString(), containsString("_id:"));
-        assertThat(m.toString(), containsString("_type:REQUEST\r\n"));
-        assertThat(m.toString(), containsString("_command:command"));
-        assertThat(m.toString(), containsString("_version:V2\r\n"));
+        assertThat("key#value\r\nkey2#value2\r\n", is(equalTo(m.body())));
+        assertThat(m.toString(), containsString("_id#"));
+        assertThat(m.toString(), containsString("_type#REQUEST\r\n"));
+        assertThat(m.toString(), containsString("_command#command"));
+        assertThat(m.toString(), containsString("_version#V2\r\n"));
         assertThat(m.toString(), containsString(m.body()));
     }
 
     @Test
     public void testParseMessage() {
-        String msg = "_id:1\r\n_version:V2\r\n_type:REQUEST\r\n_command:command\r\nkey:value\r\nkey2:value2";
+        String msg = "_id#1\r\n_version#V2\r\n_type#REQUEST\r\n_command#command\r\nkey#value\r\nkey2#value2";
 
         Message m = Message.parse(msg);
 

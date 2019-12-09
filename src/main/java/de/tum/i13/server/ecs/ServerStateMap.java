@@ -4,11 +4,13 @@ import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.ConsistentHashMap;
 
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class ServerStateMap {
+
+    public static Logger logger = Logger.getLogger(ServerStateMap.class.getName());
 
     private Map<InetSocketAddress, ServerState> ecsAddrToServerState = new HashMap<>();
     private Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
@@ -42,16 +44,14 @@ public class ServerStateMap {
         return kvAddrToServerState.get(keyRangeMap.getSuccessor(serverState.getKV()));
     }
 
-    public Collection<InetSocketAddress> getECSBroadcastSet() {
-        return ecsAddrToServerState.keySet();
-    }
-
     public ServerState getByECSAddress(InetSocketAddress addr) {
         return ecsAddrToServerState.get(addr);
     }
 
     public void broadcast(Message msg) {
         ecsAddrToServerState
-                .forEach((k, v) -> v.getMessageWriter().write(msg));
+                .forEach((k, v) -> {
+                    v.getClient().send(msg, (m, w) -> {}); // ignore any responses
+                });
     }
 }

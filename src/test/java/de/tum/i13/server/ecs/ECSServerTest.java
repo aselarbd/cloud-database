@@ -23,14 +23,14 @@ class ECSServerTest {
         Register register = new Register(serverStateMap);
 
         MessageWriter messageWriterMock = mock(MessageWriter.class);
-        Message message = new Message(Message.Type.REQUEST, "register");
+        Message message = new Message("register");
         message.put("kvip", "127.0.0.1");
         message.put("kvport", "8080");
         message.put("ecsip", "127.0.0.1");
         message.put("ecsport", "8081");
 
         MessageWriter messageWriterMock2 = mock(MessageWriter.class);
-        Message message2 = new Message(Message.Type.REQUEST, "register");
+        Message message2 = new Message( "register");
         message2.put("kvip", "127.0.0.2");
         message2.put("kvport", "8080");
         message2.put("ecsip", "127.0.0.2");
@@ -71,14 +71,14 @@ class ECSServerTest {
         Register register = new Register(serverStateMap);
 
         MessageWriter messageWriterMock = mock(MessageWriter.class);
-        Message message = new Message(Message.Type.REQUEST, "register");
+        Message message = new Message("register");
         message.put("kvip", "127.0.0.1");
         message.put("kvport", "8080");
         message.put("ecsip", "127.0.0.1");
         message.put("ecsport", "8081");
 
         MessageWriter messageWriterMock2 = mock(MessageWriter.class);
-        Message message2 = new Message(Message.Type.REQUEST, "register");
+        Message message2 = new Message("register");
         message2.put("kvip", "127.0.0.2");
         message2.put("kvport", "8080");
         message2.put("ecsip", "127.0.0.2");
@@ -89,7 +89,7 @@ class ECSServerTest {
 
         Shutdown shutdown = new Shutdown(serverStateMap);
 
-        Message shutdownMsg = new Message(Message.Type.REQUEST, "shutdown");
+        Message shutdownMsg = new Message( "shutdown");
         shutdownMsg.put("ecsip", "127.0.0.1");
         shutdownMsg.put("ecsport", "8081");
         shutdown.accept(messageWriterMock, shutdownMsg);
@@ -111,14 +111,14 @@ class ECSServerTest {
         Register register = new Register(serverStateMap);
 
         MessageWriter messageWriterMock = mock(MessageWriter.class);
-        Message message = new Message(Message.Type.REQUEST, "register");
+        Message message = new Message("register");
         message.put("kvip", "127.0.0.1");
         message.put("kvport", "8080");
         message.put("ecsip", "127.0.0.1");
         message.put("ecsport", "8081");
 
         MessageWriter messageWriterMock2 = mock(MessageWriter.class);
-        Message message2 = new Message(Message.Type.REQUEST, "register");
+        Message message2 = new Message("register");
         message2.put("kvip", "127.0.0.2");
         message2.put("kvport", "8080");
         message2.put("ecsip", "127.0.0.2");
@@ -129,7 +129,7 @@ class ECSServerTest {
 
         Finish finish = new Finish(serverStateMap);
 
-        Message finishMsg = new Message(Message.Type.REQUEST, "finish");
+        Message finishMsg = new Message("finish");
         finishMsg.put("ecsip", "127.0.0.1");
         finishMsg.put("ecsport", "8081");
 
@@ -137,12 +137,12 @@ class ECSServerTest {
 
         Shutdown shutdown = new Shutdown(serverStateMap);
 
-        Message shutdownMsg = new Message(Message.Type.REQUEST, "shutdown");
+        Message shutdownMsg = new Message("shutdown");
         shutdownMsg.put("ecsip", "127.0.0.1");
         shutdownMsg.put("ecsport", "8081");
         shutdown.accept(messageWriterMock, shutdownMsg);
 
-        Message finishMsg2 = new Message(Message.Type.REQUEST, "finish");
+        Message finishMsg2 = new Message( "finish");
         finishMsg2.put("ecsip", "127.0.0.1");
         finishMsg2.put("ecsport", "8081");
 

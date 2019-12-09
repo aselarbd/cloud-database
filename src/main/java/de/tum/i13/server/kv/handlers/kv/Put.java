@@ -1,4 +1,4 @@
-package de.tum.i13.server.kv.handlers;
+package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;

@@ -28,8 +28,16 @@ public class NonBlockingKVTP2Client {
     private Map<InetSocketAddress, Connection> connections = new HashMap<>();
     private Map<Integer, BiConsumer<MessageWriter, Message>> handlers = new HashMap<>();
 
+    private InetSocketAddress defaultConnection;
+
     public NonBlockingKVTP2Client() throws IOException {
         this(SelectorProvider.provider());
+    }
+
+    public NonBlockingKVTP2Client(InetSocketAddress defaultConnection) throws IOException {
+        this();
+        this.defaultConnection = defaultConnection;
+        connect(defaultConnection);
     }
 
     public NonBlockingKVTP2Client(SelectorProvider provider) throws IOException {
@@ -72,7 +80,7 @@ public class NonBlockingKVTP2Client {
             if (key.isReadable()) {
                 c.read();
             }
-            if (key.isWritable()) {
+            if (key.isValid() && key.isWritable()) {
                 c.write();
             }
             iterator.remove();
@@ -90,6 +98,9 @@ public class NonBlockingKVTP2Client {
         sc.connect(address);
         TCPConnection connection = new TCPConnection(sc, this::receive);
         this.connections.put(address, connection);
+        if (connections.size() == 1 && defaultConnection == null) {
+            defaultConnection = address;
+        }
         return new Future<>() {
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
@@ -131,10 +142,21 @@ public class NonBlockingKVTP2Client {
         };
     }
 
-    public void send(Message m, BiConsumer<MessageWriter, Message> r) throws IOException, ExecutionException, InterruptedException {
-        // TODO: find the correct connection or create a new connection, encode and send the data and store the response handler
-        InetSocketAddress target = new InetSocketAddress(m.get("host"), Integer.parseInt(m.get("port")));
+    public void send(Message m, BiConsumer<MessageWriter, Message> r) {
+        InetSocketAddress target = defaultConnection;
 
+        if (m.get("host") != null && m.get("port") != null) {
+            target = new InetSocketAddress(m.get("host"), Integer.parseInt(m.get("port")));
+        }
+
+        this.handlers.put(m.getID(), r);
+        Connection connection = connections.get(target);
+        StringWriter stringWriter = connection.getStringWriter();
+        stringWriter.write(encoder.encode(m.toString()));
+        stringWriter.flush();
+    }
+
+    public void send(InetSocketAddress target, Message m, BiConsumer<MessageWriter, Message> r) throws IOException, ExecutionException, InterruptedException {
         if (!connections.containsKey(target)) {
             connect(target).get();
         }

@@ -31,7 +31,7 @@ public class Finish implements BiConsumer<MessageWriter, Message> {
         ssm.broadcast(keyRange);
 
         if (!serverRemains) {
-            Message bye = new Message(Message.Type.RESPONSE, "bye");
+            Message bye = new Message("bye");
             messageWriter.write(bye);
         }
     }

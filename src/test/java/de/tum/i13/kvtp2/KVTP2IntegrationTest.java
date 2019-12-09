@@ -18,7 +18,7 @@ class KVTP2IntegrationTest {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         kvtp2Server.handle("greeting", (w,  m) -> {
-            Message greeting = new Message(Message.Type.RESPONSE, "greeting");
+            Message greeting = new Message("greeting");
             greeting.put("value", "hello, world");
             w.write(greeting);
             w.flush();
@@ -38,7 +38,7 @@ class KVTP2IntegrationTest {
         KVTP2Client client = new KVTP2Client("localhost", 9998);
         client.connect();
 
-        Message request = new Message(Message.Type.REQUEST, "greeting");
+        Message request = new Message("greeting");
         Message response1 = client.send(request);
         assertThat(response1.get("value"), is(equalTo("hello, world")));
 
@@ -63,10 +63,10 @@ class KVTP2IntegrationTest {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         kvtp2Server.handle("greeting", (w,  m) -> {
-            Message greeting = new Message(Message.Type.RESPONSE, "greeting");
+            Message greeting = Message.getResponse(m);
+            greeting.setCommand("greeting");
             String name = m.get("name");
             greeting.put("name", name);
-            greeting.setID(m.getID());
             w.write(greeting);
             w.flush();
         });
@@ -100,17 +100,17 @@ class KVTP2IntegrationTest {
 
         connected.get();
 
-        Message request = new Message(Message.Type.REQUEST, "greeting");
+        Message request = new Message( "greeting");
         request.put("host", "localhost");
         request.put("port", "9999");
 
-        request = new Message(Message.Type.REQUEST, "greeting");
+        request = new Message("greeting");
         request.put("name", "Mathis");
         request.put("host", "localhost");
         request.put("port", "9999");
         client.send(request, (w, r) -> assertion.accept("Mathis", r));
 
-        request = new Message(Message.Type.REQUEST, "greeting");
+        request = new Message( "greeting");
         request.put("name", "Nico");
         request.put("host", "localhost");
         request.put("port", "9999");
@@ -130,19 +130,19 @@ class KVTP2IntegrationTest {
 
         connected2.get();
 
-        request = new Message(Message.Type.REQUEST, "greeting");
+        request = new Message( "greeting");
         request.put("name", "Asela");
         request.put("host", "localhost");
         request.put("port", "9999");
         client2.send(request, (w, r) -> assertion.accept("Asela", r));
 
-        request = new Message(Message.Type.REQUEST, "greeting");
+        request = new Message("greeting");
         request.put("name", "Christoph");
         request.put("host", "localhost");
         request.put("port", "9999");
         client.send(request, (w, r) -> assertion.accept("Christoph", r));
 
-        request = new Message(Message.Type.REQUEST, "greeting");
+        request = new Message( "greeting");
         request.put("name", "Pezhman");
         request.put("host", "localhost");
         request.put("port", "9999");
@@ -156,7 +156,7 @@ class KVTP2IntegrationTest {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         kvtp2Server.handle("greeting", (w,  m) -> {
-            Message greeting = new Message(Message.Type.RESPONSE, "greeting");
+            Message greeting = new Message( "greeting");
             String name = greeting.get("name");
             greeting.put("value", name);
             w.write(greeting);

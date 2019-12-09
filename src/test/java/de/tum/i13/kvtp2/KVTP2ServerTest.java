@@ -20,7 +20,7 @@ class KVTP2ServerTest {
             sb.append(m.get("greeting"));
         });
 
-        Message message = new Message(Message.Type.REQUEST, "command");
+        Message message = new Message("command");
         message.put("greeting", "hello, world");
         kvtp2Server.serve(null, message);
 
@@ -32,7 +32,7 @@ class KVTP2ServerTest {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         kvtp2Server.handle("greeting", (w,  m) -> {
-            Message greeting = new Message(Message.Type.RESPONSE, "greeting");
+            Message greeting = new Message("greeting");
             greeting.put("value", "hello, world");
             w.write(greeting);
             w.flush();

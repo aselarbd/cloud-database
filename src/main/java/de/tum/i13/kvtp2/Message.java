@@ -7,6 +7,8 @@ import java.util.regex.Pattern;
 
 public class Message {
 
+    private static final String KEY_VALUE_DELIMITER = "##";
+
     private static Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
             put("put", () -> new Parser().with(Type.REQUEST));
@@ -69,10 +71,11 @@ public class Message {
         this.id = getNextID();
         this.type = Type.REQUEST;
         this.command = command;
+        this.version = Version.V2;
     }
 
     private int getNextID() {
-        return id++;
+        return nextID++;
     }
 
     public void put(String key, String value) {
@@ -82,7 +85,7 @@ public class Message {
     public String body() {
         StringBuilder sb = new StringBuilder();
         pairs.forEach((k, v) -> sb.append(k)
-                                    .append(":")
+                                    .append(KEY_VALUE_DELIMITER)
                                     .append(v)
                                     .append("\r\n"));
         return sb.toString();
@@ -93,10 +96,10 @@ public class Message {
         if (version == Version.V1) {
             return oldStyleToString();
         }
-        return  "_id:" + id + "\r\n" +
-                "_version:" + version + "\r\n" +
-                "_type:" + type + "\r\n" +
-                "_command:" + command + "\r\n" +
+        return  "_id" + KEY_VALUE_DELIMITER + id + "\r\n" +
+                "_version" + KEY_VALUE_DELIMITER + version + "\r\n" +
+                "_type" + KEY_VALUE_DELIMITER + type + "\r\n" +
+                "_command" + KEY_VALUE_DELIMITER + command + "\r\n" +
                 body();
     }
 
@@ -115,8 +118,8 @@ public class Message {
 
         Map<String, String> values = new HashMap<>();
         for (String line : lines) {
-            String[] kv = line.split(":");
-            if (kv.length < 2) {
+            String[] kv = line.split(KEY_VALUE_DELIMITER);
+            if (kv.length != 2) {
                 throw new IllegalArgumentException("Invalid kv pair at " + line);
             }
             values.put(kv[0], kv[1]);
@@ -152,6 +155,7 @@ public class Message {
         Message response = new Message(request.getCommand());
         response.type = Type.RESPONSE;
         response.id = request.id;
+        response.setVersion(request.getVersion());
         return response;
     }
 

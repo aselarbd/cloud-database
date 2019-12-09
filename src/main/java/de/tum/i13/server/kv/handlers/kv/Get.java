@@ -1,8 +1,7 @@
-package de.tum.i13.server.kv.handlers;
+package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.server.kv.ECSClientProcessor;
 import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.KVItem;
@@ -55,9 +54,8 @@ public class Get implements BiConsumer<MessageWriter, Message> {
             result = kvStore.get(key);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not get value from Database", e);
-            return;
-        } finally {
             writeError(messageWriter, message, key, "Internal server error");
+            return;
         }
 
         if (result != null) {

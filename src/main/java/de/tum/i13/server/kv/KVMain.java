@@ -1,13 +1,9 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.kvtp.Server;
-import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.util.concurrent.Future;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -16,64 +12,48 @@ import static de.tum.i13.shared.LogSetup.setupLogging;
 public class KVMain {
     public static Logger logger = Logger.getLogger(KVMain.class.getName());
 
-    private Server server;
-    private ECSClientProcessor ecsClientProcessor;
-    private KVCommandProcessor kvCommandProcessor;
+    private final KVServer kvServer;
+    private final ECSServer ecsServer;
 
-    public KVMain(String[] args) throws IOException, InterruptedException {
-        Config cfg = parseCommandlineArgs(args);  //Do not change this
+    public KVMain(String[] args) throws InterruptedException, ExecutionException, IOException {
+        Config cfg = parseCommandlineArgs(args);
         setupLogging(cfg.logfile, cfg.loglevel);
 
         logger.info("Starting KV Server");
         logger.info("Config: " + cfg.toString());
 
-        server = new Server();
+        this.kvServer = new KVServer(cfg);
+        this.ecsServer = new ECSServer(cfg, this.kvServer);
+    }
 
+    public void run() throws IOException, ExecutionException, InterruptedException {
+        kvServer.register();
 
-        KVStore store = new LSMStore(cfg.dataDir);
-        KVCache cache = CacheBuilder.newBuilder()
-                .size(cfg.cachesize)
-                .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
-                .build();
-
-        InetSocketAddress isa = new InetSocketAddress(cfg.listenaddr, cfg.port);
-        kvCommandProcessor = new KVCommandProcessor(isa, cache, store);
-        server.bindSockets(cfg.listenaddr, cfg.port, kvCommandProcessor);
-
-        ecsClientProcessor = new ECSClientProcessor(server, cfg.bootstrap, kvCommandProcessor);
-
-        boolean connected = false;
-        while (!connected) {
+        Thread t = new Thread(() -> {
             try {
-                server.connectTo(cfg.bootstrap, ecsClientProcessor);
-            } catch (Exception e) {
-                logger.warning("Could not connect to ecs, retrying");
-                Thread.sleep(3000);
-                continue;
+                ecsServer.start();
+            } catch (IOException e) {
+                logger.warning(e.getMessage());
             }
-            connected = true;
-        }
+        });
+        t.start();
+        kvServer.start();
     }
 
-    public void run() throws IOException {
-        ecsClientProcessor.register();
+    // TODO: announce shutdown to ecs
+    public void shutdown() {}
+//        System.out.println("Closing NioServer");
+//        Future shutdown = ecsClientProcessor.shutdown(server::close);
+//        while (!shutdown.isDone()) {
+//            try {
+//                Thread.sleep(3000);
+//            } catch (InterruptedException e) {
+//                logger.info("interrupted while waiting for shutdown");
+//            }
+//        }
+//    }
 
-        server.start();
-    }
-
-    public void shutdown() {
-        System.out.println("Closing NioServer");
-        Future shutdown = ecsClientProcessor.shutdown(server::close);
-        while (!shutdown.isDone()) {
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                logger.info("interrupted while waiting for shutdown");
-            }
-        }
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         KVMain main = new KVMain(args);
         Runtime.getRuntime().addShutdownHook(new Thread(main::shutdown));
         main.run();

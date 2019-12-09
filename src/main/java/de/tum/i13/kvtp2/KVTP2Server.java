@@ -48,8 +48,12 @@ public class KVTP2Server {
         }
     }
 
-    public void listenTCP(String address, int port) throws IOException {
+    private void listenTCP(String address, int port) throws IOException {
         serverConnection = new TCPServerConnection(address, port, this.selector, this::serve);
+    }
+
+    public int getLocalPort() {
+        return serverConnection.getLocalPort();
     }
 
     private void serve() throws IOException {
@@ -71,7 +75,7 @@ public class KVTP2Server {
             if (key.isReadable()) {
                 c.read();
             }
-            if (key.isWritable()) {
+            if (key.isValid() && key.isWritable()) {
                 c.write();
             }
             iterator.remove();
@@ -100,7 +104,6 @@ public class KVTP2Server {
             MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING) {
                 @Override
                 public void write(Message message) {
-                    message.setID(request.getID());
                     super.write(message);
                 }
             };
@@ -122,4 +125,11 @@ public class KVTP2Server {
         this.handlers.put(command, handler);
     }
 
+    public void setDecoder(Decoder decoder) {
+        this.decoder = decoder;
+    }
+
+    public void setEncoder(Encoder encoder) {
+        this.encoder = encoder;
+    }
 }

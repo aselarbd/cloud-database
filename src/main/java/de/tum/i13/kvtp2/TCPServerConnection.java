@@ -28,11 +28,16 @@ class TCPServerConnection extends Connection {
         this.connections = new ArrayList<>();
     }
 
+    public int getLocalPort() {
+        return ssc.socket().getLocalPort();
+    }
+
     @Override
     void accept() throws IOException {
         SocketChannel sc = ssc.accept();
         sc.configureBlocking(false);
-        this.connections.add(new TCPConnection(sc, this.receiver));
+        TCPConnection tcpConnection = new TCPConnection(sc, this.receiver);
+        this.connections.add(tcpConnection);
     }
 
     @Override

@@ -6,6 +6,7 @@ import de.tum.i13.server.kv.KVMain;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -67,7 +68,7 @@ public class IntegrationTestHelpers {
                     Thread server = new Thread(() -> {
                         try {
                             main.run();
-                        } catch (IOException e) {
+                        } catch (IOException | InterruptedException | ExecutionException e) {
                             e.printStackTrace();
                         }
                     });
@@ -84,7 +85,7 @@ public class IntegrationTestHelpers {
                     // shutdown server
                     main.shutdown();
                     server.join(EXIT_WAIT);
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException | InterruptedException | ExecutionException e) {
                     e.printStackTrace();
                 }
             }

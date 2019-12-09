@@ -99,10 +99,11 @@ public class KVLib {
             while (it.hasNext()){
                     Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
-                    String keyRangeString = anyCom.getValue().send("keyrange");
-                    if (keyRangeString.equals("server_stopped")) {
+                    String keyRangeResponse = anyCom.getValue().send("keyrange");
+                    if (keyRangeResponse.equals("server_stopped")) {
                         continue;
                     }
+                    String keyRangeString = keyRangeResponse.split("\\s+")[1];
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
                     keyRangeString = anyCom.getValue().send("keyrange_read");
                     // should usually not happen, but it is possible the server just got stopped. Ask another one

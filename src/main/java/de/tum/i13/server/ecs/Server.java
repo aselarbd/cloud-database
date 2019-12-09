@@ -25,7 +25,7 @@ public class Server {
     }
 
     public void start() throws IOException {
-        kvtp2Server.listenTCP(address, port);
+        kvtp2Server.start(address, port);
     }
 
     public void close() {

@@ -7,8 +7,11 @@ import de.tum.i13.server.ecs.ServerStateMap;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
+import java.util.logging.Logger;
 
 public class Shutdown implements BiConsumer<MessageWriter, Message> {
+
+    public static Logger logger = Logger.getLogger(Shutdown.class.getName());
 
     private final ServerStateMap ssm;
 
@@ -22,14 +25,21 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
         ServerState server = ssm.getByECSAddress(src);
         ssm.remove(server);
 
-        Message write_lock = new Message(Message.Type.RESPONSE, "write_lock");
-        messageWriter.write(write_lock);
+        Message lock = Message.getResponse(message);
+        lock.setCommand("lock");
+        lock.put("lock", "true");
+        messageWriter.write(lock);
 
         Message keyRange = new Message(Message.Type.RESPONSE, "keyrange");
         keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
 
         ServerState kvSuccessor = ssm.getKVSuccessor(server);
-        kvSuccessor.getMessageWriter().write(keyRange);
+        try {
+            kvSuccessor.getClient().send(keyRange, (m, w) -> {});
+        } catch (Exception e) {
+            // TODO: What to do if the successor has gone away?
+            logger.warning(e.getMessage());
+        }
         messageWriter.write(keyRange);
     }
 }
