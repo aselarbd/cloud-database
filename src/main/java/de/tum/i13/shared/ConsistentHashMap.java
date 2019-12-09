@@ -131,11 +131,8 @@ public class ConsistentHashMap {
     public InetSocketAddress[] getAllSuccessors(String key) {
         rwl.readLock().lock();
         List<InetSocketAddress> allItems = getSuccessorList(key);
-        InetSocketAddress[] elements;
-        // again perform a null check as list might be empty
-        if (allItems == null) {
-            elements = null;
-        } else {
+        InetSocketAddress[] elements = null;
+        if (allItems != null) {
             elements = allItems.toArray(InetSocketAddress[]::new);
         }
         rwl.readLock().unlock();
