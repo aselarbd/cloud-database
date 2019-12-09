@@ -76,8 +76,8 @@ public class ConsistentHashMap {
         if (ceiling == null) {
             ceiling = consistentHashMap.firstEntry();
         }
-        // again perform a null check as list might be empty
-        return (ceiling == null) ? null : ceiling.getValue();
+        // again perform a null check as map might be empty
+        return (ceiling == null) ? new ArrayList<>() : ceiling.getValue();
     }
 
     /**
@@ -108,7 +108,7 @@ public class ConsistentHashMap {
     public InetSocketAddress getSuccessor(String key) {
         rwl.readLock().lock();
         List<InetSocketAddress> allItems = getSuccessorList(key);
-        InetSocketAddress result = (allItems == null) ? null : allItems.get(0);
+        InetSocketAddress result = (allItems == null || allItems.isEmpty()) ? null : allItems.get(0);
         rwl.readLock().unlock();
         return result;
     }
@@ -128,22 +128,20 @@ public class ConsistentHashMap {
      * @return All server addresses for the given key, either lexicographically next
      *  or the first. If the map is empty, null is returned.
      */
-    public InetSocketAddress[] getAllSuccessors(String key) {
+    public List<InetSocketAddress> getAllSuccessors(String key) {
         rwl.readLock().lock();
         List<InetSocketAddress> allItems = getSuccessorList(key);
-        InetSocketAddress[] elements = null;
-        if (allItems != null) {
-            elements = allItems.toArray(InetSocketAddress[]::new);
-        }
+        // ensure a copy of the list, as caller might modify it
+        List<InetSocketAddress> elements = new ArrayList<>(allItems);
         rwl.readLock().unlock();
         return elements;
     }
 
-    public InetSocketAddress[] getAllSuccessors(InetSocketAddress key) {
+    public List<InetSocketAddress> getAllSuccessors(InetSocketAddress key) {
         if (key != null) {
             return getAllSuccessors(addressHash(key));
         }
-        return null;
+        return new ArrayList<>();
     }
 
     public InetSocketAddress getPredecessor(InetSocketAddress address) {
@@ -163,17 +161,13 @@ public class ConsistentHashMap {
     public void remove(InetSocketAddress addr) {
         rwl.writeLock().lock();
         String addrHash = addressHash(addr);
-        boolean dropList = true;
-        // for multiple entries, we need to check the entire list
-        if (multiEntries && consistentHashMap.containsKey(addrHash)) {
+        if (consistentHashMap.containsKey(addrHash)) {
             List<InetSocketAddress> items = consistentHashMap.get(addrHash);
             items.remove(addr);
             // remove everything if list got empty
-            dropList = items.isEmpty();
-        }
-
-        if (dropList) {
-            consistentHashMap.remove(addressHash(addr));
+            if (items.isEmpty()) {
+                consistentHashMap.remove(addrHash);
+            }
         }
         rwl.writeLock().unlock();
     }
