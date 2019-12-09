@@ -21,26 +21,16 @@ public class ConsistentHashMap {
 
     private MessageDigest messageDigest;
     private TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
+    private TreeMap<String, List<String>> replicaOfMapping = new TreeMap<>();
     ReadWriteLock rwl = new ReentrantReadWriteLock();
-    boolean multiEntries;
 
     /**
      * Create a new {@link ConsistentHashMap}.
      *
      */
     public ConsistentHashMap() {
-        this(false);
-    }
-
-    /**
-     * Create a new {@link ConsistentHashMap}.
-     *
-     * @param multiEntries If true, more than one address per hash can be added.
-     */
-    public ConsistentHashMap(boolean multiEntries) {
         try {
             this.messageDigest = MessageDigest.getInstance("MD5");
-            this.multiEntries = multiEntries;
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -91,6 +81,23 @@ public class ConsistentHashMap {
         ArrayList<InetSocketAddress> items = new ArrayList<>();
         items.add(addr);
         consistentHashMap.put(addressHash(addr), items);
+        rwl.writeLock().unlock();
+    }
+
+    public void putReplica(InetSocketAddress baseAddr, InetSocketAddress replica) {
+        rwl.writeLock().lock();
+        final String addrHash = addressHash(baseAddr);
+        List<InetSocketAddress> items = consistentHashMap.get(addrHash);
+        if (items != null) {
+            items.add(replica);
+            // remember all nodes which are replicated to speed up deletions
+            List<String> cache = replicaOfMapping.get(replica);
+            if (cache == null) {
+                cache = new ArrayList<>();
+                replicaOfMapping.put(addressHash(replica), cache);
+            }
+            cache.add(addrHash);
+        }
         rwl.writeLock().unlock();
     }
 
@@ -169,7 +176,25 @@ public class ConsistentHashMap {
                 consistentHashMap.remove(addrHash);
             }
         }
+        // delete this address from all elements it is a replica of
+        if (replicaOfMapping.containsKey(addrHash)) {
+            List<String> replicaOf = replicaOfMapping.get(addr);
+            for (String hash : replicaOf) {
+                List<InetSocketAddress> otherKeyServers = consistentHashMap.get(hash);
+                otherKeyServers.remove(addr);
+                // replica are never the only element, so list removal is not necessary here
+            }
+        }
         rwl.writeLock().unlock();
+    }
+
+    private String buildKeyrange(String startHash, String endHash, List<InetSocketAddress> ipList) {
+        String items = "";
+        for (InetSocketAddress addr : ipList) {
+            String ipPort = InetSocketAddressTypeConverter.addrString(addr);
+            items += startHash + "," + endHash + "," + ipPort + ";";
+        }
+        return items;
     }
 
     /**
@@ -184,21 +209,21 @@ public class ConsistentHashMap {
         String items = "";
         String startHash = "";
         String endHash = "";
-        String ipPort = "";
+        List<InetSocketAddress> ipList = null;
         for (Map.Entry<String, List<InetSocketAddress>> entry : consistentHashMap.entrySet()) {
             // current hash is end hash for previous one
             endHash = entry.getKey();
-            if (!startHash.equals("")) {
-                items += startHash + "," + endHash + "," + ipPort + ";";
+            if (ipList != null) {
+                items += buildKeyrange(startHash, endHash, ipList);
             }
             // prepare items to be written in the next iteration
             startHash = entry.getKey();
-            ipPort = InetSocketAddressTypeConverter.addrString(entry.getValue().get(0));
+            ipList = entry.getValue();
         }
         // process the last item - it has the first item's hash as end hash
         endHash = consistentHashMap.firstKey();
-        if (!startHash.equals("")) {
-            items += startHash + "," + endHash + "," + ipPort + ";";
+        if (ipList != null) {
+            items += buildKeyrange(startHash, endHash, ipList);
         }
         rwl.readLock().unlock();
         return items;
