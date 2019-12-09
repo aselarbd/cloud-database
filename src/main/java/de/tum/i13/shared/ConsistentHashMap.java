@@ -77,21 +77,26 @@ public class ConsistentHashMap {
         rwl.writeLock().unlock();
     }
 
-    public void putReplica(InetSocketAddress baseAddr, InetSocketAddress replica) {
+    public void putReplica(String addrHash, InetSocketAddress replica) {
         rwl.writeLock().lock();
-        final String addrHash = addressHash(baseAddr);
         List<InetSocketAddress> items = consistentHashMap.get(addrHash);
         if (items != null) {
             items.add(replica);
+            final String replicaHash = addressHash(replica);
             // remember all nodes which are replicated to speed up deletions
-            List<String> cache = replicaOfMapping.get(replica);
+            List<String> cache = replicaOfMapping.get(replicaHash);
             if (cache == null) {
                 cache = new ArrayList<>();
-                replicaOfMapping.put(addressHash(replica), cache);
+                replicaOfMapping.put(replicaHash, cache);
             }
             cache.add(addrHash);
         }
         rwl.writeLock().unlock();
+    }
+
+    public void putReplica(InetSocketAddress baseAddr, InetSocketAddress replica) {
+        final String addrHash = addressHash(baseAddr);
+        putReplica(addrHash, replica);
     }
 
     /**
@@ -241,7 +246,7 @@ public class ConsistentHashMap {
         return items;
     }
 
-    private static ConsistentHashMap readKeyrangeString(String keyrange, boolean withReplica)
+    private static ConsistentHashMap parseKeyrangeString(String keyrange, boolean withReplica)
             throws IllegalArgumentException {
         if (!keyrange.contains(";")) {
             throw new IllegalArgumentException("Bad format: No semicolon found");
@@ -287,12 +292,7 @@ public class ConsistentHashMap {
         // we might have replica to add
         if (replicaHashes.size() > 0) {
             for (int i = 0; i < replicaHashes.size(); i++) {
-                final String repHash = replicaHashes.get(i);
-                InetSocketAddress baseAddr = newInstance.getSuccessor(repHash);
-                if (baseAddr == null) {
-                    throw new IllegalArgumentException("Invalid replica node with start hash " + repHash);
-                }
-                newInstance.putReplica(baseAddr, replicaAddresses.get(i));
+                newInstance.putReplica(replicaHashes.get(i), replicaAddresses.get(i));
             }
         }
 
@@ -310,7 +310,7 @@ public class ConsistentHashMap {
      */
     public static ConsistentHashMap fromKeyrangeString(String keyrange)
             throws IllegalArgumentException {
-       ConsistentHashMap newInstance = readKeyrangeString(keyrange, false);
+       ConsistentHashMap newInstance = parseKeyrangeString(keyrange, false);
 
         // check if all input hashes and the order were correct by generating a string from the parsed result again
         String expectedInput = newInstance.getKeyrangeString();
@@ -323,7 +323,7 @@ public class ConsistentHashMap {
 
     public static ConsistentHashMap fromKeyrangeReadString(String keyrange)
             throws IllegalArgumentException {
-        ConsistentHashMap newInstance = readKeyrangeString(keyrange, true);
+        ConsistentHashMap newInstance = parseKeyrangeString(keyrange, true);
         String generatedKeyrange = newInstance.getKeyrangeReadString();
 
         // iterate over the entire input again and check if all items were added
@@ -331,7 +331,7 @@ public class ConsistentHashMap {
         for (String elem : elements) {
             generatedKeyrange = generatedKeyrange.replace(elem + ";", "");
         }
-        // all items should have been removed
+        // all items should have been removed from the generated string (i.e. added to the map)
         if (!generatedKeyrange.isEmpty()) {
             throw new IllegalArgumentException("Invalid elements: " + generatedKeyrange);
         }

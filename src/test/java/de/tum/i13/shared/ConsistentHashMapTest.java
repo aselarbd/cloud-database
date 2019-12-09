@@ -4,9 +4,9 @@ import de.tum.i13.TestConstants;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ConsistentHashMapTest {
     InetSocketAddress ip1 = new InetSocketAddress("192.168.1.1", 80); // be8e4f546de43337d7f0d4637a796478
@@ -44,6 +44,8 @@ class ConsistentHashMapTest {
         consistentHashMap.put(ip1);
         consistentHashMap.put(ip2);
         consistentHashMap.put(ip3);
+        // ignore replica items in generated hash
+        consistentHashMap.putReplica(ip1, ip2);
 
         String generatedKrString = consistentHashMap.getKeyrangeString();
 
@@ -60,16 +62,23 @@ class ConsistentHashMapTest {
         assertEquals("", generatedKrString);
     }
 
-    @Test
-    void testFromKeyrangeString() {
-        ConsistentHashMap parsedMap = ConsistentHashMap.fromKeyrangeString(keyrangeString);
-
+    private void assertBaseKeyrange(ConsistentHashMap parsedMap) {
         // IP1 is the closest to the hash of "key", cf. test case above
         assertEquals(ip1, parsedMap.getSuccessor("key"));
         // test addresses themselves
         assertEquals(ip1, parsedMap.getSuccessor("192.168.1.1:80"));
         assertEquals(ip2, parsedMap.getSuccessor("192.168.1.2:80"));
         assertEquals(ip3, parsedMap.getSuccessor("192.168.1.3:80"));
+    }
+
+    @Test
+    void testFromKeyrangeString() {
+        ConsistentHashMap parsedMap = ConsistentHashMap.fromKeyrangeString(keyrangeString);
+
+        assertBaseKeyrange(parsedMap);
+        assertEquals(1, parsedMap.getAllSuccessors("192.168.1.1:80").size());
+        assertEquals(1, parsedMap.getAllSuccessors("192.168.1.2:80").size());
+        assertEquals(1, parsedMap.getAllSuccessors("192.168.1.3:80").size());
     }
 
     @Test
@@ -81,10 +90,50 @@ class ConsistentHashMapTest {
                 "be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80,foobar;", // additional arg
                 "a,b,192.168.1.1:80", // invalid hashes
                 "be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80;a,s,127.0.0.1:80,d;", // invalid 2nd item
-                "foobar;be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80;" // invalid 1st item
+                "foobar;be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80;", // invalid 1st item
+                keyrangeString.replace("192.168.1.1:80", "192.168.1.5:80"), // wrong address - hash mapping
+                TestConstants.KEYRANGE_REPLICA_FULL, // no replica allowed in "normal" keyrange string
+                TestConstants.KEYRANGE_REPLICA_PART, // no replica allowed in "normal" keyrange string
+                TestConstants.KEYRANGE_REPLICA_UNORDERED // no replica allowed in "normal" keyrange string
         };
         for (String input : illegalInputs) {
             assertThrows(IllegalArgumentException.class, () -> {ConsistentHashMap.fromKeyrangeString(input);});
         }
+    }
+
+    private ConsistentHashMap getFullReplicaMap() {
+        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
+        consistentHashMap.put(ip1);
+        consistentHashMap.put(ip2);
+        consistentHashMap.put(ip3);
+        consistentHashMap.putReplica(ip1, ip2);
+        consistentHashMap.putReplica(ip1, ip3);
+        consistentHashMap.putReplica(ip2, ip3);
+        consistentHashMap.putReplica(ip2, ip1);
+        consistentHashMap.putReplica(ip3, ip1);
+        consistentHashMap.putReplica(ip3, ip2);
+        return consistentHashMap;
+    }
+
+    @Test
+    void testGetKeyrangeReadString() {
+        ConsistentHashMap consistentHashMap = getFullReplicaMap();
+
+        assertEquals(TestConstants.KEYRANGE_REPLICA_FULL, consistentHashMap.getKeyrangeReadString());
+    }
+
+    @Test
+    void testFromKeyrangeReadString() {
+        ConsistentHashMap parsedMap = ConsistentHashMap.fromKeyrangeReadString(
+                TestConstants.KEYRANGE_REPLICA_FULL);
+
+        assertBaseKeyrange(parsedMap);
+        List<InetSocketAddress> oneSuccessors = parsedMap.getAllSuccessors("192.168.1.1:80");
+        assertEquals(3, oneSuccessors.size());
+        assertEquals(3, parsedMap.getAllSuccessors("192.168.1.2:80").size());
+        assertEquals(3, parsedMap.getAllSuccessors("192.168.1.3:80").size());
+        assertEquals(ip1, oneSuccessors.get(0));
+        assertTrue(oneSuccessors.contains(ip2));
+        assertTrue(oneSuccessors.contains(ip3));
     }
 }
