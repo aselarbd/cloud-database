@@ -43,9 +43,15 @@ public class Message {
         }
     }
 
+    public enum Version {
+        V1,
+        V2
+    }
+
     private static int nextID = 1;
 
     private int id;
+    private Version version;
     private Type type;
     private String command;
 
@@ -56,6 +62,7 @@ public class Message {
         nextID++;
         this.type = t;
         this.command = command;
+        this.version = Version.V2;
     }
 
     public void put(String key, String value) {
@@ -73,18 +80,13 @@ public class Message {
 
     @Override
     public String toString() {
-        if (id == -1) {
+        if (version == Version.V1) {
             return oldStyleToString();
         }
-        return  "_id:" +
-                id +
-                "\r\n" +
-                "_type:" +
-                type +
-                "\r\n" +
-                "_command:" +
-                command +
-                "\r\n" +
+        return  "_id:" + id + "\r\n" +
+                "_version:" + version + "\r\n" +
+                "_type:" + type + "\r\n" +
+                "_command:" + command + "\r\n" +
                 body();
     }
 
@@ -112,6 +114,7 @@ public class Message {
 
         Message m = new Message(Type.valueOf(values.get("_type")), values.get("_command"));
         m.setID(Integer.parseInt(values.get("_id")));
+        m.setVersion(Version.valueOf(values.get("_version")));
 
         values.remove("_type");
         values.remove("_id");
@@ -131,12 +134,8 @@ public class Message {
             parser.with(part);
         }
         Message msg = parser.parse();
-        msg.setID(-1);
+        msg.setVersion(Version.V1);
         return msg;
-    }
-
-    public void setType(Type t) {
-        this.type = t;
     }
 
     public Type getType() {
@@ -149,6 +148,14 @@ public class Message {
 
     public void setID(int id) {
         this.id = id;
+    }
+
+    public Version getVersion() {
+        return version;
+    }
+
+    public void setVersion(Version version) {
+        this.version = version;
     }
 
     public String getCommand() {

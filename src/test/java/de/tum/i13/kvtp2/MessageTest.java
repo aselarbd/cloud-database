@@ -17,20 +17,21 @@ class MessageTest {
         assertThat(m.getID(), is(not(equalTo(0))));
 
         assertThat("key:value\r\nkey2:value2\r\n", is(equalTo(m.body())));
-        assertThat(m.toString(), containsString(m.body()));
         assertThat(m.toString(), containsString("_id:"));
         assertThat(m.toString(), containsString("_type:REQUEST\r\n"));
         assertThat(m.toString(), containsString("_command:command"));
+        assertThat(m.toString(), containsString("_version:V2\r\n"));
         assertThat(m.toString(), containsString(m.body()));
     }
 
     @Test
     public void testParseMessage() {
-        String msg = "_id:1\r\n_type:REQUEST\r\n_command:command\r\nkey:value\r\nkey2:value2";
+        String msg = "_id:1\r\n_version:V2\r\n_type:REQUEST\r\n_command:command\r\nkey:value\r\nkey2:value2";
 
         Message m = Message.parse(msg);
 
         assertThat(m.getID(), is(equalTo(1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V2)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("command")));
         assertThat(m.get("key"), is(equalTo("value")));
@@ -42,7 +43,7 @@ class MessageTest {
         String msg = "put a b";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("put")));
         assertThat(m.get("key"), is(equalTo("a")));
@@ -56,7 +57,7 @@ class MessageTest {
         String msg = "get a";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("get")));
         assertThat(m.get("key"), is(equalTo("a")));
@@ -69,7 +70,7 @@ class MessageTest {
         String msg = "delete a";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("delete")));
         assertThat(m.get("key"), is(equalTo("a")));
@@ -82,7 +83,7 @@ class MessageTest {
         String msg = "keyrange";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("keyrange")));
 
@@ -94,7 +95,7 @@ class MessageTest {
         String msg = "keyrange_read";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.REQUEST)));
         assertThat(m.getCommand(), is(equalTo("keyrange_read")));
 
@@ -115,7 +116,7 @@ class MessageTest {
         String msg = "put_success key";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("put_success")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -128,7 +129,7 @@ class MessageTest {
         String msg = "put_update key";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("put_update")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -141,7 +142,7 @@ class MessageTest {
         String msg = "put_error key value";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("put_error")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -155,7 +156,7 @@ class MessageTest {
         String msg = "server_stopped";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("server_stopped")));
 
@@ -167,7 +168,7 @@ class MessageTest {
         String msg = "server_write_lock";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("server_write_lock")));
 
@@ -179,7 +180,7 @@ class MessageTest {
         String msg = "get_error key not found";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("get_error")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -193,7 +194,7 @@ class MessageTest {
         String msg = "get_success key value";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("get_success")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -207,7 +208,7 @@ class MessageTest {
         String msg = "delete_success key";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("delete_success")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -220,7 +221,7 @@ class MessageTest {
         String msg = "delete_error key";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("delete_error")));
         assertThat(m.get("key"), is(equalTo("key")));
@@ -233,7 +234,7 @@ class MessageTest {
         String msg = "keyrange_success from1,to1,ip1:port1;from2,to2,ip2:port2";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("keyrange_success")));
         assertThat(m.get("keyrange"), is(equalTo("from1,to1,ip1:port1;from2,to2,ip2:port2")));
@@ -246,7 +247,7 @@ class MessageTest {
         String msg = "keyrange_read_success from1,to1,ip1:port1;from2,to2,ip2:port2";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("keyrange_read_success")));
         assertThat(m.get("keyrange"), is(equalTo("from1,to1,ip1:port1;from2,to2,ip2:port2")));
@@ -259,7 +260,7 @@ class MessageTest {
         String msg = "error description";
         Message m = Message.parse(msg);
 
-        assertThat(m.getID(), is(equalTo(-1)));
+        assertThat(m.getVersion(), is(equalTo(Message.Version.V1)));
         assertThat(m.getType(), is(equalTo(Message.Type.RESPONSE)));
         assertThat(m.getCommand(), is(equalTo("error")));
         assertThat(m.get("description"), is(equalTo("description")));
