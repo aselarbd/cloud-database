@@ -120,7 +120,7 @@ public class ConsistentHashMap {
 
     public InetSocketAddress getSuccessor(InetSocketAddress key) {
         if (key != null) {
-            return getSuccessor(addressHash(key));
+            return getSuccessor(InetSocketAddressTypeConverter.addrString(key));
         }
         return null;
     }
@@ -144,7 +144,7 @@ public class ConsistentHashMap {
 
     public List<InetSocketAddress> getAllSuccessors(InetSocketAddress key) {
         if (key != null) {
-            return getAllSuccessors(addressHash(key));
+            return getAllSuccessors(InetSocketAddressTypeConverter.addrString(key));
         }
         return new ArrayList<>();
     }
@@ -329,6 +329,9 @@ public class ConsistentHashMap {
         // iterate over the entire input again and check if all items were added
         String[] elements = keyrange.split(";");
         for (String elem : elements) {
+            if (!generatedKeyrange.contains(elem)) {
+                throw new IllegalArgumentException("Invalid element: " + elem);
+            }
             generatedKeyrange = generatedKeyrange.replace(elem + ";", "");
         }
         // all items should have been removed from the generated string (i.e. added to the map)
