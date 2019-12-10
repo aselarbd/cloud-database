@@ -22,11 +22,12 @@ public class Finish implements BiConsumer<MessageWriter, Message> {
         boolean serverRemains = ssm.getByECSAddress(src) != null;
 
         if (serverRemains) {
-            Message releaseLock = new Message(Message.Type.RESPONSE, "release_lock");
+            Message releaseLock = Message.getResponse(message);
+            releaseLock.setCommand("release_lock");
             messageWriter.write(releaseLock);
         }
 
-        Message keyRange = new Message(Message.Type.RESPONSE, "keyrange");
+        Message keyRange = new Message("keyrange");
         keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
         ssm.broadcast(keyRange);
 

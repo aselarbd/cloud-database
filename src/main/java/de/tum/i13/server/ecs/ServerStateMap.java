@@ -48,6 +48,10 @@ public class ServerStateMap {
         return ecsAddrToServerState.get(addr);
     }
 
+    public ServerState getByKVAddress(InetSocketAddress addr) {
+        return kvAddrToServerState.get(addr);
+    }
+
     public void broadcast(Message msg) {
         ecsAddrToServerState
                 .forEach((k, v) -> {

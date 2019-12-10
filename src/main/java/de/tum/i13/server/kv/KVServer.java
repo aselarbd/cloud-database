@@ -8,11 +8,14 @@ import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.HeartbeatListener;
+import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public class KVServer {
@@ -20,19 +23,23 @@ public class KVServer {
     public static Logger logger = Logger.getLogger(KVServer.class.getName());
 
     private final KVTP2Server kvtp2Server;
+    private KVStore kvStore;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final Config config;
+
+    private final InetSocketAddress address;
 
     private final KeyRange keyRangeHandler;
     private ServerStoppedHandler serverStoppedHandlerWrapper;
 
-    public KVServer(Config cfg) throws IOException, ExecutionException, InterruptedException {
+    public KVServer(Config cfg) throws IOException {
         this.config = cfg;
+        this.address = new InetSocketAddress(cfg.listenaddr, cfg.port);
         kvtp2Server = new KVTP2Server();
         kvtp2Server.setDecoder(new NullDecoder());
         kvtp2Server.setEncoder(new NullEncoder());
 
-        KVStore store = new LSMStore(cfg.dataDir);
+        kvStore = new LSMStore(cfg.dataDir);
         KVCache cache = CacheBuilder.newBuilder()
                 .size(cfg.cachesize)
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
@@ -56,7 +63,7 @@ public class KVServer {
                 "get",
                 serverStoppedHandlerWrapper.wrap(
                         serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Get(cache, store))
+                            responsibilityHandler.wrap(new Get(cache, kvStore))
                         )
                 )
         );
@@ -65,7 +72,7 @@ public class KVServer {
                 "put",
                 serverStoppedHandlerWrapper.wrap(
                         serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Put(cache, store))
+                            responsibilityHandler.wrap(new Put(cache, kvStore))
                         )
                 )
         );
@@ -74,7 +81,7 @@ public class KVServer {
                 "delete",
                 serverStoppedHandlerWrapper.wrap(
                         serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Delete(cache, store))
+                            responsibilityHandler.wrap(new Delete(cache, kvStore))
                         )
                 )
         );
@@ -119,12 +126,40 @@ public class KVServer {
         });
     }
 
-    private void setKeyRange(ConsistentHashMap keyRange) {
+    public void setKeyRange(ConsistentHashMap keyRange) {
         this.keyRangeHandler.setKeyRange(keyRange);
+    }
+
+    public ConsistentHashMap getKeyRange() {
+        return this.keyRangeHandler.getKeyRange();
+    }
+
+    public InetSocketAddress getAddress() {
+        return this.address;
+    }
+
+    public Set<String> getAllKeys(Predicate<String> predicate) {
+        try {
+            return kvStore.getAllKeys(predicate);
+        } catch (IOException e) {
+            logger.warning("Could not read all keys for predicate from disk");
+            return null;
+        }
+    }
+
+    public void put(KVItem kvItem) throws IOException {
+        kvStore.put(kvItem);
     }
 
     public void start() throws IOException {
         kvtp2Server.start(config.listenaddr, config.port);
     }
 
+    public KVItem getItem(String key) throws IOException {
+        return kvStore.get(key);
+    }
+
+    public InetSocketAddress getECSAddress() {
+        return config.bootstrap;
+    }
 }

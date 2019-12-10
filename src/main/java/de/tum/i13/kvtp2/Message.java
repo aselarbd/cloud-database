@@ -118,7 +118,7 @@ public class Message {
 
         Map<String, String> values = new HashMap<>();
         for (String line : lines) {
-            String[] kv = line.split(KEY_VALUE_DELIMITER);
+            String[] kv = line.split(KEY_VALUE_DELIMITER, 2);
             if (kv.length != 2) {
                 throw new IllegalArgumentException("Invalid kv pair at " + line);
             }
