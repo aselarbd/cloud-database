@@ -4,6 +4,7 @@ import de.tum.i13.shared.Config;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -27,16 +28,18 @@ public class KVMain {
     }
 
     public void run() throws IOException, ExecutionException, InterruptedException {
-        kvServer.register();
-
-        Thread t = new Thread(() -> {
+        Thread ecsAPI = new Thread(() -> {
             try {
-                ecsServer.start();
+                this.ecsServer.start();
             } catch (IOException e) {
-                logger.warning(e.getMessage());
+                logger.severe("ecs control API of kvServer crashed" + e.getMessage());
             }
         });
-        t.start();
+        ecsAPI.start();
+        Thread.sleep(3000); // TODO: replace by wait for startup mechanism
+        logger.info("started ecs API for kvServer at " + ecsServer.getLocalAddress() + ":" + ecsServer.getLocalPort());
+        kvServer.register(this.ecsServer);
+
         kvServer.start();
     }
 

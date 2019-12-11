@@ -1,8 +1,10 @@
 package de.tum.i13.server.kv;
 
+import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2Server;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.NonBlockingKVTP2Client;
+import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.Config;
@@ -24,13 +26,16 @@ public class KVServer {
 
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;
-    private final ServerWriteLockHandler serverWriteLockHandler;
     private final Config config;
 
     private final InetSocketAddress address;
 
     private final KeyRange keyRangeHandler;
     private ServerStoppedHandler serverStoppedHandlerWrapper;
+    private final ServerWriteLockHandler serverWriteLockHandler;
+    private NonBlockingKVTP2Client ecsClient;
+    private KVTP2Client blockingECSClient;
+    private ECSServer controlAPIServer;
 
     public KVServer(Config cfg) throws IOException {
         this.config = cfg;
@@ -61,41 +66,46 @@ public class KVServer {
 
         kvtp2Server.handle(
                 "get",
+                new LogRequest(logger).wrap(
                 serverStoppedHandlerWrapper.wrap(
-                        serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Get(cache, kvStore))
-                        )
-                )
+                serverWriteLockHandler.wrap(
+                responsibilityHandler.wrap(
+                        new Get(cache, kvStore)
+                ))))
         );
 
         kvtp2Server.handle(
                 "put",
+                new LogRequest(logger).wrap(
                 serverStoppedHandlerWrapper.wrap(
-                        serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Put(cache, kvStore))
-                        )
-                )
+                serverWriteLockHandler.wrap(
+                responsibilityHandler.wrap(
+                        new Put(cache, kvStore)
+                ))))
         );
 
         kvtp2Server.handle(
                 "delete",
+                new LogRequest(logger).wrap(
                 serverStoppedHandlerWrapper.wrap(
-                        serverWriteLockHandler.wrap(
-                            responsibilityHandler.wrap(new Delete(cache, kvStore))
-                        )
-                )
+                serverWriteLockHandler.wrap(
+                responsibilityHandler.wrap(
+                        new Delete(cache, kvStore)
+                ))))
         );
 
         kvtp2Server.handle(
             "keyrange",
+            new LogRequest(logger).wrap(
             serverStoppedHandlerWrapper.wrap(
-                    keyRangeHandler
-            )
+            keyRangeHandler
+            ))
         );
     }
 
-    public void register() throws InterruptedException, ExecutionException, IOException {
-        NonBlockingKVTP2Client ecsClient = new NonBlockingKVTP2Client();
+    public void register(ECSServer controlAPIServer) throws InterruptedException, ExecutionException, IOException {
+        this.controlAPIServer = controlAPIServer;
+        ecsClient = new NonBlockingKVTP2Client();
         Thread ecsClientThread = new Thread(() -> {
             try {
                 ecsClient.start();
@@ -108,14 +118,14 @@ public class KVServer {
 
         Message registerMsg = new Message("register");
         registerMsg.put("kvip", config.listenaddr);
-        registerMsg.put("kvport", "" + config.port);
-        registerMsg.put("ecsip", config.listenaddr);
-        registerMsg.put("ecsport", "" + config.port);
+        registerMsg.put("kvport", Integer.toString(config.port));
+        registerMsg.put("ecsip", controlAPIServer.getLocalAddress());
+        registerMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
 
         connected.get();
         ecsClient.send(registerMsg, (w, m) -> {
-            String keyrangeString = m.get("keyrange");
-            setKeyRange(ConsistentHashMap.fromKeyrangeString(keyrangeString));
+            String keyRangeString = m.get("keyrange");
+            setKeyRange(ConsistentHashMap.fromKeyrangeString(keyRangeString));
             serverStoppedHandlerWrapper.setServerStopped(false);
             try {
                 w.close();
@@ -124,6 +134,14 @@ public class KVServer {
             }
             logger.info("successfully registered new kvServer at ecs");
         });
+    }
+
+    public KVTP2Client getBlockingECSClient() throws IOException {
+        if (blockingECSClient == null) {
+            this.blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
+            blockingECSClient.connect();
+        }
+        return blockingECSClient;
     }
 
     public void setKeyRange(ConsistentHashMap keyRange) {
@@ -159,7 +177,14 @@ public class KVServer {
         return kvStore.get(key);
     }
 
-    public InetSocketAddress getECSAddress() {
-        return config.bootstrap;
+    public void setLocked(boolean locked) {
+        this.serverWriteLockHandler.setLocked(locked);
+    }
+
+    public InetSocketAddress getControlAPIServerAddress() {
+        return new InetSocketAddress(
+                this.controlAPIServer.getLocalAddress(),
+                this.controlAPIServer.getLocalPort()
+        );
     }
 }

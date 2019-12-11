@@ -3,6 +3,7 @@ package de.tum.i13.server.ecs;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.ConsistentHashMap;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +56,11 @@ public class ServerStateMap {
     public void broadcast(Message msg) {
         ecsAddrToServerState
                 .forEach((k, v) -> {
-                    v.getClient().send(msg, (m, w) -> {}); // ignore any responses
+                    try {
+                        v.getClient().send(msg);
+                    } catch (IOException e) {
+                        logger.warning("could not send broadcast to " + k);
+                    }
                 });
     }
 }

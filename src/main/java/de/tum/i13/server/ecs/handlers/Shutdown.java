@@ -5,6 +5,7 @@ import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
@@ -35,8 +36,8 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
 
         ServerState kvSuccessor = ssm.getKVSuccessor(server);
         try {
-            kvSuccessor.getClient().send(keyRange, (m, w) -> {});
-        } catch (Exception e) {
+            kvSuccessor.getClient().send(keyRange);
+        } catch (IOException e) {
             // TODO: What to do if the successor has gone away?
             logger.warning(e.getMessage());
         }

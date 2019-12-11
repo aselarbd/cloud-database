@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 
 public class Register implements BiConsumer<MessageWriter, Message> {
 
+    private static final boolean DEBUG = true;
     public static Logger logger = Logger.getLogger(Register.class.getName());
 
     private ServerStateMap ssm;
@@ -39,6 +40,12 @@ public class Register implements BiConsumer<MessageWriter, Message> {
             messageWriter.write(errorResponse);
             return;
         }
+
+        // the server which would currently take keys up to the
+        // hash of the address of the new server. Or: the one
+        // which will potentially have to re-balance some keys
+        ServerState rebalancer = ssm.getKVSuccessor(serverState);
+
         ssm.add(serverState);
         heartbeat(serverState);
 
@@ -47,31 +54,44 @@ public class Register implements BiConsumer<MessageWriter, Message> {
         response.setCommand("keyrange");
         response.put("keyrange", keyrangeString);
 
-        ServerState kvPredecessor = ssm.getKVPredecessor(serverState);
-        if (!kvPredecessor.getKV().equals(kvAddr)) {
+        // no re-balancing if there's only one server
+        if (ssm.getKeyRanges().size() > 1) {
             Message writeLock = new Message("lock");
             writeLock.put("lock", "true");
             Message keyRange = new Message("keyrange");
             keyRange.put("keyrange", keyrangeString);
 
-            kvPredecessor.getClient().send(writeLock, (w, m) -> {
-                logger.info("successfully locked server " + kvPredecessor.getKV());
-            });
-            kvPredecessor.getClient().send(keyRange, (w, m) -> {
-                logger.info("successfully set keyrange for " + kvPredecessor.getKV());
-            });
+            try {
+                Message r = rebalancer.getClient().send(writeLock);
+                if (r.getCommand().equals("error")) {
+                    logger.warning("failed to send write lock to predecessor at: " + rebalancer.getECS() + " : " + r.get("msg"));
+                }
+            } catch (IOException e) {
+                logger.warning("failed to send write lock to predecessor at: " + rebalancer.getECS() + " : " + e.getMessage());
+            }
+            try {
+                Message r = rebalancer.getClient().send(keyRange);
+                if (r.getCommand().equals("error")) {
+                    logger.warning("failed to send keyrange to predecessor at: " + rebalancer.getECS() + " : " + r.get("msg"));
+                }
+            } catch (IOException e) {
+                logger.warning("failed to send keyrange to predecessor at: " + rebalancer.getECS() + " : " + e.getMessage());
+            }
         }
 
+        logger.info("succesfully registered new kvServer: " + kvAddr);
         messageWriter.write(response);
     }
 
     private void heartbeat(ServerState receiver) {
         HeartbeatSender heartbeatSender = new HeartbeatSender(receiver.getKV());
         ScheduledExecutorService heartBeatService = heartbeatSender.start(() -> {
-            ssm.remove(receiver);
-            Message keyRange = new Message("keyrange");
-            keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
-            ssm.broadcast(keyRange);
+            if (!DEBUG) {
+                ssm.remove(receiver);
+                Message keyRange = new Message("keyrange");
+                keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
+                ssm.broadcast(keyRange);
+            }
         });
         receiver.addShutdownHook(heartBeatService::shutdown);
     }

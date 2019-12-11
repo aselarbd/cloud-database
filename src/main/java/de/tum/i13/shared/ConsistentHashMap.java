@@ -238,6 +238,7 @@ public class ConsistentHashMap {
 
     private String buildKeyrangeString(boolean withReplica) {
         if (consistentHashMap.isEmpty()) {
+            rwl.readLock().unlock();
             return "";
         }
         String items = "";

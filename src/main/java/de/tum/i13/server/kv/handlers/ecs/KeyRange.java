@@ -28,6 +28,8 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
     private KVServer kvServer;
     private ExecutorService transferService;
 
+    private ConsistentHashMap nextKeyRange;
+
     public KeyRange(KVServer kvServer) {
         this.kvServer = kvServer;
     }
@@ -36,8 +38,9 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
     public void accept(MessageWriter messageWriter, Message message) {
         String keyRangeString = message.get("keyrange");
         ConsistentHashMap newKeyRange = ConsistentHashMap.fromKeyrangeString(keyRangeString);
+        ConsistentHashMap oldKeyRange = nextKeyRange == null ? kvServer.getKeyRange() : nextKeyRange;
 
-        InetSocketAddress oldPredecessor = kvServer.getKeyRange().getPredecessor(kvServer.getAddress());
+        InetSocketAddress oldPredecessor = oldKeyRange == null ? null : oldKeyRange.getPredecessor(kvServer.getAddress());
         InetSocketAddress newPredecessor = newKeyRange.getPredecessor(kvServer.getAddress());
 
         if (oldPredecessor != null && !oldPredecessor.equals(newPredecessor)) {
@@ -49,8 +52,15 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
             if (transferService == null) {
                 transferService = Executors.newSingleThreadExecutor();
             }
+
+            // TODO: Debug this execution
             transferService.submit(() -> {
-                KVTP2Client ecsClient = new KVTP2Client(kvServer.getECSAddress().getHostString(), kvServer.getECSAddress().getPort());// connect to ecs and get ecs address for newPredecessor
+                KVTP2Client ecsClient = null;
+                try {
+                    ecsClient = kvServer.getBlockingECSClient();
+                } catch (IOException e) {
+                    logger.severe("failed to get ecs client: " + e.getMessage());
+                }
                 Message KVToECSMsg = new Message("kv_to_ecs");
                 KVToECSMsg.put("kvip", newPredecessor.getHostString());
                 KVToECSMsg.put("kvport", Integer.toString(newPredecessor.getPort()));
@@ -85,7 +95,7 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                                 return null;
                             }).collect(Collectors.toSet())
                     );
-                    futures.parallelStream().forEach((f) -> {
+                    futures.forEach((f) -> {
                         try {
                             f.get();
                         } catch (InterruptedException | ExecutionException e) {
@@ -96,8 +106,23 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                     logger.warning("interrupted while putting values to new predecessor");
                 }
 
-                transferExecutor.shutdown();
+                Message finish = new Message("finish");
+                finish.put("ecsip", kvServer.getControlAPIServerAddress().getHostString());
+                finish.put("ecsport", Integer.toString(kvServer.getControlAPIServerAddress().getPort()));
+                try {
+                    Message res = ecsClient.send(finish);
+                    kvServer.setLocked(!res.getCommand().equals("release_lock"));
+                } catch (IOException e) {
+                    logger.warning("failed to send finish to ecs: " + e.getMessage());
+                }
             });
+            nextKeyRange = newKeyRange;
+        } else {
+            kvServer.setKeyRange(newKeyRange);
+            nextKeyRange = null;
         }
+        Message response = Message.getResponse(message);
+        response.setCommand("ok");
+        messageWriter.write(response);
     }
 }

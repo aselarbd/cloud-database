@@ -21,7 +21,8 @@ public class ResponsibilityHandler {
             if (m.getCommand().matches("put|delete|get") &&
                 !keyRangeHandler.getKeyRange().getSuccessor(m.get("key")).equals(kvAddress)) {
 
-                Message notResponsibleMessage = new Message("server_not_responsible");
+                Message notResponsibleMessage = Message.getResponse(m);
+                notResponsibleMessage.setCommand("server_not_responsible");
                 w.write(notResponsibleMessage);
                 w.flush();
             } else {
