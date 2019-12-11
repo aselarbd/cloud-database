@@ -18,9 +18,10 @@ public class ServerState {
 
     private KVTP2Client client;
 
-    public ServerState(InetSocketAddress ecs, InetSocketAddress kv) throws IOException {
+    public ServerState(InetSocketAddress ecs, InetSocketAddress kv, KVTP2Client client) {
         this.ecs = ecs;
         this.kv = kv;
+        this.client = client;
     }
 
     public InetSocketAddress getKV() {
@@ -41,11 +42,7 @@ public class ServerState {
         }
     }
 
-    public KVTP2Client getClient() throws IOException {
-        if (this.client == null) {
-            this.client = new KVTP2Client(ecs.getHostString(), ecs.getPort());
-            this.client.connect();
-        }
+    public KVTP2Client getClient() {
         return client;
     }
 }

@@ -3,17 +3,12 @@ package de.tum.i13.server.kv.handlers.ecs;
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.server.kv.ECSClientProcessor;
-import de.tum.i13.server.kv.KVMain;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
-import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.ECSMessage;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;

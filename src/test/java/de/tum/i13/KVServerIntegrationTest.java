@@ -1,14 +1,11 @@
 package de.tum.i13;
 
-import de.tum.i13.server.ecs.ECSMain;
-import de.tum.i13.server.kv.KVMain;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.file.Path;
 

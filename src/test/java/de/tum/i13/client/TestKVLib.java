@@ -24,6 +24,7 @@ public class TestKVLib {
     protected void mockAllKeyrange() throws SocketCommunicatorException {
         for (SocketCommunicator cMock : communicators) {
             when(cMock.send("keyrange")).thenReturn(
+                    "keyrange_success " +
                     TestConstants.KEYRANGE_SIMPLE);
             when(cMock.send("keyrange_read")).thenReturn(
                     TestConstants.KEYRANGE_EXT);

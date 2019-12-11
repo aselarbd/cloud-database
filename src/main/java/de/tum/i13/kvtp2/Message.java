@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public class Message {
 
-    private static final String KEY_VALUE_DELIMITER = "##";
+    private static final String KEY_VALUE_DELIMITER = ":";
 
     private static Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {

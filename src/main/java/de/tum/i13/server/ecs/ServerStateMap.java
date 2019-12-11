@@ -37,10 +37,6 @@ public class ServerStateMap {
         return keyRangeMap;
     }
 
-    public ServerState getKVPredecessor(ServerState serverState) {
-        return kvAddrToServerState.get(keyRangeMap.getPredecessor(serverState.getKV()));
-    }
-
     public ServerState getKVSuccessor(ServerState serverState) {
         return kvAddrToServerState.get(keyRangeMap.getSuccessor(serverState.getKV()));
     }
