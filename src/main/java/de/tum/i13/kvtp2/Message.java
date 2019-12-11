@@ -28,6 +28,7 @@ public class Message {
             put("keyrange_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
             put("keyrange_read_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
             put("error", () -> new Parser().with(Type.RESPONSE).withFirstArgName("description"));
+            put("connected", () -> new Parser().with(Type.REQUEST));
         }
     };
 

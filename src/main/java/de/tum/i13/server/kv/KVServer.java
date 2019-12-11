@@ -1,9 +1,6 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.kvtp2.KVTP2Client;
-import de.tum.i13.kvtp2.KVTP2Server;
-import de.tum.i13.kvtp2.Message;
-import de.tum.i13.kvtp2.NonBlockingKVTP2Client;
+import de.tum.i13.kvtp2.*;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.stores.LSMStore;
@@ -100,6 +97,14 @@ public class KVServer {
             serverStoppedHandlerWrapper.wrap(
             keyRangeHandler
             ))
+        );
+
+        kvtp2Server.handle(
+                "connected",
+                new LogRequest(logger).wrap(
+                (messageWriter, message) -> {
+                    messageWriter.write(message);
+                })
         );
     }
 
