@@ -53,4 +53,13 @@ class TCPServerConnection extends Connection {
         connections.forEach((c) -> bbs.addAll(c.getPendingWrites()));
         return bbs;
     }
+
+    @Override
+    public void close() throws IOException {
+        for (Connection connection : connections) {
+            connection.close();
+        }
+        key.cancel();
+        ssc.close();
+    }
 }

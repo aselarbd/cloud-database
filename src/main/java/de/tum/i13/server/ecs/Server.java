@@ -33,7 +33,7 @@ public class Server {
                 )
         );
         kvtp2Server.handle(
-                "shutdown",
+                "announce_shutdown",
                 new LogRequest(logger).wrap(
                 new Shutdown(ssm)
                 )

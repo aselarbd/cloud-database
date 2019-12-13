@@ -31,7 +31,6 @@ public class KVServer {
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private NonBlockingKVTP2Client ecsClient;
-    private KVTP2Client blockingECSClient;
     private ECSServer controlAPIServer;
 
     public KVServer(Config cfg) throws IOException {
@@ -102,9 +101,7 @@ public class KVServer {
         kvtp2Server.handle(
                 "connected",
                 new LogRequest(logger).wrap(
-                (messageWriter, message) -> {
-                    messageWriter.write(message);
-                })
+                        MessageWriter::write)
         );
     }
 
@@ -142,10 +139,8 @@ public class KVServer {
     }
 
     public KVTP2Client getBlockingECSClient() throws IOException {
-        if (blockingECSClient == null) {
-            this.blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
-            blockingECSClient.connect();
-        }
+        KVTP2Client blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
+        blockingECSClient.connect();
         return blockingECSClient;
     }
 
@@ -178,6 +173,16 @@ public class KVServer {
         kvtp2Server.start(config.listenaddr, config.port);
     }
 
+    public void stop() throws IOException {
+        logger.info("sending shutdown announcement");
+        Message shutdownMsg = new Message("announce_shutdown");
+        shutdownMsg.put("ecsip", controlAPIServer.getLocalAddress());
+        shutdownMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
+        KVTP2Client blockingECSClient = getBlockingECSClient();
+        Message send = blockingECSClient.send(shutdownMsg);
+        logger.info("shutdown announcement response: " + send.toString());
+    }
+
     public KVItem getItem(String key) throws IOException {
         return kvStore.get(key);
     }
@@ -186,10 +191,18 @@ public class KVServer {
         this.serverWriteLockHandler.setLocked(locked);
     }
 
+    public void setStopped(boolean stopped) {
+        this.serverStoppedHandlerWrapper.setServerStopped(stopped);
+    }
+
     public InetSocketAddress getControlAPIServerAddress() {
         return new InetSocketAddress(
                 this.controlAPIServer.getLocalAddress(),
                 this.controlAPIServer.getLocalPort()
         );
+    }
+
+    public boolean stopped() {
+        return serverStoppedHandlerWrapper.getServerStopped();
     }
 }

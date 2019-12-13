@@ -19,6 +19,8 @@ public class KVTP2Server {
 
     private TCPServerConnection serverConnection;
 
+    private boolean shutdown = false;
+
     private Decoder decoder = new Base64Decoder();
     private Encoder encoder = new Base64Encoder();
 
@@ -35,7 +37,7 @@ public class KVTP2Server {
         listenTCP(address, port);
         // TODO: replace constant 'true' by some kind of shutdown variable
         //  maybe it needs to be some kind of AtomicBoolean
-        while (true) {
+        while (!shutdown) {
             for (ChangeRequest cr : serverConnection.getPendingChanges()) {
                 if (cr.selectionKey != null) {
                     cr.selectionKey.interestOps(cr.ops);
@@ -131,5 +133,10 @@ public class KVTP2Server {
 
     public void setEncoder(Encoder encoder) {
         this.encoder = encoder;
+    }
+
+    public void shutdown() throws IOException {
+        serverConnection.close();
+        shutdown = true;
     }
 }

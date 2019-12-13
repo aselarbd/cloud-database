@@ -5,6 +5,7 @@ import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.ecs.KeyRange;
 import de.tum.i13.server.kv.handlers.ecs.Put;
 import de.tum.i13.server.kv.handlers.ecs.SetLockHandler;
+import de.tum.i13.server.kv.handlers.ecs.ShutdownKeyRange;
 import de.tum.i13.shared.Config;
 
 import java.io.IOException;
@@ -37,6 +38,13 @@ public class ECSServer {
         );
 
         ecsServer.handle(
+                "shutdown_keyrange",
+                new LogRequest(logger).wrap(
+                        new ShutdownKeyRange(kvServer)
+                )
+        );
+
+        ecsServer.handle(
                 "put",
                 new LogRequest(logger).wrap(
                         new Put(kvServer)
@@ -54,5 +62,9 @@ public class ECSServer {
 
     public void start() throws IOException {
         ecsServer.start(config.listenaddr, 0);
+    }
+
+    public void stop() throws IOException {
+        ecsServer.shutdown();
     }
 }

@@ -4,7 +4,6 @@ import de.tum.i13.shared.Config;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
@@ -43,18 +42,19 @@ public class KVMain {
         kvServer.start();
     }
 
-    // TODO: announce shutdown to ecs
-    public void shutdown() {}
-//        System.out.println("Closing NioServer");
-//        Future shutdown = ecsClientProcessor.shutdown(server::close);
-//        while (!shutdown.isDone()) {
-//            try {
-//                Thread.sleep(3000);
-//            } catch (InterruptedException e) {
-//                logger.info("interrupted while waiting for shutdown");
-//            }
-//        }
-//    }
+    public void shutdown() {
+        try {
+            logger.info("stopping server");
+            kvServer.stop();
+            while(!kvServer.stopped()) {
+                logger.info("waiting for kvServer shutdown...");
+                Thread.sleep(1000);
+            }
+            ecsServer.stop();
+        } catch (IOException | InterruptedException e) {
+            logger.severe("Failed to gracefully shut down servers: " + e.getMessage());
+        }
+    }
 
     public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
         KVMain main = new KVMain(args);

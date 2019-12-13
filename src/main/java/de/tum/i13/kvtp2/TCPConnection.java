@@ -81,9 +81,18 @@ class TCPConnection extends Connection {
         @Override
         public void close() throws IOException {
             flush();
-            key.cancel();
-            channel.close();
+            closeConnection();
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        closeConnection();
+    }
+
+    private void closeConnection() throws IOException {
+        key.cancel();
+        channel.close();
     }
 
     public StringWriter getStringWriter() {

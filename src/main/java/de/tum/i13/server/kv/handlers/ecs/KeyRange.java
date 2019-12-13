@@ -48,7 +48,6 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                 transferService = Executors.newSingleThreadExecutor();
             }
 
-            // TODO: Debug this execution
             transferService.submit(() -> {
                 KVTP2Client ecsClient = null;
                 try {
@@ -106,7 +105,9 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                 finish.put("ecsport", Integer.toString(kvServer.getControlAPIServerAddress().getPort()));
                 try {
                     Message res = ecsClient.send(finish);
-                    kvServer.setLocked(!res.getCommand().equals("release_lock"));
+                    if (res.getCommand().equals("release_lock")) {
+                        kvServer.setLocked(false);
+                    }
                 } catch (IOException e) {
                     logger.warning("failed to send finish to ecs: " + e.getMessage());
                 }

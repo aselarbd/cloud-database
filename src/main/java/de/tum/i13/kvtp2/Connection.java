@@ -61,4 +61,6 @@ public abstract class Connection {
     StringWriter getStringWriter() {
         throw new UnsupportedOperationException("accept not supported on " + this.getClass().getName());
     }
+
+    abstract void close() throws IOException;
 }
