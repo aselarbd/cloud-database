@@ -223,4 +223,35 @@ class ConsistentHashMapTest {
         assertEquals(ip2, consistentHashMap.getPredecessor(ip3));
         assertEquals(ip3, consistentHashMap.getPredecessor(ip1));
     }
+
+    @Test
+    void testRemoval() {
+        ConsistentHashMap consistentHashMap = getFullReplicaMap();
+        assertEquals(ip1, consistentHashMap.getSuccessor("key"));
+
+        consistentHashMap.remove(ip1);
+
+        assertEquals(ip2, consistentHashMap.getSuccessor("key"));
+        List<InetSocketAddress> twoSuccessors = consistentHashMap.getAllSuccessors("192.168.1.2:80");
+        List<InetSocketAddress> threeSuccessors = consistentHashMap.getAllSuccessors("192.168.1.3:80");
+        assertEquals(2, twoSuccessors.size());
+        assertEquals(2, threeSuccessors.size());
+        assertEquals(ip2, twoSuccessors.get(0));
+        assertTrue(twoSuccessors.contains(ip3));
+        assertEquals(ip3, threeSuccessors.get(0));
+        assertTrue(threeSuccessors.contains(ip2));
+    }
+
+    @Test
+    void testNullInputs() {
+        ConsistentHashMap consistentHashMap = getFullReplicaMap();
+
+        // should be empty lists, not null values (this would throw for null values, so check is sufficient)
+        assertTrue(consistentHashMap.getAllSuccessors((String) null).isEmpty());
+        assertTrue(consistentHashMap.getAllSuccessors((InetSocketAddress) null).isEmpty());
+        // the other calls should return null
+        assertNull(consistentHashMap.getSuccessor((String) null));
+        assertNull(consistentHashMap.getSuccessor((InetSocketAddress) null));
+        assertNull(consistentHashMap.getPredecessor(null));
+    }
 }

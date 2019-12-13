@@ -55,6 +55,9 @@ public class ConsistentHashMap {
     }
 
     private List<InetSocketAddress> getSuccessorList(String key) {
+        if (key == null) {
+            return new ArrayList<>();
+        }
         Map.Entry<String, List<InetSocketAddress>> ceiling = consistentHashMap.ceilingEntry(getMD5DigestHEX(key));
         if (ceiling == null) {
             ceiling = consistentHashMap.firstEntry();
@@ -150,6 +153,9 @@ public class ConsistentHashMap {
     }
 
     public InetSocketAddress getPredecessor(InetSocketAddress address) {
+        if (address == null) {
+            return null;
+        }
         rwl.readLock().lock();
         Map.Entry<String, List<InetSocketAddress>> floor = consistentHashMap.lowerEntry(addressHash(address));
         if (floor == null) {
@@ -172,7 +178,7 @@ public class ConsistentHashMap {
         consistentHashMap.remove(addrHash);
         // delete this address from all elements it is a replica of
         if (replicaOfMapping.containsKey(addrHash)) {
-            List<String> replicaOf = replicaOfMapping.get(addr);
+            List<String> replicaOf = replicaOfMapping.get(addrHash);
             for (String hash : replicaOf) {
                 List<InetSocketAddress> otherKeyServers = consistentHashMap.get(hash);
                 otherKeyServers.remove(addr);
