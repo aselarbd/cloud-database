@@ -50,7 +50,8 @@ public class KVCommandProcessor implements CommandProcessor {
 
         String cmdMsg = command.getMessage();
 
-        if (cmdMsg.equals("keyrange")) {
+        // TODO: add real keyrange_read case
+        if (cmdMsg.equals("keyrange") || cmdMsg.equals("keyrange_read")) {
             if (keyRange != null && keyRange.size() > 0) {
                 return keyRange.getKeyrangeString();
             } else {

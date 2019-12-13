@@ -25,6 +25,7 @@ public class KVLib {
     private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
     private ConsistentHashMap keyRanges;
+    private ConsistentHashMap keyRangesReplica;
     private Supplier<SocketCommunicator> communicatorFactory;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
@@ -106,6 +107,13 @@ public class KVLib {
                         continue;
                     }
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
+                    keyRangeString = anyCom.getValue().send("keyrange_read");
+                    // should usually not happen, but it is possible the server just got stopped. Ask another one
+                    // even if we already got the write-keyrange.
+                    if (keyRangeString.equals("server_stopped")) {
+                        continue;
+                    }
+                    keyRangesReplica = ConsistentHashMap.fromKeyrangeReadString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
                     it.remove();

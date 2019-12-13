@@ -25,6 +25,8 @@ public class TestKVLib {
         for (SocketCommunicator cMock : communicators) {
             when(cMock.send("keyrange")).thenReturn(
                     TestConstants.KEYRANGE_SIMPLE);
+            when(cMock.send("keyrange_read")).thenReturn(
+                    TestConstants.KEYRANGE_EXT);
         }
     }
 
