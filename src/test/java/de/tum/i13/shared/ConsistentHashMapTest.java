@@ -13,22 +13,37 @@ class ConsistentHashMapTest {
     InetSocketAddress ip1 = new InetSocketAddress("192.168.1.1", 80); // be8e4f546de43337d7f0d4637a796478
     InetSocketAddress ip2 = new InetSocketAddress("192.168.1.2", 80); // c8088b91cb0f2fbcbdf107bd31e3d195
     InetSocketAddress ip3 = new InetSocketAddress("192.168.1.3", 80); // 0da0828d3687114976e0edb80e0c54d5
+    InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
+
+    private ConsistentHashMap getBaseMap() {
+        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
+        consistentHashMap.put(ip1);
+        consistentHashMap.put(ip2);
+        consistentHashMap.put(ip3);
+        return consistentHashMap;
+    }
+
+    private ConsistentHashMap getFullReplicaMap() {
+        ConsistentHashMap consistentHashMap = getBaseMap();
+        consistentHashMap.putReplica(ip1, ip2);
+        consistentHashMap.putReplica(ip1, ip3);
+        consistentHashMap.putReplica(ip2, ip3);
+        consistentHashMap.putReplica(ip2, ip1);
+        consistentHashMap.putReplica(ip3, ip1);
+        consistentHashMap.putReplica(ip3, ip2);
+        return consistentHashMap;
+    }
 
     // keyrange representation of a consistent hash map with the above entries
     final String keyrangeString = TestConstants.KEYRANGE_EXT;
     @Test
     void testConsistentHashMap() {
-        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
+        ConsistentHashMap consistentHashMap = getBaseMap();
 
         String key = "key"; // 3c6e0b8a9c15224a8228b9a98ca1531d
 
-        consistentHashMap.put(ip1);
-        consistentHashMap.put(ip2);
-        consistentHashMap.put(ip3);
-
         assertEquals(ip1, consistentHashMap.getSuccessor(key));
 
-        InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
         consistentHashMap.put(ip6);
 
         assertEquals(ip6, consistentHashMap.getSuccessor(key));
@@ -41,10 +56,7 @@ class ConsistentHashMapTest {
 
     @Test
     void testGetKeyrangeString() {
-        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
-        consistentHashMap.put(ip1);
-        consistentHashMap.put(ip2);
-        consistentHashMap.put(ip3);
+        ConsistentHashMap consistentHashMap = getBaseMap();
         // ignore replica items in generated hash
         consistentHashMap.putReplica(ip1, ip2);
 
@@ -130,20 +142,6 @@ class ConsistentHashMapTest {
         for (String input : illegalInputs) {
             assertThrows(IllegalArgumentException.class, () -> {ConsistentHashMap.fromKeyrangeString(input);});
         }
-    }
-
-    private ConsistentHashMap getFullReplicaMap() {
-        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
-        consistentHashMap.put(ip1);
-        consistentHashMap.put(ip2);
-        consistentHashMap.put(ip3);
-        consistentHashMap.putReplica(ip1, ip2);
-        consistentHashMap.putReplica(ip1, ip3);
-        consistentHashMap.putReplica(ip2, ip3);
-        consistentHashMap.putReplica(ip2, ip1);
-        consistentHashMap.putReplica(ip3, ip1);
-        consistentHashMap.putReplica(ip3, ip2);
-        return consistentHashMap;
     }
 
     @Test
@@ -253,5 +251,56 @@ class ConsistentHashMapTest {
         assertNull(consistentHashMap.getSuccessor((String) null));
         assertNull(consistentHashMap.getSuccessor((InetSocketAddress) null));
         assertNull(consistentHashMap.getPredecessor(null));
+    }
+
+    @Test
+    void testGetReplicaSmallMap() {
+        ConsistentHashMap consistentHashMap = new ConsistentHashMap();
+        consistentHashMap.put(ip1);
+        consistentHashMap.put(ip2);
+
+        assertEquals(consistentHashMap, consistentHashMap.getInstanceWithReplica());
+    }
+
+    @Test
+    void testGetReplica() {
+        ConsistentHashMap consistentHashMap = getBaseMap();
+
+        ConsistentHashMap replicatedMap = consistentHashMap.getInstanceWithReplica();
+
+        assertFullReplicaKeyrange(replicatedMap);
+    }
+
+    @Test
+    void testGetReplicaLarger() {
+        ConsistentHashMap consistentHashMap = getBaseMap();
+        consistentHashMap.put(ip6);
+
+        ConsistentHashMap replicatedMap = consistentHashMap.getInstanceWithReplica();
+
+        List<InetSocketAddress> oneSuccessors = replicatedMap.getAllSuccessors("192.168.1.1:80");
+        List<InetSocketAddress> twoSuccessors = replicatedMap.getAllSuccessors("192.168.1.2:80");
+        List<InetSocketAddress> threeSuccessors = replicatedMap.getAllSuccessors("192.168.1.3:80");
+        List<InetSocketAddress> sixSuccessors = replicatedMap.getAllSuccessors("192.168.1.6:80");
+        assertEquals(3, oneSuccessors.size());
+        assertEquals(3, twoSuccessors.size());
+        assertEquals(3, threeSuccessors.size());
+        assertEquals(3, sixSuccessors.size());
+        assertEquals(ip6, sixSuccessors.get(0));
+        assertTrue(sixSuccessors.contains(ip1));
+        assertTrue(sixSuccessors.contains(ip2));
+        assertTrue(twoSuccessors.contains(ip6));
+        assertTrue(threeSuccessors.contains(ip6));
+    }
+
+    @Test
+    void testGetReplicaSomePresent() {
+        ConsistentHashMap consistentHashMap = getBaseMap();
+        consistentHashMap.putReplica(ip1, ip3);
+
+        ConsistentHashMap replicatedMap = consistentHashMap.getInstanceWithReplica();
+
+        // still a full keyrange expected
+        assertFullReplicaKeyrange(replicatedMap);
     }
 }

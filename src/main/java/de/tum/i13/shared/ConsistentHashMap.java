@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 /**
  * Class {@link ConsistentHashMap} offers a wrapper datastructure to
@@ -187,6 +188,38 @@ public class ConsistentHashMap {
             replicaOfMapping.remove(addrHash);
         }
         rwl.writeLock().unlock();
+    }
+
+    /**
+     * Gets a map which contains replica addresses. If there are less than three nodes, the map is returned
+     * without changes.
+     *
+     * Otherwise, a new map containing all write nodes (elements added via #put) plus the two successors for
+     * every node will be returned. Replica of the current instance are ignored!
+     *
+     * @return A new instance with replica or the current instance if less than three nodes are available.
+     */
+    public ConsistentHashMap getInstanceWithReplica() {
+        if (size() < 3) {
+            return this;
+        }
+
+        rwl.readLock().lock();
+        // get a list of all main (read/write) nodes, i.e. the first elements
+        List<InetSocketAddress> baseAddrs = consistentHashMap.values()
+                .stream()
+                .map(allItems -> allItems.get(0))
+                .collect(Collectors.toList());
+        ConsistentHashMap newInstance = new ConsistentHashMap();
+        final int listSize = baseAddrs.size();
+        for (int i = 0; i < listSize; i++) {
+            newInstance.put(baseAddrs.get(i));
+            // put replica and wrap around for last two elements
+            newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 1) % listSize));
+            newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 2) % listSize));
+        }
+        rwl.readLock().unlock();
+        return newInstance;
     }
 
     private String buildKeyrangeElement(String startHash, String endHash, List<InetSocketAddress> ipList,
