@@ -149,7 +149,7 @@ public class KVLib {
         InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
 
         if (op.equals("get")){
-            List <InetSocketAddress> ipList = keyRanges.getAllSuccessors(item.getKey());
+            List <InetSocketAddress> ipList = keyRangesReplica.getAllSuccessors(item.getKey());
             targetServer = ipList.get(new Random().nextInt(ipList.size()));
         }
 
