@@ -240,6 +240,9 @@ public class ConsistentHashMap {
         String items = "";
         String startHash = "";
         String endHash = "";
+        if (consistentHashMap.isEmpty()) {
+            return "";
+        }
         List<InetSocketAddress> ipList = null;
         for (Map.Entry<String, List<InetSocketAddress>> entry : consistentHashMap.entrySet()) {
             // current hash is end hash for previous one

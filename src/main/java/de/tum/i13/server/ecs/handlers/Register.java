@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 
 public class Register implements BiConsumer<MessageWriter, Message> {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     public static Logger logger = Logger.getLogger(Register.class.getName());
     private final KVTP2ClientFactory clientFactory;
 

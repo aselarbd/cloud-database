@@ -1,5 +1,6 @@
 package de.tum.i13;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,6 +20,7 @@ public class ECSIntegrationTest {
     public static final Integer WAIT_TIME = 2000;
 
     @Test
+    @Disabled
     public void shutdownOneServer(@TempDir Path tmpDir1, @TempDir Path tmpDir2, @TempDir Path tmpDir3) throws InterruptedException, IOException {
         Thread ecsThread = IntegrationTestHelpers.startECS(ecsPort);
         Thread kvThread1 = IntegrationTestHelpers.startKVServer(tmpDir1.toString(), kv1Port, ecsPort, 1);
