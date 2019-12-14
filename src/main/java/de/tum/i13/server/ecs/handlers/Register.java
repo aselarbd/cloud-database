@@ -3,26 +3,23 @@ package de.tum.i13.server.ecs.handlers;
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.server.ecs.Server;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 import de.tum.i13.shared.HeartbeatSender;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public class Register implements BiConsumer<MessageWriter, Message> {
 
     private static final boolean DEBUG = false;
-    public static Logger logger = Logger.getLogger(Register.class.getName());
+    public static final Logger logger = Logger.getLogger(Register.class.getName());
     private final KVTP2ClientFactory clientFactory;
 
-    private ServerStateMap ssm;
+    private final ServerStateMap ssm;
 
     public Register(ServerStateMap ssm) {
         this(ssm, KVTP2Client::new);
@@ -38,7 +35,7 @@ public class Register implements BiConsumer<MessageWriter, Message> {
         InetSocketAddress kvAddr = new InetSocketAddress(msg.get("kvip"), Integer.parseInt(msg.get("kvport")));
         InetSocketAddress ecsAddr = new InetSocketAddress(msg.get("ecsip"), Integer.parseInt(msg.get("ecsport")));
 
-        ServerState serverState = null;
+        ServerState serverState;
         try {
             KVTP2Client client = clientFactory.get(ecsAddr.getHostString(), ecsAddr.getPort());
             client.connect();

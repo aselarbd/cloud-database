@@ -10,8 +10,8 @@ import java.util.function.Consumer;
  * @param <T>
  */
 public class Action<T> {
-    private Parser<T> parser;
-    private Consumer<T> action;
+    private final Parser<T> parser;
+    private final Consumer<T> action;
 
     public Action(Parser<T> parser, Consumer<T> action) {
         this.parser = parser;

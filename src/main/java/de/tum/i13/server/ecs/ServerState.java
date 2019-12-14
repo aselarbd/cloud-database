@@ -2,7 +2,6 @@ package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp2.KVTP2Client;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,11 +11,11 @@ public class ServerState {
 
     public static Logger logger = Logger.getLogger(ServerState.class.getName());
 
-    private InetSocketAddress ecs;
-    private InetSocketAddress kv;
-    private List<Runnable> shutdownHooks = new ArrayList<>();
+    private final InetSocketAddress ecs;
+    private final InetSocketAddress kv;
+    private final List<Runnable> shutdownHooks = new ArrayList<>();
 
-    private KVTP2Client client;
+    private final KVTP2Client client;
 
     public ServerState(InetSocketAddress ecs, InetSocketAddress kv, KVTP2Client client) {
         this.ecs = ecs;

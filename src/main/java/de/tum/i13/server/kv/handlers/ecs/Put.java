@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 
 public class Put implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(Put.class.getName());
+    public static final Logger logger = Logger.getLogger(Put.class.getName());
 
     private final KVServer kvServer;
 

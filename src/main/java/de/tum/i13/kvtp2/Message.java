@@ -9,7 +9,7 @@ public class Message {
 
     private static final String KEY_VALUE_DELIMITER = ":";
 
-    private static Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
+    private static final Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
             put("put", () -> new Parser().with(Type.REQUEST));
             put("get", () -> new Parser().with(Type.REQUEST));
@@ -32,7 +32,7 @@ public class Message {
         }
     };
 
-    private static Pattern beginsWithOldStyle = Pattern.compile(
+    private static final Pattern beginsWithOldStyle = Pattern.compile(
             "^(" + String.join("|", oldStyleKeyWords.keySet()) + ").*$"
     );
 
@@ -58,7 +58,7 @@ public class Message {
     private Type type;
     private String command;
 
-    private Map<String, String> pairs = new LinkedHashMap<>();
+    private final Map<String, String> pairs = new LinkedHashMap<>();
 
     @Deprecated
     public Message(Type t, String command) {
@@ -145,7 +145,7 @@ public class Message {
             throw new IllegalArgumentException("Invalid old style message " + input);
         }
         for (String part : parts) {
-            parser.with(part);
+            parser = parser.with(part);
         }
         Message msg = parser.parse();
         msg.setVersion(Version.V1);
@@ -164,11 +164,14 @@ public class Message {
         return type;
     }
 
+    public void setType(Type type) {
+        this.type = type;
+    }
+
     public int getID() {
         return id;
     }
 
-    @Deprecated
     public void setID(int id) {
         this.id = id;
     }

@@ -16,9 +16,7 @@ class KVTP2ServerTest {
         KVTP2Server kvtp2Server = new KVTP2Server();
 
         StringBuilder sb = new StringBuilder();
-        kvtp2Server.handle("command", (w, m) -> {
-            sb.append(m.get("greeting"));
-        });
+        kvtp2Server.handle("command", (w, m) -> sb.append(m.get("greeting")));
 
         Message message = new Message("command");
         message.put("greeting", "hello, world");

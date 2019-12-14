@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class Shutdown implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(Shutdown.class.getName());
+    public static final Logger logger = Logger.getLogger(Shutdown.class.getName());
 
     private final ServerStateMap ssm;
 

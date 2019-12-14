@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class Put implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(Put.class.getName());
+    public static final Logger logger = Logger.getLogger(Put.class.getName());
 
     private final KVCache kvCache;
     private final KVStore kvStore;
@@ -24,11 +24,11 @@ public class Put implements BiConsumer<MessageWriter, Message> {
         this.kvStore = kvStore;
     }
 
-    private void writeError(MessageWriter messageWriter, Message request, String key, String msg) {
+    private void writeError(MessageWriter messageWriter, Message request, String key) {
         Message response = Message.getResponse(request);
         response.setCommand("put_error");
         response.put("key", key);
-        response.put("msg", msg);
+        response.put("msg", "internal server error");
         messageWriter.write(response);
         messageWriter.flush();
     }
@@ -49,16 +49,14 @@ public class Put implements BiConsumer<MessageWriter, Message> {
         String value = message.get("value");
         KVItem item = new KVItem(key, value);
 
-        String result = "";
         try {
-            result = kvStore.put(item);
+            String result = kvStore.put(item);
             kvCache.put(item);
+            writeSuccess(messageWriter, message, result, item);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not put value to Database", e);
-            writeError(messageWriter, message, key, "internal server error");
-            return;
+            writeError(messageWriter, message, key);
         }
 
-        writeSuccess(messageWriter, message, result, item);
     }
 }

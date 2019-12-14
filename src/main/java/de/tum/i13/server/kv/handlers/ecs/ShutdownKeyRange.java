@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
 
 
-    public static Logger logger = Logger.getLogger(KeyRange.class.getName());
+    public static final Logger logger = Logger.getLogger(KeyRange.class.getName());
 
-    private KVServer kvServer;
+    private final KVServer kvServer;
 
     public ShutdownKeyRange(KVServer kvServer) {
         this.kvServer = kvServer;

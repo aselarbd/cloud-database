@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestSocketCommunicatorImpl {
 
-    private String connectedResponse = "ResponseMessage";
-    private String dummyMessage = "hello world";
+    private final String connectedResponse = "ResponseMessage";
+    private final String dummyMessage = "hello world";
 
     @Test
     public void testConnect() throws SocketCommunicatorException {
@@ -77,7 +77,7 @@ public class TestSocketCommunicatorImpl {
     }
 
     @Test
-    public void testSend() throws SocketCommunicatorException, IOException {
+    public void testSend() throws SocketCommunicatorException {
         // given
         MockStreamCloserFactory mockStreamCloserFactory = new MockStreamCloserFactory(dummyMessage);
         SocketCommunicator socketCommunicator = new SocketCommunicatorImpl();
@@ -106,9 +106,7 @@ public class TestSocketCommunicatorImpl {
         socketCommunicator.init(mockStreamCloserFactory, Constants.TELNET_ENCODING);
 
         // then
-        assertThrows(SocketCommunicatorException.class, () -> {
-            socketCommunicator.send(dummyMessage);
-        });
+        assertThrows(SocketCommunicatorException.class, () -> socketCommunicator.send(dummyMessage));
     }
 
     /*
@@ -130,7 +128,7 @@ public class TestSocketCommunicatorImpl {
     }*/
 
     @Test
-    public void testSendSpaces() throws SocketCommunicatorException, IOException {
+    public void testSendSpaces() throws SocketCommunicatorException {
         // given
         String msg = "hello     world";
         MockStreamCloserFactory mockStreamCloserFactory = new MockStreamCloserFactory(msg);
@@ -167,8 +165,6 @@ public class TestSocketCommunicatorImpl {
         mockStreamCloserFactory.getMockStreamCloser().close();
 
         // then
-        assertThrows(SocketCommunicatorException.class, () -> {
-            socketCommunicator.send(dummyMessage);
-        });
+        assertThrows(SocketCommunicatorException.class, () -> socketCommunicator.send(dummyMessage));
     }
 }

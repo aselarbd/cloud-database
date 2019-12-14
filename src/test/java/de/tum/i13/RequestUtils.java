@@ -14,14 +14,12 @@ public class RequestUtils {
         output.write(req + "\r\n");
         output.flush();
 
-        String res = input.readLine();
-        return res;
+        return input.readLine();
     }
 
     public static String readMessage(Socket s) throws IOException {
         BufferedReader input = new BufferedReader(new InputStreamReader(s.getInputStream()));
-        String res = input.readLine();
-        return res;
+        return input.readLine();
     }
 
 }

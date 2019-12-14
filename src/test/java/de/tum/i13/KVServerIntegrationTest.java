@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Disabled
 public class KVServerIntegrationTest {
-    public static Integer kvPort = 5144;
-    public static Integer ecsPort = 5140;
+    public static final Integer kvPort = 5144;
+    public static final Integer ecsPort = 5140;
 
     static Thread ecsThread, kvThread;
     static Socket s;
@@ -48,7 +48,7 @@ public class KVServerIntegrationTest {
     }
 
     @Test
-    public void invalidCommands(@TempDir Path tmpDir) throws InterruptedException, IOException {
+    public void invalidCommands(@TempDir Path tmpDir) throws IOException {
         String res;
         res = RequestUtils.doRequest(s, "bogus request 12");
         assertEquals("unknown command", res);

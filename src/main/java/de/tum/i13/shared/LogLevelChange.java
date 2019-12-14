@@ -3,8 +3,8 @@ package de.tum.i13.shared;
 import java.util.logging.Level;
 
 public class LogLevelChange {
-    private Level previousLevel;
-    private Level newLevel;
+    private final Level previousLevel;
+    private final Level newLevel;
 
     public LogLevelChange(Level previousLevel, Level newLevel) {
 

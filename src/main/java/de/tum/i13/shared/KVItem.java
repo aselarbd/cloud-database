@@ -6,7 +6,7 @@ import java.util.Base64;
  * Holds a key-value pair. The value is optional and defaults to null.
  */
 public class KVItem {
-    private String key;
+    private final String key;
     private String value = null;
     private static final int KEY_MAX_BYTES = 20;
     private static final int VAL_MAX_BYTES = 120000;
@@ -35,10 +35,7 @@ public class KVItem {
         if (this.key.getBytes().length > KEY_MAX_BYTES) {
             return false;
         }
-        if (this.value != null && this.value.getBytes().length > VAL_MAX_BYTES) {
-            return false;
-        }
-        return true;
+        return this.value == null || this.value.getBytes().length <= VAL_MAX_BYTES;
     }
 
     public String getKey() {

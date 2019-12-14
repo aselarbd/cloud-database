@@ -22,11 +22,11 @@ public class NonBlockingKVTP2Client {
 
     private Selector selector;
 
-    private Encoder encoder = new Base64Encoder();
-    private Decoder decoder = new Base64Decoder();
+    private final Encoder encoder = new Base64Encoder();
+    private final Decoder decoder = new Base64Decoder();
 
-    private Map<InetSocketAddress, Connection> connections = new HashMap<>();
-    private Map<Integer, BiConsumer<MessageWriter, Message>> handlers = new HashMap<>();
+    private final Map<InetSocketAddress, Connection> connections = new HashMap<>();
+    private final Map<Integer, BiConsumer<MessageWriter, Message>> handlers = new HashMap<>();
 
     private InetSocketAddress defaultConnection;
 

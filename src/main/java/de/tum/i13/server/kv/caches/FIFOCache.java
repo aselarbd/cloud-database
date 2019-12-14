@@ -12,12 +12,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class FIFOCache implements KVCache {
 
-    private int size;
+    private final int size;
 
-    private ReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    private Map<String, KVItem> cache;
-    private Queue<String> fifo;
+    private final Map<String, KVItem> cache;
+    private final Queue<String> fifo;
 
     public FIFOCache(int size) {
         this.size = size;

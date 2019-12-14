@@ -14,31 +14,28 @@ import de.tum.i13.server.kv.caches.LRUCache;
 public final class CacheBuilder {
 
     public enum Algorithm {
-        FIFO("FIFO") {
+        FIFO() {
             @Override
             public KVCache buildCache(int size) {
                 return new FIFOCache(size);
             }
         },
-        LRU("LRU") {
+        LRU() {
             @Override
             public KVCache buildCache(int size) {
                 return new LRUCache(size);
             }
         },
-        LFU("LFU") {
+        LFU() {
             @Override
             public KVCache buildCache(int size) {
                 return new LFUCache(size);
             }
         };
 
-        private final String algorithm;
-
         public abstract KVCache buildCache(int size);
 
-        Algorithm(String algorithm) {
-            this.algorithm = algorithm;
+        Algorithm() {
         }
     }
 

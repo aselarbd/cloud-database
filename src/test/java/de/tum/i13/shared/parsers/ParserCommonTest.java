@@ -10,13 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * among implementations.
  */
 public class ParserCommonTest {
-    public Parser<?>[] parsers = {
+    public final Parser<?>[] parsers = {
             new StringArrayParser(1, false),
             new StringArrayParser(3, true),
             new KVItemParser(false),
             new KVItemParser(true),
             new KVResultParser(),
-            new ECSMessageParser()
     };
 
     @Test

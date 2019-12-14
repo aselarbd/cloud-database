@@ -22,9 +22,9 @@ public class KvClient {
     private final static Logger LOGGER = Logger.getLogger(KvClient.class.getName());
     private final static String PROMPT = "EchoClient> ";
     private final static String LOG_LVL_NAMES = "ALL | CONFIG | FINE | FINEST | INFO | OFF | SEVERE | WARNING";
-    private KVLib kvLib;
-    private BufferedReader inReader;
-    private Map<String, Action> actions;
+    private final KVLib kvLib;
+    private final BufferedReader inReader;
+    private final Map<String, Action> actions;
 
     public KvClient() {
         this(new InputStreamReader(System.in));
@@ -34,23 +34,23 @@ public class KvClient {
         this.kvLib = new KVLib();
         this.inReader = new BufferedReader(inReader);
         this.actions = new HashMap<>();
-        this.actions.put("connect", new Action<String[]>(
-                new StringArrayParser( 2, false), this::connect));
-        this.actions.put("disconnect", new Action<String[]>(
+        this.actions.put("connect", new Action<>(
+                new StringArrayParser(2, false), this::connect));
+        this.actions.put("disconnect", new Action<>(
                 new StringArrayParser(0, false), this::disconnect));
-        this.actions.put("put", new Action<KVItem>(
+        this.actions.put("put", new Action<>(
                 new KVItemParser(true), this::put
         ));
-        this.actions.put("get", new Action<KVItem>(
+        this.actions.put("get", new Action<>(
                 new KVItemParser(false), this::get
         ));
-        this.actions.put("delete", new Action<KVItem>(
+        this.actions.put("delete", new Action<>(
                 new KVItemParser(false), this::delete
         ));
-        this.actions.put("logLevel", new Action<String[]>(
+        this.actions.put("logLevel", new Action<>(
                 new StringArrayParser(1, false), this::logLevel));
-        this.actions.put("keyrange", new Action<String[]>(
-                new StringArrayParser(0,false), this::keyRange));
+        this.actions.put("keyrange", new Action<>(
+                new StringArrayParser(0, false), this::keyRange));
     }
 
     /**
@@ -148,7 +148,7 @@ public class KvClient {
             return;
         }
         LOGGER.fine("Connecting to " + hostName + ":" + args[1]);
-        String resp = null;
+        String resp;
         try {
             resp = kvLib.connect(hostName, port);
             write(resp);
@@ -222,7 +222,6 @@ public class KvClient {
         } else {
             write("Please choose one of the following levels:");
             write(LOG_LVL_NAMES);
-            return;
         }
     }
 

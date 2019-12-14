@@ -10,12 +10,12 @@ import static de.tum.i13.shared.Config.parseCommandlineArgs;
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
 public class KVMain {
-    public static Logger logger = Logger.getLogger(KVMain.class.getName());
+    public static final Logger logger = Logger.getLogger(KVMain.class.getName());
 
     private final KVServer kvServer;
     private final ECSServer ecsServer;
 
-    public KVMain(String[] args) throws InterruptedException, ExecutionException, IOException {
+    public KVMain(String[] args) throws IOException {
         Config cfg = parseCommandlineArgs(args);
         setupLogging(cfg.logfile, cfg.loglevel);
 

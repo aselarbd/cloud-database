@@ -11,11 +11,11 @@ import java.util.logging.Logger;
 
 public class ServerStateMap {
 
-    public static Logger logger = Logger.getLogger(ServerStateMap.class.getName());
+    public static final Logger logger = Logger.getLogger(ServerStateMap.class.getName());
 
-    private Map<InetSocketAddress, ServerState> ecsAddrToServerState = new HashMap<>();
-    private Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
-    private ConsistentHashMap keyRangeMap = new ConsistentHashMap();
+    private final Map<InetSocketAddress, ServerState> ecsAddrToServerState = new HashMap<>();
+    private final Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
+    private final ConsistentHashMap keyRangeMap = new ConsistentHashMap();
 
     public ServerStateMap() {
     }

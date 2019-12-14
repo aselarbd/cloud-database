@@ -1,9 +1,10 @@
 package de.tum.i13.kvtp2;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.spi.AbstractSelectableChannel;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -16,7 +17,7 @@ public abstract class Connection {
     protected final List<ChangeRequest> pendingChanges;
     protected final List<ByteBuffer> pendingWrites;
 
-    AbstractSelectableChannel channel;
+    final AbstractSelectableChannel channel;
 
     public Connection(AbstractSelectableChannel channel) {
         this.pendingChanges = new LinkedList<>();

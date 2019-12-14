@@ -5,18 +5,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ECSIntegrationTest {
-    public static Integer kv1Port = 5154;
-    public static Integer kv2Port = 5155;
-    public static Integer kv3Port = 5156;
-    public static Integer ecsPort = 5150;
+    public static final Integer kv1Port = 5154;
+    public static final Integer kv2Port = 5155;
+    public static final Integer kv3Port = 5156;
+    public static final Integer ecsPort = 5150;
     public static final Integer WAIT_TIME = 2000;
 
     @Test

@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  */
 public class ConsistentHashMap {
 
-    private TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
-    private TreeMap<String, List<String>> replicaOfMapping = new TreeMap<>();
-    ReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final TreeMap<String, List<InetSocketAddress>> consistentHashMap = new TreeMap<>();
+    private final TreeMap<String, List<String>> replicaOfMapping = new TreeMap<>();
+    final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
     /**
      * getMD5DigestHEX returns the HEX-String representation of MD5 Hash
@@ -45,7 +45,7 @@ public class ConsistentHashMap {
 
         StringBuilder sb = new StringBuilder();
         for (byte b : digest) {
-            sb.append(Integer.toHexString((b & 0xFF) | 0x100).substring(1, 3));
+            sb.append(Integer.toHexString((b & 0xFF) | 0x100), 1, 3);
         }
         return sb.toString();
     }
@@ -88,11 +88,7 @@ public class ConsistentHashMap {
             items.add(replica);
             final String replicaHash = addressHash(replica);
             // remember all nodes which are replicated to speed up deletions
-            List<String> cache = replicaOfMapping.get(replicaHash);
-            if (cache == null) {
-                cache = new ArrayList<>();
-                replicaOfMapping.put(replicaHash, cache);
-            }
+            List<String> cache = replicaOfMapping.computeIfAbsent(replicaHash, k -> new ArrayList<>());
             cache.add(addrHash);
         }
         rwl.writeLock().unlock();
@@ -224,22 +220,22 @@ public class ConsistentHashMap {
 
     private String buildKeyrangeElement(String startHash, String endHash, List<InetSocketAddress> ipList,
                                  boolean withReplica) {
-        String items = "";
+        StringBuilder items = new StringBuilder();
         if (!withReplica) {
             // only use the first element for all hashes
             ipList = ipList.subList(0, 1);
         }
         for (InetSocketAddress addr : ipList) {
             String ipPort = InetSocketAddressTypeConverter.addrString(addr);
-            items += startHash + "," + endHash + "," + ipPort + ";";
+            items.append(startHash).append(",").append(endHash).append(",").append(ipPort).append(";");
         }
-        return items;
+        return items.toString();
     }
 
     private String buildKeyrangeString(boolean withReplica) {
-        String items = "";
+        StringBuilder items = new StringBuilder();
         String startHash = "";
-        String endHash = "";
+        String endHash;
         if (consistentHashMap.isEmpty()) {
             return "";
         }
@@ -248,7 +244,7 @@ public class ConsistentHashMap {
             // current hash is end hash for previous one
             endHash = entry.getKey();
             if (ipList != null) {
-                items += buildKeyrangeElement(startHash, endHash, ipList, withReplica);
+                items.append(buildKeyrangeElement(startHash, endHash, ipList, withReplica));
             }
             // prepare items to be written in the next iteration
             startHash = entry.getKey();
@@ -257,9 +253,9 @@ public class ConsistentHashMap {
         // process the last item - it has the first item's hash as end hash
         endHash = consistentHashMap.firstKey();
         if (ipList != null) {
-            items += buildKeyrangeElement(startHash, endHash, ipList, withReplica);
+            items.append(buildKeyrangeElement(startHash, endHash, ipList, withReplica));
         }
-        return items;
+        return items.toString();
     }
 
     /**

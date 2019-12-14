@@ -17,7 +17,7 @@ public class MockStreamCloser implements StreamCloser {
     }
 
     @Override
-    public void connect(String address, int port) throws IOException {
+    public void connect(String address, int port) {
         isConnected = true;
         outputStream = new ByteArrayOutputStream(128);
         inputStream = new ByteArrayInputStream(connectedResponse.getBytes());
@@ -30,7 +30,7 @@ public class MockStreamCloser implements StreamCloser {
      * @throws SocketException if error in setting timeout
      */
     @Override
-    public void setTimeOut(int time) throws SocketException {
+    public void setTimeOut(int time) {
         //TODO implement
     }
 
@@ -40,12 +40,12 @@ public class MockStreamCloser implements StreamCloser {
     }
 
     @Override
-    public OutputStream getOutputStream() throws IOException {
+    public OutputStream getOutputStream() {
         return outputStream;
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
+    public InputStream getInputStream() {
         return inputStream;
     }
 

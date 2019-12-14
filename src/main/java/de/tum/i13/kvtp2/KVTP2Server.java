@@ -15,7 +15,7 @@ public class KVTP2Server {
 
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
     private Selector selector;
-    private Map<String, BiConsumer<MessageWriter, Message>> handlers;
+    private final Map<String, BiConsumer<MessageWriter, Message>> handlers;
 
     private TCPServerConnection serverConnection;
 

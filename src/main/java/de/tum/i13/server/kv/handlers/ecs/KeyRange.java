@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 
 public class KeyRange implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(KeyRange.class.getName());
+    public static final Logger logger = Logger.getLogger(KeyRange.class.getName());
 
-    private KVServer kvServer;
+    private final KVServer kvServer;
     private ExecutorService transferService;
 
     private ConsistentHashMap nextKeyRange;

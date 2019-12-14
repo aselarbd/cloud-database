@@ -10,7 +10,7 @@ import static de.tum.i13.shared.LogSetup.setupLogging;
 
 public class ECSMain {
 
-    public static Logger logger = Logger.getLogger(ECSMain.class.getName());
+    public static final Logger logger = Logger.getLogger(ECSMain.class.getName());
     private Server server;
 
     public ECSMain(String[] args) throws IOException {
@@ -29,7 +29,11 @@ public class ECSMain {
 
     public void shutdown() {
         logger.info("Closing ecs server");
-        server.close();
+        try {
+            server.close();
+        } catch (IOException e) {
+            logger.warning("Exception on shutdown: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) throws IOException {

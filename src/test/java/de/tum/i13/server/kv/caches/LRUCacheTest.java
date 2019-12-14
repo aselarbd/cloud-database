@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LRUCacheTest {
 
-    private LRUCache lruCache = new LRUCache(5);
+    private final LRUCache lruCache = new LRUCache(5);
 
     @Test
     void get_basic() {

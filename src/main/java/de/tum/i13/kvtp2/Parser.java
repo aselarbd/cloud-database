@@ -9,7 +9,7 @@ public class Parser {
     protected String command;
     protected String firstArgName;
     protected String secondArgName;
-    protected Map<String, String> pairs = new LinkedHashMap<>();
+    protected final Map<String, String> pairs = new LinkedHashMap<>();
 
     protected boolean closed = false;
 
@@ -24,7 +24,8 @@ public class Parser {
         if (closed) {
             throw new RuntimeException("Parser already used and closed");
         }
-        Message message = new Message(type, command);
+        Message message = new Message(command);
+        message.setType(type);
         pairs.forEach(message::put);
         this.closed = true;
         return message;

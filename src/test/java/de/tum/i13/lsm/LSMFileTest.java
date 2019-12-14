@@ -33,11 +33,8 @@ class LSMFileTest {
         Files.createFile(Paths.get(TEST_DIR, "testName/data-testName"));
         Files.createFile(Paths.get(TEST_DIR, "testName/index-testName"));
 
-        LSMFile lsmFile = new LSMFile(Paths.get(TEST_DIR), "testName");
-        try {
+        try (LSMFile lsmFile = new LSMFile(Paths.get(TEST_DIR), "testName")) {
             assertEquals("testName", lsmFile.getName());
-        } finally {
-            lsmFile.close();
         }
     }
 

@@ -5,7 +5,7 @@ import java.nio.channels.SelectionKey;
 public class ChangeRequest {
 
     public SelectionKey selectionKey;
-    public int ops;
+    public final int ops;
     public Connection connection;
 
     public ChangeRequest(Connection connection, int ops) {

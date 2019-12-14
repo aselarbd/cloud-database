@@ -8,8 +8,8 @@ import java.util.function.BiConsumer;
 
 public class ResponsibilityHandler {
 
-    private InetSocketAddress kvAddress;
-    private KeyRange keyRangeHandler;
+    private final InetSocketAddress kvAddress;
+    private final KeyRange keyRangeHandler;
 
     public ResponsibilityHandler(KeyRange keyRange, InetSocketAddress kvAddress) {
         this.keyRangeHandler = keyRange;

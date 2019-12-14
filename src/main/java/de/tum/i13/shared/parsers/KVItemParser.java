@@ -9,7 +9,7 @@ import java.util.Arrays;
  * Parses a command/string dealing with a key-value pair. This pair is represented as {@link KVItem}.
  */
 public class KVItemParser extends Parser<KVItem> {
-    private boolean requiresValue;
+    private final boolean requiresValue;
 
     /**
      * Creates a new parser responsible for the command with the given name.

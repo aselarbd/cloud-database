@@ -15,20 +15,20 @@ import java.util.logging.Logger;
  */
 public class LRUCache implements KVCache {
 
-    private int size;
+    private final int size;
     private int currentNoOfElements;
-    private HashMap<String,KVItem> cache;
-    private LinkedList <String> lru;
+    private final HashMap<String,KVItem> cache;
+    private final LinkedList <String> lru;
 
-    private ReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    private Logger logger = Logger.getLogger(LRUCache.class.getName());
+    private final Logger logger = Logger.getLogger(LRUCache.class.getName());
 
     public LRUCache(int size){
         this.size = size;
         this.currentNoOfElements = 0;
-        this.cache= new HashMap<String,KVItem >();
-        this.lru = new LinkedList <String>();
+        this.cache= new HashMap<>();
+        this.lru = new LinkedList<>();
         logger.info("Cache is initialized to LRU cache");
     }
 
@@ -75,14 +75,12 @@ public class LRUCache implements KVCache {
             }else{
                 if (this.currentNoOfElements < this.size){
                     this.currentNoOfElements ++;
-                    this.lru.addFirst(key);
-                    this.cache.put(key,item);
                 }else {
                     String replaceKey =  this.lru.removeLast();
                     this.cache.remove(replaceKey);
-                    this.lru.addFirst(key);
-                    this.cache.put(key,item);
                 }
+                this.lru.addFirst(key);
+                this.cache.put(key,item);
             }
             logger.info("new KVItem added to the cache");
         } finally {

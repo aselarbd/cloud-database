@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class KVResultParserTest {
-    KVResultParser parser = new KVResultParser();
+    final KVResultParser parser = new KVResultParser();
 
     @Test
     public void parseKeyValue() {

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FIFOCacheTest {
 
-    private FIFOCache fifoCache = new FIFOCache(3);
+    private final FIFOCache fifoCache = new FIFOCache(3);
 
     @Test
     void get_basic() {

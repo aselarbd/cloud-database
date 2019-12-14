@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class ECSServer {
 
-    public static Logger logger = Logger.getLogger(ECSServer.class.getName());
+    public static final Logger logger = Logger.getLogger(ECSServer.class.getName());
 
     private Config config;
     private KVTP2Server ecsServer;

@@ -13,9 +13,9 @@ import java.util.logging.Logger;
 
 public class HeartbeatListener {
 
-    public static Logger logger = Logger.getLogger(HeartbeatListener.class.getName());
+    public static final Logger logger = Logger.getLogger(HeartbeatListener.class.getName());
 
-    public ScheduledExecutorService start(int port, InetAddress address) throws SocketException {
+    public void start(int port, InetAddress address) throws SocketException {
         DatagramSocket s = new DatagramSocket(port, address);
         ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
         ses.schedule(() -> {
@@ -38,6 +38,5 @@ public class HeartbeatListener {
                 logger.warning(e.getMessage());
             }
         }, 0, TimeUnit.MILLISECONDS);
-        return ses;
     }
 }

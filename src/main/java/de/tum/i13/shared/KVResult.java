@@ -5,8 +5,8 @@ package de.tum.i13.shared;
  * any.
  */
 public class KVResult {
-    KVItem item;
-    String message;
+    final KVItem item;
+    final String message;
 
     public KVResult(String message, KVItem item) {
         this.message = message;

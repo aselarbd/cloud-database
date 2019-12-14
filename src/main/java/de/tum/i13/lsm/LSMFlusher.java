@@ -15,13 +15,13 @@ import java.util.logging.Logger;
  */
 public class LSMFlusher extends Thread {
 
-    private static Logger logger = Logger.getLogger(LSMFlusher.class.getName());
+    private static final Logger logger = Logger.getLogger(LSMFlusher.class.getName());
 
     private static final long CACHE_FLUSH_FREQUENCY = 10000;
     private static final int MIN_FLUSH_SIZE = 200;
-    private LSMCache lsmCache;
-    private Path lsmFileDir;
-    private LSMLog lsmLog;
+    private final LSMCache lsmCache;
+    private final Path lsmFileDir;
+    private final LSMLog lsmLog;
 
     private boolean shutDown = false;
 

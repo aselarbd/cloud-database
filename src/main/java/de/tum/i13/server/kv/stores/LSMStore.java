@@ -33,7 +33,7 @@ public class LSMStore implements KVStore {
 
     private LSMLog lsmLog;
     private LSMCache lsmCache;
-    private Path lsmFileDir;
+    private final Path lsmFileDir;
 
     /**
      * create a new LSMStore and save all data in the given directory
@@ -109,8 +109,8 @@ public class LSMStore implements KVStore {
      */
     private static class Lookup {
 
-        private LSMFile lsmFile;
-        private long position;
+        private final LSMFile lsmFile;
+        private final long position;
 
         private Lookup(LSMFile lsmFile, long position) {
             this.lsmFile = lsmFile;

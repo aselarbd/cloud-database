@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 
 public class KVServer {
 
-    public static Logger logger = Logger.getLogger(KVServer.class.getName());
+    public static final Logger logger = Logger.getLogger(KVServer.class.getName());
 
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;

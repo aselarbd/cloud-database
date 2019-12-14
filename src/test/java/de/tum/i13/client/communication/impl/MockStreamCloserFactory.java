@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 public class MockStreamCloserFactory implements Supplier<StreamCloser> {
 
-    String connectedResponse;
+    final String connectedResponse;
 
     MockStreamCloser mockStreamCloser;
 

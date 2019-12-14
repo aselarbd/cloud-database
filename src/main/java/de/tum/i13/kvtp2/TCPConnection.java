@@ -13,11 +13,11 @@ class TCPConnection extends Connection {
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
     private static final int BUFFER_SIZE = 8 * 1024;
 
-    private ByteBuffer readBuffer;
+    private final ByteBuffer readBuffer;
 
-    private BiConsumer<StringWriter, byte[]> receiver;
+    private final BiConsumer<StringWriter, byte[]> receiver;
 
-    private SocketChannel channel;
+    private final SocketChannel channel;
 
     private TCPConnStringWriter tcpConnStringWriter;
 

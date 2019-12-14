@@ -82,9 +82,7 @@ class KVTP2IntegrationTest {
         th.start();
         Thread.sleep(4000);
 
-        BiConsumer<String, Message> assertion = (n, r) -> {
-            assertThat(r.get("name"), is(equalTo(n)));
-        };
+        BiConsumer<String, Message> assertion = (n, r) -> assertThat(r.get("name"), is(equalTo(n)));
 
         NonBlockingKVTP2Client client = new NonBlockingKVTP2Client();
         Thread ct = new Thread(() -> {

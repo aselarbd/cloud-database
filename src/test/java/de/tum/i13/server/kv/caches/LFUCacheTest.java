@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LFUCacheTest {
 
-    private LFUCache lfuCache = new LFUCache(3);
+    private final LFUCache lfuCache = new LFUCache(3);
 
     @Test
     void get_basic() {

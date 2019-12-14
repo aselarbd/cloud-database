@@ -12,17 +12,16 @@ import java.util.logging.Logger;
 
 public class Server {
 
-    public static Logger logger = Logger.getLogger(Server.class.getName());
+    public static final Logger logger = Logger.getLogger(Server.class.getName());
 
     private final String address;
     private final int port;
-    private ServerStateMap ssm;
     private KVTP2Server kvtp2Server;
 
     public Server(String address, int port) throws IOException {
         this.address = address;
         this.port = port;
-        this.ssm = new ServerStateMap();
+        ServerStateMap ssm = new ServerStateMap();
 
         kvtp2Server = new KVTP2Server();
 
@@ -64,9 +63,8 @@ public class Server {
         kvtp2Server.start(address, port);
     }
 
-    public void close() {
-        // TODO: implement:
-        // kvtp2Server.close();
+    public void close() throws IOException {
+        kvtp2Server.shutdown();
     }
 
 }

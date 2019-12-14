@@ -7,8 +7,8 @@ import de.tum.i13.shared.Parser;
  * The data is represented as String array.
  */
 public class StringArrayParser extends Parser<String[]> {
-    private int argCount;
-    private boolean variableArgs;
+    private final int argCount;
+    private final boolean variableArgs;
 
     /**
      * Creates a new parser responsible for the command with the given name.

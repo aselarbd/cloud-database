@@ -20,11 +20,10 @@ public class LSMLog extends LSMFile {
 
     private int size;
 
-    private Path logFile;
     private FileOutputStream out;
     private FileInputStream in;
 
-    private ReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
     /**
      * open a new LSMLog-file
@@ -38,7 +37,7 @@ public class LSMLog extends LSMFile {
         if(!dir.toFile().exists()) {
             file = Files.createFile(dir).toAbsolutePath();
         }
-        this.logFile = file;
+        Path logFile = file;
 
         this.out = new FileOutputStream(logFile.toFile(), true);
         this.in = new FileInputStream(logFile.toFile());

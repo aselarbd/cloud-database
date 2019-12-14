@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 public class Get implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(Get.class.getName());
+    public static final Logger logger = Logger.getLogger(Get.class.getName());
 
     private final KVCache kvCache;
     private final KVStore kvStore;

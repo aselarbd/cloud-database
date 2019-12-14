@@ -16,17 +16,17 @@ import java.util.logging.Logger;
  */
 public class LFUCache implements KVCache {
 
-    private int size;
+    private final int size;
     private int currentNoOfElements;
     private int minFrequency = 0;
-    private HashMap <String,KVItem> cache;
-    private HashMap <String, Integer> frequency;
-    private HashMap <Integer, LinkedHashSet<String>> frequencyLists;
+    private final HashMap <String,KVItem> cache;
+    private final HashMap <String, Integer> frequency;
+    private final HashMap <Integer, LinkedHashSet<String>> frequencyLists;
 
 
-    private ReadWriteLock rwl = new ReentrantReadWriteLock();
+    private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    private Logger logger = Logger.getLogger(LFUCache.class.getName());
+    private final Logger logger = Logger.getLogger(LFUCache.class.getName());
 
     public LFUCache (int size) {
         this.size = size;
@@ -121,12 +121,10 @@ public class LFUCache implements KVCache {
             }
         }
 
-        if (this.frequencyLists.containsKey(currentFrequency+1)){
-            this.frequencyLists.get(currentFrequency+1).add(key);
-        }else {
-            this.frequencyLists.put(currentFrequency+1, new LinkedHashSet<>());
-            this.frequencyLists.get(currentFrequency+1).add(key);
+        if (!this.frequencyLists.containsKey(currentFrequency + 1)) {
+            this.frequencyLists.put(currentFrequency + 1, new LinkedHashSet<>());
         }
+        this.frequencyLists.get(currentFrequency+1).add(key);
     }
 
     /**

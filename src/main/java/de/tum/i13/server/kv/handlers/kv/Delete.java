@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 
 public class Delete implements BiConsumer<MessageWriter, Message> {
 
-    public static Logger logger = Logger.getLogger(Delete.class.getName());
+    public static final Logger logger = Logger.getLogger(Delete.class.getName());
 
     private final KVCache kvCache;
     private final KVStore kvStore;

@@ -18,15 +18,15 @@ import java.util.logging.Logger;
  * Library to interact with a key-value server.
  */
 public class KVLib {
-    private KVResultParser parser;
+    private final KVResultParser parser;
     private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
 
     private ConsistentHashMap keyRanges;
     private ConsistentHashMap keyRangesReplica;
-    private Supplier<SocketCommunicator> communicatorFactory;
+    private final Supplier<SocketCommunicator> communicatorFactory;
     private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
 
-    private Map<String, Integer> requestFailureCounts = new HashMap<>();
+    private final Map<String, Integer> requestFailureCounts = new HashMap<>();
     private static final int MAX_RETRIES = 10;
 
     public KVLib() {
@@ -262,20 +262,19 @@ public class KVLib {
      * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
     public String disconnect() {
-        String res = "";
+        StringBuilder res = new StringBuilder();
         for (Map.Entry<InetSocketAddress, SocketCommunicator> s : communicatorMap.entrySet()) {
             try {
                 s.getValue().disconnect();
-                res += "Disconnected from " + InetSocketAddressTypeConverter.addrString(s.getKey()) + "\n";
+                res.append("Disconnected from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append("\n");
             } catch (SocketCommunicatorException e) {
                 LOGGER.log(Level.WARNING, "Could not close connection", e);
-                res += "Unable to disconnect from " + InetSocketAddressTypeConverter.addrString(s.getKey())
-                        + " - " + e.getMessage() + "\n";
+                res.append("Unable to disconnect from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append(" - ").append(e.getMessage()).append("\n");
             }
         }
         // use an empty map again for the next connection
         communicatorMap = new HashMap<>();
-        return res;
+        return res.toString();
     }
 
     /**

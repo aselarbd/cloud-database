@@ -10,10 +10,10 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConsistentHashMapTest {
-    InetSocketAddress ip1 = new InetSocketAddress("192.168.1.1", 80); // be8e4f546de43337d7f0d4637a796478
-    InetSocketAddress ip2 = new InetSocketAddress("192.168.1.2", 80); // c8088b91cb0f2fbcbdf107bd31e3d195
-    InetSocketAddress ip3 = new InetSocketAddress("192.168.1.3", 80); // 0da0828d3687114976e0edb80e0c54d5
-    InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
+    final InetSocketAddress ip1 = new InetSocketAddress("192.168.1.1", 80); // be8e4f546de43337d7f0d4637a796478
+    final InetSocketAddress ip2 = new InetSocketAddress("192.168.1.2", 80); // c8088b91cb0f2fbcbdf107bd31e3d195
+    final InetSocketAddress ip3 = new InetSocketAddress("192.168.1.3", 80); // 0da0828d3687114976e0edb80e0c54d5
+    final InetSocketAddress ip6 = new InetSocketAddress("192.168.1.6", 80); // 4ae5405a223af78c2466769f0b2cf838
 
     private ConsistentHashMap getBaseMap() {
         ConsistentHashMap consistentHashMap = new ConsistentHashMap();
@@ -115,7 +115,7 @@ class ConsistentHashMapTest {
                 keyrangeString.replace("192.168.1.1:80", "192.168.1.5:80"), // wrong address - hash mapping
         };
         for (String input : illegalInputs) {
-            assertThrows(IllegalArgumentException.class, () -> {runFunction.accept(input);});
+            assertThrows(IllegalArgumentException.class, () -> runFunction.accept(input));
         }
     }
 
@@ -140,7 +140,7 @@ class ConsistentHashMapTest {
                 TestConstants.KEYRANGE_REPLICA_UNORDERED
         };
         for (String input : illegalInputs) {
-            assertThrows(IllegalArgumentException.class, () -> {ConsistentHashMap.fromKeyrangeString(input);});
+            assertThrows(IllegalArgumentException.class, () -> ConsistentHashMap.fromKeyrangeString(input));
         }
     }
 
@@ -191,7 +191,7 @@ class ConsistentHashMapTest {
                     "192.168.1.2:80;" // replica for a non-existent start hash (starts with c instead of b)
         };
         for (String input : illegalInputs) {
-            assertThrows(IllegalArgumentException.class, () -> {ConsistentHashMap.fromKeyrangeReadString(input);});
+            assertThrows(IllegalArgumentException.class, () -> ConsistentHashMap.fromKeyrangeReadString(input));
         }
     }
 

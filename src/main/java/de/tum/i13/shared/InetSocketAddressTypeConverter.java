@@ -4,12 +4,11 @@ import picocli.CommandLine;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.List;
 
 /// ported from : https://github.com/zegelin/cassandra-exporter/blob/master/common/src/main/java/com/zegelin/picocli/InetSocketAddressTypeConverter.java
 public class InetSocketAddressTypeConverter implements CommandLine.ITypeConverter<InetSocketAddress> {
     @Override
-    public InetSocketAddress convert(final String value) throws Exception {
+    public InetSocketAddress convert(final String value) {
         String[] addressParts = value.split(":");
         if(addressParts.length != 2) {
             throw new CommandLine.TypeConversionException("Need a host:port combination");
@@ -18,7 +17,7 @@ public class InetSocketAddressTypeConverter implements CommandLine.ITypeConverte
         String hostname = addressParts[0].trim();
         hostname = (hostname.length() == 0 ? null : hostname); // and empty hostname == wildcard/any
 
-        int port = 0;
+        int port;
         try {
             port = Integer.parseInt(addressParts[1].trim());
         } catch (final NumberFormatException e) {

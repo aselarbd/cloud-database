@@ -12,10 +12,10 @@ import java.util.logging.Logger;
 
 public class HeartbeatSender {
 
-    public static Logger logger = Logger.getLogger(HeartbeatSender.class.getName());
+    public static final Logger logger = Logger.getLogger(HeartbeatSender.class.getName());
 
 
-    private InetSocketAddress receiver;
+    private final InetSocketAddress receiver;
 
     public HeartbeatSender(InetSocketAddress receiver) {
         this.receiver = receiver;
