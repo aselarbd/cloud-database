@@ -60,14 +60,6 @@ public class Message {
 
     private final Map<String, String> pairs = new LinkedHashMap<>();
 
-    @Deprecated
-    public Message(Type t, String command) {
-        this.id = getNextID();
-        this.type = t;
-        this.command = command;
-        this.version = Version.V2;
-    }
-
     public Message(String command) {
         this.id = getNextID();
         this.type = Type.REQUEST;
@@ -126,7 +118,8 @@ public class Message {
             values.put(kv[0], kv[1]);
         }
 
-        Message m = new Message(Type.valueOf(values.get("_type")), values.get("_command"));
+        Message m = new Message(values.get("_command"));
+        m.setType(Type.valueOf(values.get("_type")));
         m.setID(Integer.parseInt(values.get("_id")));
         m.setVersion(Version.valueOf(values.get("_version")));
 
