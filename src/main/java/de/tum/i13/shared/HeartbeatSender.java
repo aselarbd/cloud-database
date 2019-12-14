@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 public class HeartbeatSender {
 
     public static final Logger logger = Logger.getLogger(HeartbeatSender.class.getName());
+    public static final int TIMEOUT = Constants.PING_TIMEOUT;
 
 
     private final InetSocketAddress receiver;
@@ -39,7 +40,7 @@ public class HeartbeatSender {
 
                     s.send(p);
 
-                    s.setSoTimeout(700); // TODO remove MN
+                    s.setSoTimeout(TIMEOUT);
                     DatagramPacket response = new DatagramPacket(ping, ping.length);
                     s.receive(response);
 

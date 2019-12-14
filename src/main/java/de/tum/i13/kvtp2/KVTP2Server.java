@@ -35,8 +35,6 @@ public class KVTP2Server {
 
     public void start(String address, int port) throws IOException {
         listenTCP(address, port);
-        // TODO: replace constant 'true' by some kind of shutdown variable
-        //  maybe it needs to be some kind of AtomicBoolean
         while (!shutdown) {
             for (ChangeRequest cr : serverConnection.getPendingChanges()) {
                 if (cr.selectionKey != null) {

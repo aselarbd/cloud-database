@@ -8,5 +8,7 @@ public class Constants {
     public static final String DELETE_MARKER = "KVSTORE::DELETE_MARKER";
     public static final String FLUSH_MESSAGE = "KVSTORE::CACHE_FLUSH";
 
+    public static final int PING_TIMEOUT = 700;
+
     public static final Charset TELNET_ENCODING_CHARSET = StandardCharsets.ISO_8859_1;
 }
