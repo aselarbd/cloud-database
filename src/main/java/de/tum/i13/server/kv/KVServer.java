@@ -29,6 +29,7 @@ public class KVServer {
     private final InetSocketAddress address;
 
     private final KeyRange keyRangeHandler;
+    private final KeyRangeRead keyRangeReadHandler;
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private NonBlockingKVTP2Client ecsClient;
@@ -54,10 +55,11 @@ public class KVServer {
         serverWriteLockHandler = new ServerWriteLockHandler();
 
         keyRangeHandler = new KeyRange();
+        keyRangeReadHandler = new KeyRangeRead();
 
         ResponsibilityHandler responsibilityHandler =
                 new ResponsibilityHandler(
-                        keyRangeHandler,
+                        keyRangeReadHandler,
                         new InetSocketAddress(cfg.listenaddr, cfg.port)
                 );
 
@@ -96,6 +98,14 @@ public class KVServer {
             new LogRequest(logger).wrap(
             serverStoppedHandlerWrapper.wrap(
             keyRangeHandler
+            ))
+        );
+
+        kvtp2Server.handle(
+            "keyrange_read",
+            new LogRequest(logger).wrap(
+            serverStoppedHandlerWrapper.wrap(
+            keyRangeReadHandler
             ))
         );
 
@@ -149,6 +159,7 @@ public class KVServer {
     }
 
     public void setKeyRange(ConsistentHashMap keyRange) {
+        this.keyRangeReadHandler.setKeyRangeRead(keyRange.getInstanceWithReplica());
         this.keyRangeHandler.setKeyRange(keyRange);
     }
 
