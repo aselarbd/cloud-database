@@ -30,7 +30,7 @@ class LRUCacheTest {
     void delete_basic() {
         KVItem KVPair = new KVItem("apple","mac books");
         lruCache.put(KVPair);
-        lruCache.delete(KVPair);
+        lruCache.delete(KVPair.getKey());
         assertNull(lruCache.get(KVPair.getKey()));
     }
 

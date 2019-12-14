@@ -129,14 +129,13 @@ public class LFUCache implements KVCache {
 
     /**
      * delete method deletes given item from the cache
-     * @param item : KVItem object that need to delete from the cache
+     * @param key : KVItem object that need to delete from the cache
      */
     @Override
-    public void delete(KVItem item) {
+    public void delete(String key) {
         try {
             rwl.writeLock().lock();
 
-            String key = item.getKey();
             if (this.cache.containsKey(key)){
                 this.currentNoOfElements --;
                 this.frequencyLists.get(this.frequency.get(key)).remove(key);

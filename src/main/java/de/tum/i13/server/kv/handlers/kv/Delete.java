@@ -33,7 +33,7 @@ public class Delete implements BiConsumer<MessageWriter, Message> {
             if (kvStore.get(key) != null) {
                 KVItem kvItem = new KVItem(key, Constants.DELETE_MARKER);
                 kvStore.put(kvItem);
-                kvCache.delete(kvItem);
+                kvCache.delete(kvItem.getKey());
                 writeSuccess(messageWriter, message, key);
                 return;
             }

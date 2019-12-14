@@ -75,14 +75,12 @@ public class FIFOCache implements KVCache {
     /**
      * Delete a value from the cache.
      *
-     * @param item the item to delete
+     * @param key the item to delete
      */
     @Override
-    public void delete(KVItem item) {
+    public void delete(String key) {
         try {
             rwl.writeLock().lock();
-
-            String key = item.getKey();
             cache.remove(key);
             fifo.remove(key);
         } finally {

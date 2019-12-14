@@ -31,7 +31,7 @@ class LFUCacheTest {
         KVItem KVPair = new KVItem("apple","mac books");
         lfuCache.put(KVPair);
         assertEquals(KVPair,lfuCache.get("apple"));
-        lfuCache.delete(KVPair);
+        lfuCache.delete(KVPair.getKey());
         assertNull(lfuCache.get(KVPair.getKey()));
     }
 

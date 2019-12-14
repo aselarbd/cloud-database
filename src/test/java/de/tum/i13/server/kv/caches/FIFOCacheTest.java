@@ -34,9 +34,9 @@ class FIFOCacheTest {
         fifoCache.put(KV_2);
         assertEquals(KV_1,fifoCache.get(KV_1.getKey()));
         assertEquals(KV_2, fifoCache.get(KV_2.getKey()));
-        fifoCache.delete(KV_1);
+        fifoCache.delete(KV_1.getKey());
         assertNull(fifoCache.get(KV_1.getKey()));
-        fifoCache.delete(KV_2);
+        fifoCache.delete(KV_2.getKey());
         assertNull(fifoCache.get(KV_2.getKey()));
     }
 

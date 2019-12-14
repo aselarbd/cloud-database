@@ -26,7 +26,7 @@ public interface KVCache {
     /**
      * delete a value from the cache
      *
-     * @param item the item to delete
+     * @param key the key of the item to delete
      */
-    void delete(KVItem item);
+    void delete(String key);
 }
