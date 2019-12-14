@@ -27,17 +27,12 @@ public class NonBlockingKVTP2Client {
 
     private final Map<InetSocketAddress, Connection> connections = new HashMap<>();
     private final Map<Integer, BiConsumer<MessageWriter, Message>> handlers = new HashMap<>();
+    private BiConsumer<MessageWriter, Message> defaultHandler;
 
     private InetSocketAddress defaultConnection;
 
     public NonBlockingKVTP2Client() throws IOException {
         this(SelectorProvider.provider());
-    }
-
-    public NonBlockingKVTP2Client(InetSocketAddress defaultConnection) throws IOException {
-        this();
-        this.defaultConnection = defaultConnection;
-        connect(defaultConnection);
     }
 
     public NonBlockingKVTP2Client(SelectorProvider provider) throws IOException {
@@ -178,11 +173,16 @@ public class NonBlockingKVTP2Client {
     }
 
     private void receive(StringWriter w, Message m) {
+        EncodedMessageWriter encodedMessageWriter = new EncodedMessageWriter(w, encoder, ENCODING);
         if (handlers.containsKey(m.getID())) {
-            EncodedMessageWriter encodedMessageWriter = new EncodedMessageWriter(w, encoder, ENCODING);
             handlers.get(m.getID()).accept(encodedMessageWriter, m);
+        } else if (defaultHandler != null) {
+            defaultHandler.accept(encodedMessageWriter, m);
         }
-        // drop message
-        // TODO: default handler?
+        // neither correct handler nor default handler set -> drop response
+    }
+
+    public void setDefaultHandler(BiConsumer<MessageWriter, Message> defaultHandler) {
+        this.defaultHandler = defaultHandler;
     }
 }

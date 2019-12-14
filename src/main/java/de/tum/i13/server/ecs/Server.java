@@ -1,6 +1,7 @@
 package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp2.KVTP2Server;
+import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.ecs.handlers.AddressConverter;
 import de.tum.i13.server.ecs.handlers.Finish;
@@ -57,6 +58,8 @@ public class Server {
                         addressConverter
                 )
         );
+
+        kvtp2Server.setDefaultHandler(new DefaultError());
     }
 
     public void start() throws IOException {

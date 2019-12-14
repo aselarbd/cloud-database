@@ -1,6 +1,7 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.kvtp2.KVTP2Server;
+import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.ecs.KeyRange;
 import de.tum.i13.server.kv.handlers.ecs.Put;
@@ -50,6 +51,8 @@ public class ECSServer {
                         new Put(kvServer)
                 )
         );
+
+        ecsServer.setDefaultHandler(new DefaultError());
     }
 
     public String getLocalAddress() {

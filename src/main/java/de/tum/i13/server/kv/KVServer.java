@@ -1,6 +1,7 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.kvtp2.*;
+import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.stores.LSMStore;
@@ -103,11 +104,14 @@ public class KVServer {
                 new LogRequest(logger).wrap(
                         MessageWriter::write)
         );
+
+        kvtp2Server.setDefaultHandler(new DefaultError());
     }
 
     public void register(ECSServer controlAPIServer) throws InterruptedException, ExecutionException, IOException {
         this.controlAPIServer = controlAPIServer;
         ecsClient = new NonBlockingKVTP2Client();
+        ecsClient.setDefaultHandler(new DefaultError());
         Thread ecsClientThread = new Thread(() -> {
             try {
                 ecsClient.start();

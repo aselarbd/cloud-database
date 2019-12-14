@@ -16,6 +16,7 @@ public class KVTP2Server {
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
     private Selector selector;
     private final Map<String, BiConsumer<MessageWriter, Message>> handlers;
+    private BiConsumer<MessageWriter, Message> defaultHandler;
 
     private TCPServerConnection serverConnection;
 
@@ -100,17 +101,23 @@ public class KVTP2Server {
      */
     public void serve(StringWriter responseWriter, Message request) {
         String command = request.getCommand();
+        MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING) {
+            @Override
+            public void write(Message message) {
+                super.write(message);
+            }
+        };
+
         if (handlers.containsKey(command)) {
-            MessageWriter writer = new EncodedMessageWriter(responseWriter, encoder, ENCODING) {
-                @Override
-                public void write(Message message) {
-                    super.write(message);
-                }
-            };
             handlers.get(command).accept(writer, request);
+        } else if (defaultHandler != null) {
+            defaultHandler.accept(writer, request);
         }
-        // silently drop unknown commands
-        // TODO: Add default error handler and call it here
+        // neither correct handler nor default handler set -> drop request
+    }
+
+    public void setDefaultHandler(BiConsumer<MessageWriter, Message> defaultHandler) {
+        this.defaultHandler = defaultHandler;
     }
 
     /**
