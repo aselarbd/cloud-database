@@ -82,7 +82,8 @@ public class KVLib {
         return res;
     }
 
-    private void dropCommunicator(SocketCommunicator comm) {
+    private void dropCommunicator(InetSocketAddress address) {
+        SocketCommunicator comm = communicatorMap.get(address);
         if (comm.isConnected()) {
             try {
                 comm.disconnect();
@@ -90,7 +91,7 @@ public class KVLib {
                 // no problem, we want to drop the communicator anyway
             }
         }
-        communicatorMap.remove(comm);
+        communicatorMap.remove(address);
     }
 
     private void getKeyRanges() {
@@ -147,11 +148,13 @@ public class KVLib {
             return new KVResult("Server error");
         }
 
-        InetSocketAddress targetServer = keyRanges.getSuccessor(item.getKey());
+        final InetSocketAddress targetServer;
 
         if (op.equals("get")){
             List <InetSocketAddress> ipList = keyRangesReplica.getAllSuccessors(item.getKey());
             targetServer = ipList.get(new Random().nextInt(ipList.size()));
+        } else {
+            targetServer = keyRanges.getSuccessor(item.getKey());
         }
 
         if (!communicatorMap.containsKey(targetServer)) {
@@ -210,7 +213,7 @@ public class KVLib {
             if (requestFailureCounts.get(op) < MAX_RETRIES - 1) {
                 requestFailureCounts.put(op, MAX_RETRIES - 1);
                 // delete the communicator and update key ranges
-                dropCommunicator(communicator);
+                dropCommunicator(targetServer);
                 getKeyRanges();
                 return kvOperation(op, item);
             } else {
