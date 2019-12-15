@@ -27,6 +27,7 @@ public class TestKVLib {
                     "keyrange_success " +
                     TestConstants.KEYRANGE_SIMPLE);
             when(cMock.send("keyrange_read")).thenReturn(
+                    "keyrange_success " +
                     TestConstants.KEYRANGE_EXT);
         }
     }

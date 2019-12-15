@@ -106,7 +106,8 @@ public class KVLib {
                     }
                     String keyRangeString = keyRangeResponse.split("\\s+")[1];
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
-                    keyRangeString = anyCom.getValue().send("keyrange_read");
+                    keyRangeResponse = anyCom.getValue().send("keyrange_read");
+                    keyRangeString = keyRangeResponse.split("\\s+")[1];
                     // should usually not happen, but it is possible the server just got stopped. Ask another one
                     // even if we already got the write-keyrange.
                     if (keyRangeString.equals("server_stopped")) {
