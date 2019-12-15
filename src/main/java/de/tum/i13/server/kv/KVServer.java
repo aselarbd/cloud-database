@@ -200,6 +200,7 @@ public class KVServer {
         shutdownMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
         KVTP2Client blockingECSClient = getBlockingECSClient();
         Message send = blockingECSClient.send(shutdownMsg);
+        blockingECSClient.close();
         logger.info("shutdown announcement response: " + send.toString());
     }
 

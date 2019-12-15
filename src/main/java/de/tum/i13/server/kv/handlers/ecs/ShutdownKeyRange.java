@@ -52,6 +52,11 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
             finishExecutor.submit(() -> {
                 sendFinish(finalEcsClient);
             });
+            try {
+                ecsClient.close();
+            } catch (IOException e) {
+                logger.warning("failed to close ecsClient: " + e.getMessage());
+            }
             return;
         }
 

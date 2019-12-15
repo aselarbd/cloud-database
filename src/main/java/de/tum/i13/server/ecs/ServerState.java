@@ -2,6 +2,7 @@ package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp2.KVTP2Client;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,13 @@ public class ServerState {
         this.ecs = ecs;
         this.kv = kv;
         this.client = client;
+        addShutdownHook(() -> {
+            try {
+                this.client.close();
+            } catch (IOException e) {
+                logger.warning("failed to close client: " + e.getMessage());
+            }
+        });
     }
 
     public InetSocketAddress getKV() {
