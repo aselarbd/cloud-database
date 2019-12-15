@@ -2,8 +2,7 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.server.kv.KVCache;
-import de.tum.i13.server.kv.KVStore;
+import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
@@ -15,13 +14,10 @@ public class Put implements BiConsumer<MessageWriter, Message> {
 
     public static final Logger logger = Logger.getLogger(Put.class.getName());
 
-    private final KVCache kvCache;
-    private final KVStore kvStore;
+    private final KVServer kvServer;
 
-    public Put(KVCache kvCache, KVStore kvStore) {
-
-        this.kvCache = kvCache;
-        this.kvStore = kvStore;
+    public Put(KVServer server) {
+        this.kvServer = server;
     }
 
     private void writeError(MessageWriter messageWriter, Message request, String key) {
@@ -49,8 +45,7 @@ public class Put implements BiConsumer<MessageWriter, Message> {
         KVItem item = new KVItem(key, value);
 
         try {
-            String result = kvStore.put(item);
-            kvCache.put(item);
+            String result = kvServer.put(item, true);
             writeSuccess(messageWriter, message, result, item);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Could not put value to Database", e);

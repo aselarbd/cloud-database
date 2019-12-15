@@ -5,10 +5,7 @@ import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.stores.LSMStore;
-import de.tum.i13.shared.Config;
-import de.tum.i13.shared.ConsistentHashMap;
-import de.tum.i13.shared.HeartbeatListener;
-import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -25,6 +22,7 @@ public class KVServer {
 
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;
+    private KVCache kvCache;
     private final Config config;
 
     private final InetSocketAddress address;
@@ -45,7 +43,7 @@ public class KVServer {
         kvtp2Server.setEncoder(new NullEncoder());
 
         kvStore = new LSMStore(cfg.dataDir);
-        KVCache cache = CacheBuilder.newBuilder()
+        kvCache = CacheBuilder.newBuilder()
                 .size(cfg.cachesize)
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
@@ -69,7 +67,7 @@ public class KVServer {
                 serverStoppedHandlerWrapper.wrap(
                 serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
-                        new Get(cache, kvStore)
+                        new Get(kvCache, kvStore)
                 ))))
         );
 
@@ -80,7 +78,7 @@ public class KVServer {
                 serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
                 replicationHandler.wrap(
-                        new Put(cache, kvStore)
+                        new Put(this)
                 )))))
         );
 
@@ -91,7 +89,7 @@ public class KVServer {
                 serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
                 replicationHandler.wrap(
-                        new Delete(cache, kvStore)
+                        new Delete(this)
                 )))))
         );
 
@@ -198,8 +196,22 @@ public class KVServer {
         }
     }
 
-    public void put(KVItem kvItem) throws IOException {
-        kvStore.put(kvItem);
+    public String put(KVItem kvItem, boolean withCache) throws IOException {
+        final String res = kvStore.put(kvItem);
+        if (withCache) {
+            kvCache.put(kvItem);
+        }
+        return res;
+    }
+
+    public boolean delete(String key) throws IOException {
+        if (kvStore.get(key) != null) {
+            KVItem kvItem = new KVItem(key, Constants.DELETE_MARKER);
+            kvStore.put(kvItem);
+            kvCache.delete(kvItem.getKey());
+            return true;
+        }
+        return false;
     }
 
     public void start() throws IOException {

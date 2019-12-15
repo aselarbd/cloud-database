@@ -3,10 +3,7 @@ package de.tum.i13.server.kv;
 import de.tum.i13.kvtp2.KVTP2Server;
 import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
-import de.tum.i13.server.kv.handlers.ecs.KeyRange;
-import de.tum.i13.server.kv.handlers.ecs.Put;
-import de.tum.i13.server.kv.handlers.ecs.SetLockHandler;
-import de.tum.i13.server.kv.handlers.ecs.ShutdownKeyRange;
+import de.tum.i13.server.kv.handlers.ecs.*;
 import de.tum.i13.shared.Config;
 
 import java.io.IOException;
@@ -49,6 +46,13 @@ public class ECSServer {
                 "put",
                 new LogRequest(logger).wrap(
                         new Put(kvServer)
+                )
+        );
+
+        ecsServer.handle(
+                "delete",
+                new LogRequest(logger).wrap(
+                        new Delete(kvServer)
                 )
         );
 
