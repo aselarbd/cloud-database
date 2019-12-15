@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
@@ -22,6 +22,7 @@ public class ReplicationHandler implements HandlerWrapper {
 
     private InetSocketAddress kvAddress;
     private KVServer kvServer;
+    private ReentrantLock runnerLock = new ReentrantLock();
     private Set<InetSocketAddress> successors = new HashSet<>();
     private Map<String, KVTP2Client> replClients = new HashMap<>();
     private Map<String, ExecutorService> replRunners = new HashMap<>();
@@ -38,6 +39,7 @@ public class ReplicationHandler implements HandlerWrapper {
      * @return
      */
     private KVTP2Client connectReplica(InetSocketAddress addr) {
+        // TODO: copied from keyrange in ECS handler. Refactor common logic.
         KVTP2Client ecsClient = null;
         final String hostStr = InetSocketAddressTypeConverter.addrString(addr);
         try {
@@ -70,7 +72,7 @@ public class ReplicationHandler implements HandlerWrapper {
      * @param newKeyrange
      */
     public void keyrangeUpdated(ConsistentHashMap newKeyrange) {
-        // TODO some locking while successors are changed
+        runnerLock.lock();
         Set<InetSocketAddress> newSuccessors;
         if (newKeyrange.size() < 3) {
             // no replication.
@@ -80,19 +82,23 @@ public class ReplicationHandler implements HandlerWrapper {
             newSuccessors.remove(kvAddress);
         }
 
-        // close all old connectors
+        // close all connections to servers which are no more replications
         Set<InetSocketAddress> oldServers = new HashSet<>(successors);
         oldServers.removeAll(newSuccessors);
 
         for (InetSocketAddress addr : oldServers) {
             final String hostStr = InetSocketAddressTypeConverter.addrString(addr);
-            // TODO: shutdown kvtp client
+            try {
+                replClients.get(hostStr).close();
+            } catch (IOException e) {
+                logger.warning("Could not close replication Client for " + hostStr + ": " + e.getMessage());
+            }
             replRunners.get(hostStr).shutdown();
             replClients.remove(hostStr);
             replRunners.remove(hostStr);
         }
 
-        // Initialize new connectors
+        // Initialize connections to new replication servers
         Set<InetSocketAddress> newServers = new HashSet<>(newSuccessors);
         newServers.removeAll(successors);
 
@@ -103,11 +109,13 @@ public class ReplicationHandler implements HandlerWrapper {
         }
 
         successors = newSuccessors;
+        runnerLock.unlock();
     }
 
     @Override
     public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
         return (messageWriter, message) -> {
+            runnerLock.lock();
             for (InetSocketAddress addr : successors) {
                 final String hostStr = InetSocketAddressTypeConverter.addrString(addr);
                 ExecutorService runner = replRunners.get(hostStr);
@@ -128,6 +136,7 @@ public class ReplicationHandler implements HandlerWrapper {
                     }
                 });
             }
+            runnerLock.unlock();
             next.accept(messageWriter, message);
         };
     }
