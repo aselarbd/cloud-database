@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RunAllReplica" type="CompoundRunConfigurationType">
+    <toRun name="KvClient" type="Application" />
+    <toRun name="KVServer1" type="Application" />
+    <toRun name="ECS" type="Application" />
+    <toRun name="KVServer3" type="Application" />
+    <toRun name="KVServer2" type="Application" />
+    <toRun name="KVServer4" type="Application" />
+    <toRun name="KVServer" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

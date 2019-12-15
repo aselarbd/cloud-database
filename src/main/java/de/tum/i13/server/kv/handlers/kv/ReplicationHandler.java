@@ -89,7 +89,10 @@ public class ReplicationHandler implements HandlerWrapper {
         for (InetSocketAddress addr : oldServers) {
             final String hostStr = InetSocketAddressTypeConverter.addrString(addr);
             try {
-                replClients.get(hostStr).close();
+                KVTP2Client cl = replClients.get(hostStr);
+                if (cl != null) {
+                    cl.close();
+                }
             } catch (IOException e) {
                 logger.warning("Could not close replication Client for " + hostStr + ": " + e.getMessage());
             }
@@ -131,6 +134,7 @@ public class ReplicationHandler implements HandlerWrapper {
                     storeRepl.put("value", message.get("value"));
                     try {
                         kvtp2Client.send(storeRepl);
+                        logger.info("Sent replication for " + message.get("key") + " to " + hostStr);
                     } catch (IOException e) {
                         logger.warning("Failed to replicate " + message.toString() + " - " + e.getMessage());
                     }
