@@ -82,6 +82,13 @@ public class NonBlockingKVTP2Client {
         }
     }
 
+    public boolean isConnected() {
+        if (defaultConnection != null) {
+            return connections.get(defaultConnection).channel.keyFor(this.selector).isValid();
+        }
+        return false;
+    }
+
     public Future<Boolean> connect(String address, int port) throws IOException {
         InetSocketAddress isa = new InetSocketAddress(address, port);
         return connect(isa);

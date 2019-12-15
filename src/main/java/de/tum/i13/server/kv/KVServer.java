@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
@@ -119,23 +120,26 @@ public class KVServer {
         this.controlAPIServer = controlAPIServer;
         ecsClient = new NonBlockingKVTP2Client();
         ecsClient.setDefaultHandler(new DefaultError());
-        Thread ecsClientThread = new Thread(() -> {
-            try {
-                ecsClient.start();
-            } catch (IOException e) {
-                logger.warning("could not start ecs client");
-            }
-        });
-        Future<Boolean> connected = ecsClient.connect(config.bootstrap.getHostString(), config.bootstrap.getPort());
-        ecsClientThread.start();
+
+        while (!ecsClient.isConnected()) {
+            logger.info("waiting for ecs connection...");
+            Future<Boolean> connected = ecsClient.connect(config.bootstrap.getHostString(), config.bootstrap.getPort());
+            Executors.newSingleThreadExecutor().submit(() -> {
+                try {
+                    ecsClient.start();
+                } catch (IOException e) {
+                    logger.warning("could not start ecs client");
+                }
+            });
+            Thread.sleep(1000);
+            connected.get();
+        }
 
         Message registerMsg = new Message("register");
         registerMsg.put("kvip", config.listenaddr);
         registerMsg.put("kvport", Integer.toString(config.port));
         registerMsg.put("ecsip", controlAPIServer.getLocalAddress());
         registerMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
-
-        connected.get();
 
         HeartbeatListener heartbeatListener = new HeartbeatListener();
         heartbeatListener.start(config.port, new InetSocketAddress(config.listenaddr, config.port).getAddress());
