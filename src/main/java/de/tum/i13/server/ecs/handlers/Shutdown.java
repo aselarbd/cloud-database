@@ -4,6 +4,7 @@ import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
+import de.tum.i13.shared.ConsistentHashMap;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,12 +40,17 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
         keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
 
         ServerState kvSuccessor = ssm.getKVSuccessor(server);
-        try {
-            kvSuccessor.getClient().send(keyRange);
-        } catch (IOException e) {
-            // TODO: What to do if the successor has gone away?
-            logger.warning(e.getMessage());
+        if (kvSuccessor != null) {
+            try {
+                kvSuccessor.getClient().send(keyRange);
+            } catch (IOException e) {
+                // TODO: What to do if the successor has gone away?
+                logger.warning(e.getMessage());
+            }
+        } else {
+            logger.warning("shutting down the last available KVServer");
         }
+
         try {
             Message shutdownKeyrange = new Message("shutdown_keyrange");
             shutdownKeyrange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
@@ -52,6 +58,7 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
         } catch (IOException e) {
             logger.warning("failed to set new keyrange to shutdown server: " + e.getMessage());
         }
+
         Message response = Message.getResponse(message);
         response.setCommand("ok");
         messageWriter.write(response);

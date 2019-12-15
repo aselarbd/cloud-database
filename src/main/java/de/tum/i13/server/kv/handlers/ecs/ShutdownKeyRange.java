@@ -38,16 +38,25 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
             ecsClient = kvServer.getBlockingECSClient();
         } catch (IOException e) {
             logger.severe("failed to get ecs client: " + e.getMessage());
+            return;
         }
+        KVTP2Client finalEcsClient = ecsClient;
 
         Message response = Message.getResponse(message);
         response.setCommand("ok");
         messageWriter.write(response);
+        messageWriter.flush();
 
+        if (newKeyRange.size() <= 0) {
+            ExecutorService finishExecutor = Executors.newSingleThreadExecutor();
+            finishExecutor.submit(() -> {
+                sendFinish(finalEcsClient);
+            });
+            return;
+        }
 
         ExecutorService transferService = Executors.newSingleThreadExecutor();
 
-        KVTP2Client finalEcsClient = ecsClient;
         transferService.submit(() -> {
             Map<InetSocketAddress, KVTP2Client> clients = new HashMap<>();
 
@@ -90,20 +99,24 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
                     }
                 });
 
-                Message finish = new Message("finish");
-                finish.put("ecsip", kvServer.getControlAPIServerAddress().getHostString());
-                finish.put("ecsport", Integer.toString(kvServer.getControlAPIServerAddress().getPort()));
-                try {
-                    Message res = finalEcsClient.send(finish);
-                    if (res.getCommand().equals("bye")) {
-                        kvServer.setStopped(true);
-                    }
-                } catch (IOException e) {
-                    logger.warning("failed to send finish for shutdown to ecs: " + e.getMessage());
-                }
+                sendFinish(finalEcsClient);
             } catch (InterruptedException e) {
                 logger.warning("interrupted while putting values to new predecessor");
             }
         });
+    }
+
+    private void sendFinish(KVTP2Client ecsClient) {
+        Message finish = new Message("finish");
+        finish.put("ecsip", kvServer.getControlAPIServerAddress().getHostString());
+        finish.put("ecsport", Integer.toString(kvServer.getControlAPIServerAddress().getPort()));
+        try {
+            Message res = ecsClient.send(finish);
+            if (res.getCommand().equals("bye")) {
+                kvServer.setStopped(true);
+            }
+        } catch (IOException e) {
+            logger.warning("failed to send finish for shutdown to ecs: " + e.getMessage());
+        }
     }
 }
