@@ -50,7 +50,7 @@ public class KVServer {
 
         serverStoppedHandlerWrapper = new ServerStoppedHandler();
         serverWriteLockHandler = new ServerWriteLockHandler();
-        replicationHandler = new ReplicationHandler();
+        replicationHandler = new ReplicationHandler(this, new InetSocketAddress(cfg.listenaddr, cfg.port));
 
         keyRangeHandler = new KeyRange();
         keyRangeReadHandler = new KeyRangeRead();
@@ -175,8 +175,10 @@ public class KVServer {
     }
 
     public void setKeyRange(ConsistentHashMap keyRange) {
-        this.keyRangeReadHandler.setKeyRangeRead(keyRange.getInstanceWithReplica());
         this.keyRangeHandler.setKeyRange(keyRange);
+        final ConsistentHashMap replicated = keyRange.getInstanceWithReplica();
+        this.keyRangeReadHandler.setKeyRangeRead(replicated);
+        this.replicationHandler.keyrangeUpdated(replicated);
     }
 
     public ConsistentHashMap getKeyRange() {
