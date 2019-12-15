@@ -59,6 +59,7 @@ public class Get implements BiConsumer<MessageWriter, Message> {
         }
 
         if (result != null) {
+            kvCache.put(result);
             writeFound(messageWriter, message, new KVItem(key, result.getValue()));
             return;
         }
