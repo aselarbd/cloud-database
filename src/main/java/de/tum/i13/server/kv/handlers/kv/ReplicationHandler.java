@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ReplicationHandler implements HandlerWrapper {
@@ -38,7 +39,7 @@ public class ReplicationHandler implements HandlerWrapper {
      * @param addr
      * @return
      */
-    private KVTP2Client connectReplica(InetSocketAddress addr) {
+    private KVTP2Client connectReplica(InetSocketAddress addr) throws IOException {
         // TODO: copied from keyrange in ECS handler. Refactor common logic.
         KVTP2Client ecsClient = null;
         final String hostStr = InetSocketAddressTypeConverter.addrString(addr);
@@ -62,6 +63,7 @@ public class ReplicationHandler implements HandlerWrapper {
             logger.warning("Could not get ecs api address for kv server at " + addr);
         }
         KVTP2Client kvtp2Client = new KVTP2Client(replIp, replPort);
+        kvtp2Client.connect();
         replClients.put(hostStr, kvtp2Client);
         return kvtp2Client;
     }
@@ -124,19 +126,23 @@ public class ReplicationHandler implements HandlerWrapper {
                 ExecutorService runner = replRunners.get(hostStr);
 
                 runner.submit(() -> {
-                    KVTP2Client kvtp2Client = replClients.get(hostStr);
-                    if (kvtp2Client == null) {
-                        kvtp2Client = connectReplica(addr);
-                    }
-
-                    Message storeRepl = new Message(message.getCommand());
-                    storeRepl.put("key", message.get("key"));
-                    storeRepl.put("value", message.get("value"));
+                    runnerLock.lock();
                     try {
+                        KVTP2Client kvtp2Client = replClients.get(hostStr);
+                        if (kvtp2Client == null) {
+                            kvtp2Client = connectReplica(addr);
+                        }
+
+                        Message storeRepl = new Message(message.getCommand());
+                        storeRepl.put("key", message.get("key"));
+                        storeRepl.put("value", message.get("value"));
                         kvtp2Client.send(storeRepl);
                         logger.info("Sent replication for " + message.get("key") + " to " + hostStr);
-                    } catch (IOException e) {
-                        logger.warning("Failed to replicate " + message.toString() + " - " + e.getMessage());
+                    } catch (Exception e) {
+                        // just catch anything that could go wrong when replicating
+                        logger.log(Level.WARNING, "failed to replicate " + message.toString(), e);
+                    } finally {
+                        runnerLock.unlock();
                     }
                 });
             }
