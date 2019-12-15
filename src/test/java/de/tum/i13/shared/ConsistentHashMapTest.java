@@ -105,7 +105,6 @@ class ConsistentHashMapTest {
 
     private void assertIllegalInputException(Consumer<String> runFunction) {
         String[] illegalInputs = new String[] {
-                "",
                 "be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1.foo:asdf", // invalid IP
                 "be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80", // no semicolon
                 "be8e4f546de43337d7f0d4637a796478,be8e4f546de43337d7f0d4637a796478,192.168.1.1:80,foobar;", // additional arg
@@ -117,6 +116,13 @@ class ConsistentHashMapTest {
         for (String input : illegalInputs) {
             assertThrows(IllegalArgumentException.class, () -> runFunction.accept(input));
         }
+    }
+
+    @Test
+    void testParseEmptyInputNewInstance() {
+        // not null and empty instance for empty input. For null, this would just thrown NPEs
+        assertEquals(0, ConsistentHashMap.fromKeyrangeString("").size());
+        assertEquals(0, ConsistentHashMap.fromKeyrangeReadString("").size());
     }
 
     @Test

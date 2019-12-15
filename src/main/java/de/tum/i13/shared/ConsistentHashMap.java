@@ -283,12 +283,15 @@ public class ConsistentHashMap {
 
     private static ConsistentHashMap parseKeyrangeString(String keyrange, boolean withReplica)
             throws IllegalArgumentException {
+        ConsistentHashMap newInstance = new ConsistentHashMap();
+        if (keyrange.isEmpty()) {
+            return newInstance;
+        }
         if (!keyrange.contains(";")) {
             throw new IllegalArgumentException("Bad format: No semicolon found");
         }
 
         String[] elements = keyrange.split(";");
-        ConsistentHashMap newInstance = new ConsistentHashMap();
         List<String> replicaHashes = new ArrayList<>();
         List<InetSocketAddress> replicaAddresses = new ArrayList<>();
         InetSocketAddressTypeConverter converter = new InetSocketAddressTypeConverter();
