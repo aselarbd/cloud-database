@@ -48,9 +48,6 @@ public class KVServer {
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
 
-        HeartbeatListener heartbeatListener = new HeartbeatListener();
-        heartbeatListener.start(cfg.port, new InetSocketAddress(cfg.listenaddr, cfg.port).getAddress());
-
         serverStoppedHandlerWrapper = new ServerStoppedHandler();
         serverWriteLockHandler = new ServerWriteLockHandler();
 
@@ -139,6 +136,10 @@ public class KVServer {
         registerMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
 
         connected.get();
+
+        HeartbeatListener heartbeatListener = new HeartbeatListener();
+        heartbeatListener.start(config.port, new InetSocketAddress(config.listenaddr, config.port).getAddress());
+
         ecsClient.send(registerMsg, (w, m) -> {
             String keyRangeString = m.get("keyrange");
             setKeyRange(ConsistentHashMap.fromKeyrangeString(keyRangeString));

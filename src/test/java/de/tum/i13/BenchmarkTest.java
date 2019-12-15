@@ -171,7 +171,7 @@ public class BenchmarkTest {
 
         HashMap<Integer, Double> clientsToLatencyAvg = new HashMap<>();
 
-        for (int i = 0; i < clientCounts.length; i++) {
+        for (int clientCount : clientCounts) {
             KVLib[] connections = connectClients(5);
 
             List<Long> execTimes = new ArrayList<>();
@@ -221,7 +221,7 @@ public class BenchmarkTest {
                 Long sum = execTimes.stream().reduce((long) 0, Long::sum);
                 double avg = (double) sum / execTimes.size();
 
-                clientsToLatencyAvg.put(clientCounts[i], avg);
+                clientsToLatencyAvg.put(clientCount, avg);
             }
         }
 
