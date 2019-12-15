@@ -33,6 +33,7 @@ public class KVServer {
     private final KeyRangeRead keyRangeReadHandler;
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
+    private final ReplicationHandler replicationHandler;
     private NonBlockingKVTP2Client ecsClient;
     private ECSServer controlAPIServer;
 
@@ -51,6 +52,7 @@ public class KVServer {
 
         serverStoppedHandlerWrapper = new ServerStoppedHandler();
         serverWriteLockHandler = new ServerWriteLockHandler();
+        replicationHandler = new ReplicationHandler();
 
         keyRangeHandler = new KeyRange();
         keyRangeReadHandler = new KeyRangeRead();
@@ -77,8 +79,9 @@ public class KVServer {
                 serverStoppedHandlerWrapper.wrap(
                 serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
+                replicationHandler.wrap(
                         new Put(cache, kvStore)
-                ))))
+                )))))
         );
 
         kvtp2Server.handle(
@@ -87,8 +90,9 @@ public class KVServer {
                 serverStoppedHandlerWrapper.wrap(
                 serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
+                replicationHandler.wrap(
                         new Delete(cache, kvStore)
-                ))))
+                )))))
         );
 
         kvtp2Server.handle(

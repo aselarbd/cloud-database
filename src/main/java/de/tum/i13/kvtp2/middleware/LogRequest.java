@@ -14,6 +14,7 @@ public class LogRequest implements HandlerWrapper {
         this.logger = logger;
     }
 
+    @Override
     public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
         return (w, m) -> {
             logger.info("request: \n" + m.toString());

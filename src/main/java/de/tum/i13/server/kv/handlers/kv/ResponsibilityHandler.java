@@ -2,12 +2,13 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.HandlerWrapper;
 import de.tum.i13.shared.ConsistentHashMap;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
 
-public class ResponsibilityHandler {
+public class ResponsibilityHandler implements HandlerWrapper {
 
     private final InetSocketAddress kvAddress;
     private final KeyRangeRead keyRangeHandler;
@@ -32,6 +33,7 @@ public class ResponsibilityHandler {
         w.flush();
     }
 
+    @Override
     public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
         return (w, m) -> {
             ConsistentHashMap keyRangeWithReplica = keyRangeHandler.getKeyRangeRead();

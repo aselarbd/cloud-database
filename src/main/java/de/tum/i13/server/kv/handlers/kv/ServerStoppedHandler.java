@@ -2,10 +2,11 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.HandlerWrapper;
 
 import java.util.function.BiConsumer;
 
-public class ServerStoppedHandler {
+public class ServerStoppedHandler implements HandlerWrapper {
 
     private boolean serverStopped;
 
@@ -17,6 +18,7 @@ public class ServerStoppedHandler {
         this.serverStopped = serverStopped;
     }
 
+    @Override
     public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
         return (w, m) -> {
             if (serverStopped) {
