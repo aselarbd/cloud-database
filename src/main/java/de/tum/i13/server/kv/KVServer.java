@@ -198,9 +198,9 @@ public class KVServer {
         }
     }
 
-    public String put(KVItem kvItem, boolean withCache) throws IOException {
+    public String put(KVItem kvItem, boolean ensureCache) throws IOException {
         final String res = kvStore.put(kvItem);
-        if (withCache) {
+        if (ensureCache || kvCache.get(kvItem.getKey()) != null) {
             kvCache.put(kvItem);
         }
         return res;
