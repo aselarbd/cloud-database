@@ -27,6 +27,10 @@ public class KVTP2Client {
         this.transport.connect();
     }
 
+    public void close() throws IOException {
+        this.transport.close();
+    }
+
     public Message send(Message m) throws IOException {
         String encoded = encoder.encode(m.toString());
         String response = this.transport.send(encoded);
