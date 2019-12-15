@@ -7,6 +7,7 @@ public class Constants {
 	public static final String TELNET_ENCODING = "ISO-8859-1"; // encoding for telnet
     public static final String DELETE_MARKER = "KVSTORE::DELETE_MARKER";
     public static final String FLUSH_MESSAGE = "KVSTORE::CACHE_FLUSH";
+    public static final String REPLICATION_STOP_MARKER = "KVSTORE::REPLICATION_STOP_MARKER";
 
     public static final int PING_TIMEOUT = 700;
 

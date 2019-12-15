@@ -1,6 +1,7 @@
 package de.tum.i13.server.ecs.handlers;
 
 import de.tum.i13.kvtp2.KVTP2Client;
+import de.tum.i13.kvtp2.KVTP2ClientFactory;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.server.ecs.ServerState;

@@ -1,6 +1,4 @@
-package de.tum.i13.server.ecs.handlers;
-
-import de.tum.i13.kvtp2.KVTP2Client;
+package de.tum.i13.kvtp2;
 
 @FunctionalInterface
 public interface KVTP2ClientFactory {
