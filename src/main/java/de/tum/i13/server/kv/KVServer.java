@@ -113,7 +113,16 @@ public class KVServer {
                         MessageWriter::write)
         );
 
-        kvtp2Server.setDefaultHandler(new DefaultError());
+        kvtp2Server.setDefaultHandler(
+            (w, m) -> {
+                Message response = Message.getResponse(m);
+                response.setCommand("error");
+                response.setVersion(Message.Version.V1);
+                response.put("msg", "invalid command \"" + m.get("original") + "\"");
+                w.write(response);
+                w.flush();
+            }
+        );
     }
 
     public void register(ECSServer controlAPIServer) throws InterruptedException, ExecutionException, IOException {

@@ -1,7 +1,8 @@
 package de.tum.i13.kvtp2;
 
-import java.nio.charset.MalformedInputException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,7 +13,7 @@ public class Message {
 
     private static final Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
-            put("put", () -> new Parser().with(Type.REQUEST));
+            put("put", () -> new PutParser().with(Type.REQUEST).withFullText());
             put("get", () -> new Parser().with(Type.REQUEST));
             put("delete", () -> new Parser().with(Type.REQUEST));
             put("keyrange", () -> new Parser().with(Type.REQUEST));
@@ -133,14 +134,18 @@ public class Message {
         return m;
     }
 
-    private static Message parseOldStyleMessage(String input) {
+    private static Message parseOldStyleMessage(String input) throws MalformedMessageException {
         String[] parts = input.split("\\s+");
         Parser parser = oldStyleKeyWords.get(parts[0]).get();
         if (parser == null) {
             throw new IllegalArgumentException("Invalid old style message " + input);
         }
-        for (String part : parts) {
-            parser = parser.with(part);
+        if (parser.needsFullText()) {
+            parser = parser.withFullText(input);
+        } else {
+            for (String part : parts) {
+                parser = parser.with(part);
+            }
         }
         Message msg = parser.parse();
         msg.setVersion(Version.V1);

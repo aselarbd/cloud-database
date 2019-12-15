@@ -37,7 +37,6 @@ public class Put implements BiConsumer<MessageWriter, Message> {
         Message response = Message.getResponse(request);
         response.setCommand("put_" + result);
         response.put("key", kvItem.getKey());
-        response.put("value", kvItem.getValue());
         messageWriter.write(response);
         messageWriter.flush();
     }

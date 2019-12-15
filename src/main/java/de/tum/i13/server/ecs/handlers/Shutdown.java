@@ -25,7 +25,6 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
     public void accept(MessageWriter messageWriter, Message message) {
         InetSocketAddress src = new InetSocketAddress(message.get("ecsip"), Integer.parseInt(message.get("ecsport")));
         ServerState server = ssm.getByECSAddress(src);
-        ssm.remove(server);
 
         Message lock = Message.getResponse(message);
         lock.setCommand("lock");
@@ -37,7 +36,9 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
         }
 
         Message keyRange = new Message("keyrange");
-        keyRange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
+        ConsistentHashMap newKeyRange = ssm.getKeyRanges();
+        newKeyRange.remove(server.getKV());
+        keyRange.put("keyrange", newKeyRange.getKeyrangeString());
 
         ServerState kvSuccessor = ssm.getKVSuccessor(server);
         if (kvSuccessor != null) {
@@ -52,12 +53,14 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
         }
 
         try {
-            Message shutdownKeyrange = new Message("shutdown_keyrange");
-            shutdownKeyrange.put("keyrange", ssm.getKeyRanges().getKeyrangeString());
-            server.getClient().send(shutdownKeyrange);
+            Message shutdownKeyRange = new Message("shutdown_keyrange");
+            shutdownKeyRange.put("keyrange", newKeyRange.getKeyrangeString());
+            server.getClient().send(shutdownKeyRange);
         } catch (IOException e) {
             logger.warning("failed to set new keyrange to shutdown server: " + e.getMessage());
         }
+
+        ssm.remove(server);
 
         Message response = Message.getResponse(message);
         response.setCommand("ok");

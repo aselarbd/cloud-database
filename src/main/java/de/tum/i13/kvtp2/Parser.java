@@ -9,6 +9,8 @@ public class Parser {
     protected String command;
     protected String firstArgName;
     protected String secondArgName;
+    protected boolean needsFullText;
+    protected String fullText;
     protected final Map<String, String> pairs = new LinkedHashMap<>();
 
     protected boolean closed = false;
@@ -20,15 +22,29 @@ public class Parser {
         this.secondArgName = "value";
     }
 
-    public Message parse() {
+    public Message parse() throws MalformedMessageException {
         if (closed) {
             throw new RuntimeException("Parser already used and closed");
         }
-        Message message = new Message(command);
-        message.setType(type);
-        pairs.forEach(message::put);
+        final Message message;
+        if (needsFullText) {
+            message = new Message(fullText);
+        } else {
+            message = new Message(command);
+            message.setType(type);
+            pairs.forEach(message::put);
+        }
         this.closed = true;
         return message;
+    }
+
+    public boolean needsFullText() {
+        return needsFullText;
+    }
+
+    public Parser with(boolean fulltext) {
+        this.needsFullText = fulltext;
+        return this;
     }
 
     public Parser with(Message.Type type) {
@@ -63,4 +79,14 @@ public class Parser {
         }
         position++;
         return this;
-    }}
+    }
+
+    public Parser withFullText(String fullText) {
+        this.fullText = fullText;
+        return withFullText();
+    }
+
+    public Parser withFullText() {
+        return with(true);
+    }
+}

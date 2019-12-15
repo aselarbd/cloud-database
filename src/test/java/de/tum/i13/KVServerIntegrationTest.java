@@ -12,7 +12,6 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled
 public class KVServerIntegrationTest {
     public static final Integer kvPort = 5144;
     public static final Integer ecsPort = 5140;
@@ -32,8 +31,8 @@ public class KVServerIntegrationTest {
     public static void shutdown() throws InterruptedException, IOException {
         s.close();
         kvThread.interrupt();
-        ecsThread.interrupt();
         kvThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
+        ecsThread.interrupt();
         ecsThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
     }
 
@@ -51,19 +50,18 @@ public class KVServerIntegrationTest {
     public void invalidCommands(@TempDir Path tmpDir) throws IOException {
         String res;
         res = RequestUtils.doRequest(s, "bogus request 12");
-        assertEquals("unknown command", res);
+        assertEquals("error invalid command \"bogus request 12\"", res);
 
-        // TODO: kvtp does not seem to reply on that. Comment out for kvtp2
-        //res = RequestUtils.doRequest(s, "");
-        //assertEquals("unknown command", res);
+        res = RequestUtils.doRequest(s, "");
+        assertEquals("error invalid command \"\"", res);
 
         res = RequestUtils.doRequest(s, "get");
-        assertEquals("key needed", res);
+        assertEquals("error no key given", res);
 
         res = RequestUtils.doRequest(s, "put");
-        assertEquals("key needed", res);
+        assertEquals("error invalid command \"put\"", res);
 
         res = RequestUtils.doRequest(s, "delete");
-        assertEquals("key needed", res);
+        assertEquals("error no key given", res);
     }
 }

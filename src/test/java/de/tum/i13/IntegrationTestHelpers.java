@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Common helper functions for integration tests
  */
 public class IntegrationTestHelpers {
-    public static final int ECS_START_WAIT = 500;
-    public static final int BASE_START_WAIT = 1000;
-    public static final int EXIT_WAIT = 500;
+    public static final int ECS_START_WAIT = 3000;
+    public static final int BASE_START_WAIT = 6000;
+    public static final int EXIT_WAIT = 5000;
 
     public static Thread startECS(int ecsPort) throws InterruptedException {
         Thread th = new Thread(() -> {
@@ -99,8 +99,6 @@ public class IntegrationTestHelpers {
     public static Socket connectToTestSvr(int port) throws IOException {
         Socket s = new Socket();
         s.connect(new InetSocketAddress("127.0.0.1", port));
-        String welcome = RequestUtils.readMessage(s);
-        assertTrue(welcome.contains("connected"));
         return s;
     }
 }

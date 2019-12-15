@@ -25,6 +25,7 @@ public class Get implements BiConsumer<MessageWriter, Message> {
 
     private void writeFound(MessageWriter messageWriter, Message request, KVItem kvItem) {
         Message response = Message.getResponse(request);
+        response.setCommand("get_success");
         response.put("key", kvItem.getKey());
         response.put("value", kvItem.getValue());
         messageWriter.write(response);

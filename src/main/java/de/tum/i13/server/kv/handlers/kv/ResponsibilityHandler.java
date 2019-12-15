@@ -24,10 +24,20 @@ public class ResponsibilityHandler {
         w.flush();
     }
 
+    private void replyError(MessageWriter w, Message m, String msg) {
+        Message error = Message.getResponse(m);
+        error.setCommand("error");
+        error.put("msg", msg);
+        w.write(error);
+        w.flush();
+    }
+
     public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
         return (w, m) -> {
             ConsistentHashMap keyRangeWithReplica = keyRangeHandler.getKeyRangeRead();
-            if (m.getCommand().matches("put|delete") &&
+            if (m.get("key") == null || m.get("key").isEmpty()) {
+                replyError(w, m, "no key given");
+            } else if (m.getCommand().matches("put|delete") &&
                     !keyRangeWithReplica.getSuccessor(m.get("key")).equals(kvAddress)) {
                replyNotResponsible(w, m);
             } else if (m.getCommand().matches("get") &&
