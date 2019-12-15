@@ -126,6 +126,7 @@ public class Message {
         values.remove("_type");
         values.remove("_id");
         values.remove("_command");
+        values.remove("_version");
 
         values.forEach(m::put);
         return m;
