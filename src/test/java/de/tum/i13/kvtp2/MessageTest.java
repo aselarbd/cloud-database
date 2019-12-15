@@ -25,7 +25,7 @@ class MessageTest {
     }
 
     @Test
-    public void testParseMessage() {
+    public void testParseMessage() throws MalformedMessageException {
         String msg = "_id:1\r\n_version:V2\r\n_type:REQUEST\r\n_command:command\r\nkey:value\r\nkey2:value2";
 
         Message m = Message.parse(msg);
@@ -39,7 +39,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStylePut() {
+    public void testOldStylePut() throws MalformedMessageException {
         String msg = "put a b";
         Message m = Message.parse(msg);
 
@@ -53,7 +53,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleGet() {
+    public void testOldStyleGet() throws MalformedMessageException {
         String msg = "get a";
         Message m = Message.parse(msg);
 
@@ -66,7 +66,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleDelete() {
+    public void testOldStyleDelete() throws MalformedMessageException {
         String msg = "delete a";
         Message m = Message.parse(msg);
 
@@ -79,7 +79,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleKeyrange() {
+    public void testOldStyleKeyrange() throws MalformedMessageException {
         String msg = "keyrange";
         Message m = Message.parse(msg);
 
@@ -91,7 +91,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleKeyrangeRead() {
+    public void testOldStyleKeyrangeRead() throws MalformedMessageException {
         String msg = "keyrange_read";
         Message m = Message.parse(msg);
 
@@ -106,13 +106,13 @@ class MessageTest {
     public void testOldStyleAny() {
         String m = "randomString";
         assertThrows(
-                IllegalArgumentException.class,
+                MalformedMessageException.class,
                 () -> Message.parse(m)
         );
     }
 
     @Test
-    public void testOldStylePutSuccess() {
+    public void testOldStylePutSuccess() throws MalformedMessageException {
         String msg = "put_success key";
         Message m = Message.parse(msg);
 
@@ -125,7 +125,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStylePutUpdate() {
+    public void testOldStylePutUpdate() throws MalformedMessageException {
         String msg = "put_update key";
         Message m = Message.parse(msg);
 
@@ -138,7 +138,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStylePutError() {
+    public void testOldStylePutError() throws MalformedMessageException {
         String msg = "put_error key value";
         Message m = Message.parse(msg);
 
@@ -152,7 +152,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleServerStopped() {
+    public void testOldStyleServerStopped() throws MalformedMessageException {
         String msg = "server_stopped";
         Message m = Message.parse(msg);
 
@@ -164,7 +164,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleServerWriteLock() {
+    public void testOldStyleServerWriteLock() throws MalformedMessageException {
         String msg = "server_write_lock";
         Message m = Message.parse(msg);
 
@@ -176,7 +176,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleGetError() {
+    public void testOldStyleGetError() throws MalformedMessageException {
         String msg = "get_error key not found";
         Message m = Message.parse(msg);
 
@@ -190,7 +190,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleGetSuccess() {
+    public void testOldStyleGetSuccess() throws MalformedMessageException {
         String msg = "get_success key value";
         Message m = Message.parse(msg);
 
@@ -204,7 +204,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleDeleteSuccess() {
+    public void testOldStyleDeleteSuccess() throws MalformedMessageException {
         String msg = "delete_success key";
         Message m = Message.parse(msg);
 
@@ -217,7 +217,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleDeleteError() {
+    public void testOldStyleDeleteError() throws MalformedMessageException {
         String msg = "delete_error key";
         Message m = Message.parse(msg);
 
@@ -230,7 +230,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleKeyrangeSuccess() {
+    public void testOldStyleKeyrangeSuccess() throws MalformedMessageException {
         String msg = "keyrange_success from1,to1,ip1:port1;from2,to2,ip2:port2";
         Message m = Message.parse(msg);
 
@@ -243,7 +243,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleKeyrangeReadSuccess() {
+    public void testOldStyleKeyrangeReadSuccess() throws MalformedMessageException {
         String msg = "keyrange_read_success from1,to1,ip1:port1;from2,to2,ip2:port2";
         Message m = Message.parse(msg);
 
@@ -256,7 +256,7 @@ class MessageTest {
     }
 
     @Test
-    public void testOldStyleError() {
+    public void testOldStyleError() throws MalformedMessageException {
         String msg = "error description";
         Message m = Message.parse(msg);
 

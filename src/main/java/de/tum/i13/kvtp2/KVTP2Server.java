@@ -88,7 +88,16 @@ public class KVTP2Server {
         String[] msgs = in.split("\r\n");
         for (String s : msgs) {
             byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
-            Message msg = Message.parse(new String(decodedRequest, ENCODING));
+            Message msg = null;
+            try {
+                msg = Message.parse(new String(decodedRequest, ENCODING));
+            } catch (MalformedMessageException e) {
+                Message error = new Message("_error");
+                error.put("msg", "malformed message");
+                error.put("original", new String(decodedRequest, ENCODING));
+                serve(w, error);
+                return;
+            }
             serve(w, msg);
         }
     }

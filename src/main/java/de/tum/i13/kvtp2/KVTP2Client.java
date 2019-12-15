@@ -35,6 +35,13 @@ public class KVTP2Client {
         String encoded = encoder.encode(m.toString());
         String response = this.transport.send(encoded);
         String decodedResponse = decoder.decode(response, ENCODING);
-        return Message.parse(decodedResponse);
+        try {
+            return Message.parse(decodedResponse);
+        } catch (MalformedMessageException e) {
+            Message error = new Message("_error");
+            error.put("msg", "malformed message");
+            error.put("original", decodedResponse);
+            return error;
+        }
     }
 }

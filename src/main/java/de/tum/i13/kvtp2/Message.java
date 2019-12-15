@@ -1,5 +1,6 @@
 package de.tum.i13.kvtp2;
 
+import java.nio.charset.MalformedInputException;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -101,7 +102,7 @@ public class Message {
         return String.join(" ", command, joined).trim();
     }
 
-    public static Message parse(String msg) {
+    public static Message parse(String msg) throws MalformedMessageException {
         String[] lines = msg.split("\\R");
 
         Matcher matcher = beginsWithOldStyle.matcher(lines[0]);
@@ -113,7 +114,7 @@ public class Message {
         for (String line : lines) {
             String[] kv = line.split(KEY_VALUE_DELIMITER, 2);
             if (kv.length != 2) {
-                throw new IllegalArgumentException("Invalid kv pair at " + line);
+                throw new MalformedMessageException("Invalid kv pair at " + line);
             }
             values.put(kv[0], kv[1]);
         }
