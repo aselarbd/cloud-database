@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -32,6 +34,8 @@ public class KVServer {
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
     private ECSServer controlAPIServer;
+
+    private ExecutorService shutdownService;
 
     public KVServer(Config cfg) throws IOException {
         this.config = cfg;
@@ -230,9 +234,18 @@ public class KVServer {
         shutdownMsg.put("ecsip", controlAPIServer.getLocalAddress());
         shutdownMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
         KVTP2Client blockingECSClient = getBlockingECSClient();
-        Message send = blockingECSClient.send(shutdownMsg);
-        blockingECSClient.close();
-        logger.info("shutdown announcement response: " + send.toString());
+
+        shutdownService = Executors.newSingleThreadExecutor();
+        shutdownService.submit(() -> {
+            Message send;
+            try {
+                send = blockingECSClient.send(shutdownMsg);
+            } catch (IOException e) {
+                logger.warning("failed to send shutdown message");
+                return;
+            }
+            logger.info("shutdown announcement response: " + send.toString());
+        });
     }
 
     public KVItem getItem(String key) throws IOException {
@@ -255,6 +268,19 @@ public class KVServer {
     }
 
     public boolean stopped() {
-        return serverStoppedHandlerWrapper.getServerStopped();
+        boolean serverStopped = serverStoppedHandlerWrapper.getServerStopped();
+        if (serverStopped) {
+            cleanup();
+        }
+        return serverStopped;
+    }
+
+    private void cleanup() {
+        try {
+            shutdownService.shutdownNow();
+            blockingECSClient.close();
+        } catch (IOException e) {
+            logger.warning("failed to close ecs client: " + e.getMessage());
+        }
     }
 }
