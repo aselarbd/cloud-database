@@ -85,7 +85,7 @@ public class KVTP2Server {
 
     private void serve(StringWriter w, byte[] request) {
         String in = new String(request, ENCODING).trim(); // TODO: Maybe trim manually, might be faster
-        String[] msgs = in.split("\r\n");
+        String[] msgs = in.split("\\R");
         for (String s : msgs) {
             byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
             Message msg = null;

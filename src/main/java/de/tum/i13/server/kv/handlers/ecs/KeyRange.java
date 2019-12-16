@@ -62,9 +62,9 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                 String predecessorIP = "";
                 int predecessorPort = 0;
                 try {
-                    Message response = ecsClient.send(KVToECSMsg);
-                    predecessorIP = response.get("ecsip");
-                    predecessorPort = Integer.parseInt(response.get("ecsport"));
+                    Message KVToECSResponse = ecsClient.send(KVToECSMsg);
+                    predecessorIP = KVToECSResponse.get("ecsip");
+                    predecessorPort = Integer.parseInt(KVToECSResponse.get("ecsport"));
                 } catch (IOException e) {
                     // TODO: Handle the error, maybe try again. Tell ecs?
                     logger.warning("Could not get ecs api address for kv server at " + newPredecessor);
@@ -114,8 +114,10 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
             });
             nextKeyRange = newKeyRange;
         } else {
-            kvServer.setKeyRange(newKeyRange);
-            nextKeyRange = null;
+            Executors.newSingleThreadExecutor().submit(() -> {
+                kvServer.setKeyRange(newKeyRange);
+                nextKeyRange = null;
+            });
         }
         Message response = Message.getResponse(message);
         response.setCommand("ok");

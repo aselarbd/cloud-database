@@ -32,7 +32,7 @@ public class ReplicationConsumer implements Runnable {
         while (true) {
             Message message = new Message("put");
             try {
-                if (!(next = replicationQueue.take()).equals(poison)) break;
+                if ((next = replicationQueue.take()).equals(poison)) break;
                 message.put("key", next.getKey());
                 message.put("value", next.getValue());
                 message.put("timestamp", Long.toString(next.getTimestamp()));
