@@ -23,7 +23,7 @@ public class ServerWriteLockHandler implements HandlerWrapper {
         return (w, m) -> {
             if (locked) {
                 Message writeLock = Message.getResponse(m);
-                m.setCommand("server_write_lock");
+                writeLock.setCommand("server_write_lock");
                 w.write(writeLock);
                 w.flush();
             } else {

@@ -108,7 +108,6 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                     if (res.getCommand().equals("release_lock")) {
                         kvServer.setLocked(false);
                     }
-                    ecsClient.close();
                 } catch (IOException e) {
                     logger.warning("failed to send finish to ecs: " + e.getMessage());
                 }
@@ -121,5 +120,6 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
         Message response = Message.getResponse(message);
         response.setCommand("ok");
         messageWriter.write(response);
+        kvServer.setStopped(false);
     }
 }

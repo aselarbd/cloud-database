@@ -1,7 +1,6 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.kvtp2.*;
-import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.stores.LSMStore;
@@ -9,10 +8,8 @@ import de.tum.i13.shared.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
 
@@ -32,7 +29,6 @@ public class KVServer {
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
-    private NonBlockingKVTP2Client ecsClient;
     private ECSServer controlAPIServer;
 
     public KVServer(Config cfg) throws IOException {
@@ -127,23 +123,19 @@ public class KVServer {
         );
     }
 
-    public void register(ECSServer controlAPIServer) throws InterruptedException, ExecutionException, IOException {
+    public void register(ECSServer controlAPIServer) throws InterruptedException, SocketException {
         this.controlAPIServer = controlAPIServer;
-        ecsClient = new NonBlockingKVTP2Client();
-        ecsClient.setDefaultHandler(new DefaultError());
+        KVTP2Client blockingECSClient = null;
 
-        while (!ecsClient.isConnected()) {
-            logger.info("waiting for ecs connection...");
-            Future<Boolean> connected = ecsClient.connect(config.bootstrap.getHostString(), config.bootstrap.getPort());
-            Executors.newSingleThreadExecutor().submit(() -> {
-                try {
-                    ecsClient.start();
-                } catch (IOException e) {
-                    logger.warning("could not start ecs client");
-                }
-            });
-            Thread.sleep(1000);
-            connected.get();
+        boolean connected = false;
+        while (!connected) {
+            try {
+                blockingECSClient = getBlockingECSClient();
+                connected = true;
+            } catch (IOException e) {
+                logger.warning("could not start ecs client: " + e.getMessage());
+                Thread.sleep(3000);
+            }
         }
 
         Message registerMsg = new Message("register");
@@ -155,21 +147,20 @@ public class KVServer {
         HeartbeatListener heartbeatListener = new HeartbeatListener();
         heartbeatListener.start(config.port, new InetSocketAddress(config.listenaddr, config.port).getAddress());
 
-        ecsClient.send(registerMsg, (w, m) -> {
-            String keyRangeString = m.get("keyrange");
-            setKeyRange(ConsistentHashMap.fromKeyrangeString(keyRangeString));
-            serverStoppedHandlerWrapper.setServerStopped(false);
-            try {
-                w.close();
-            } catch (IOException e) {
-                logger.warning(e.getMessage());
-            }
-            logger.info("successfully registered new kvServer at ecs");
-        });
+        try {
+            blockingECSClient.send(registerMsg);
+        } catch (IOException e) {
+            logger.warning("failed to send register message to ecs: " + e.getMessage());
+        }
     }
 
+    private KVTP2Client blockingECSClient;
     public KVTP2Client getBlockingECSClient() throws IOException {
-        KVTP2Client blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
+        if (blockingECSClient != null) {
+            return blockingECSClient;
+        }
+
+        blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
         blockingECSClient.connect();
         return blockingECSClient;
     }

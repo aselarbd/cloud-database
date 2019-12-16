@@ -115,7 +115,6 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
             if (res.getCommand().equals("bye")) {
                 kvServer.setStopped(true);
             }
-            ecsClient.close();
         } catch (IOException e) {
             logger.warning("failed to send finish for shutdown to ecs: " + e.getMessage());
         }

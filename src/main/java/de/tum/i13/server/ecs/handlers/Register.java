@@ -59,9 +59,6 @@ public class Register implements BiConsumer<MessageWriter, Message> {
         heartbeat(serverState);
 
         String keyrangeString = ssm.getKeyRanges().getKeyrangeString();
-        Message response = Message.getResponse(msg);
-        response.setCommand("keyrange");
-        response.put("keyrange", keyrangeString);
 
         // no re-balancing if there's only one server
         if (ssm.getKeyRanges().size() > 1) {
@@ -88,8 +85,17 @@ public class Register implements BiConsumer<MessageWriter, Message> {
             }
         }
 
+        try {
+            Message keyRange = new Message("keyrange");
+            keyRange.put("keyrange", keyrangeString);
+            serverState.getClient().send(keyRange);
+            Message response = Message.getResponse(msg);
+            msg.setCommand("ok");
+            messageWriter.write(response);
+        } catch (IOException e) {
+            logger.warning("failed to send keyrange to new server" + e.getMessage());
+        }
         logger.info("succesfully registered new kvServer: " + kvAddr);
-        messageWriter.write(response);
     }
 
     private void heartbeat(ServerState receiver) {
