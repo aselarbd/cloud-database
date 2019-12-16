@@ -160,8 +160,9 @@ public class KVServer {
             return blockingECSClient;
         }
 
-        blockingECSClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
-        blockingECSClient.connect();
+        KVTP2Client newClient = new KVTP2Client(config.bootstrap.getHostString(), config.bootstrap.getPort());
+        newClient.connect();
+        blockingECSClient = newClient;
         return blockingECSClient;
     }
 
