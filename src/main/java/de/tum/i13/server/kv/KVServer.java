@@ -176,12 +176,14 @@ public class KVServer {
         this.keyRangeHandler.setKeyRange(keyRange);
         final ConsistentHashMap replicated = keyRange.getInstanceWithReplica();
         this.keyRangeReadHandler.setKeyRangeRead(replicated);
-        try {
-            this.replicator.setEcsClient(getBlockingECSClient());
-            this.replicator.setReplicaSets(replicated);
-        } catch (IOException | InterruptedException e) {
-            logger.warning("Failed to update replicator: " + e.getMessage());
-        }
+        new Thread(() -> {
+            try {
+                this.replicator.setEcsClient(getBlockingECSClient());
+                this.replicator.setReplicaSets(replicated);
+            } catch (IOException | InterruptedException e) {
+                logger.warning("Failed to update replicator: " + e.getMessage());
+            }
+        }).start();
     }
 
     public ConsistentHashMap getKeyRange() {
