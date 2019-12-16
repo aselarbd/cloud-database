@@ -1,8 +1,7 @@
-package de.tum.i13.server.kv.Replication;
+package de.tum.i13.server.kv.replication;
 
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
-import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
@@ -25,6 +24,14 @@ public class ReplicationConsumer implements Runnable {
 
     public void add(KVItem item) throws InterruptedException {
         replicationQueue.put(item);
+    }
+
+    public void closeClient() {
+        try {
+            this.client.close();
+        } catch (IOException e) {
+            logger.warning("Failed to close consumer client " + e.getMessage());
+        }
     }
 
     @Override

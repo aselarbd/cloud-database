@@ -3,7 +3,7 @@ package de.tum.i13.server.kv.handlers.kv;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.HandlerWrapper;
-import de.tum.i13.server.kv.Replication.Replicator;
+import de.tum.i13.server.kv.replication.Replicator;
 import de.tum.i13.shared.KVItem;
 
 import java.util.function.BiConsumer;

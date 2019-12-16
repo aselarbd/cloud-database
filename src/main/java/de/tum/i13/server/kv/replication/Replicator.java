@@ -1,4 +1,4 @@
-package de.tum.i13.server.kv.Replication;
+package de.tum.i13.server.kv.replication;
 
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2ClientFactory;
@@ -10,10 +10,7 @@ import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -68,9 +65,12 @@ public class Replicator {
             }
         }
 
-        for (InetSocketAddress a : kvAddressToReplicationConsumer.keySet()) {
+        Iterator<InetSocketAddress> it = kvAddressToReplicationConsumer.keySet().iterator();
+        while (it.hasNext()) {
+            InetSocketAddress a = it.next();
             if ((!successors.contains(a))) {
                 remove(a);
+                it.remove();
             }
         }
     }
@@ -83,9 +83,8 @@ public class Replicator {
         ExecutorService service = services.get(replicationConsumer);
         service.awaitTermination(5000, TimeUnit.MILLISECONDS);
         service.shutdownNow();
+        replicationConsumer.closeClient();
         services.remove(replicationConsumer);
-
-        kvAddressToReplicationConsumer.remove(replica);
     }
 
     private void add(InetSocketAddress replica) throws IOException {

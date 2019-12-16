@@ -3,7 +3,7 @@ package de.tum.i13.server.kv;
 import de.tum.i13.kvtp2.*;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
-import de.tum.i13.server.kv.Replication.Replicator;
+import de.tum.i13.server.kv.replication.Replicator;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.*;
 
