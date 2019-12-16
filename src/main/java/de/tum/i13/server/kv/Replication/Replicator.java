@@ -27,43 +27,46 @@ public class Replicator {
     private static final KVItem POISON = new KVItem(Constants.REPLICATION_STOP_MARKER, Constants.REPLICATION_STOP_MARKER);
 
     private final InetSocketAddress address;
-    private final KVTP2Client ecsClient;
+    private KVTP2Client ecsClient;
     private final KVStore store;
     private final KVTP2ClientFactory clientFactory;
-    private final Map<InetSocketAddress, ReplicationConsumer> KVAddressToReplicationConsumer;
+    private final Map<InetSocketAddress, ReplicationConsumer> kvAddressToReplicationConsumer;
     private final Map<ReplicationConsumer, ExecutorService> services;
 
     public Replicator(
             InetSocketAddress address,
-            KVTP2Client ecsClient,
             KVStore store
     ) {
-        this(address, ecsClient, store, KVTP2Client::new);
+        this(address, store, KVTP2Client::new);
     }
 
     public Replicator(
             InetSocketAddress address,
-            KVTP2Client ecsClient,
             KVStore store,
             KVTP2ClientFactory clientFactory
     ) {
         this.address = address;
-        this.ecsClient = ecsClient;
         this.store = store;
         this.clientFactory = clientFactory;
 
-        this.KVAddressToReplicationConsumer = new HashMap<>();
+        this.kvAddressToReplicationConsumer = new HashMap<>();
         this.services = new HashMap<>();
     }
 
-    private void setReplicaSets(ConsistentHashMap keyRange) throws IOException, InterruptedException {
+    public void setEcsClient(KVTP2Client ecsClient) {
+        this.ecsClient = ecsClient;
+    }
+
+    public void setReplicaSets(ConsistentHashMap keyRange) throws IOException, InterruptedException {
         List<InetSocketAddress> successors = keyRange.getAllSuccessors(address);
         successors.remove(address);
 
         for (InetSocketAddress successor : successors) {
-            add(successor);
+            if (!kvAddressToReplicationConsumer.keySet().contains(successor)) {
+                add(successor);
+            }
         }
-        for (InetSocketAddress a : KVAddressToReplicationConsumer.keySet()) {
+        for (InetSocketAddress a : kvAddressToReplicationConsumer.keySet()) {
             if ((!successors.contains(a))) {
                 remove(a);
             }
@@ -82,7 +85,7 @@ public class Replicator {
 
     private void remove(InetSocketAddress replica) throws InterruptedException {
 
-        ReplicationConsumer replicationConsumer = KVAddressToReplicationConsumer.get(replica);
+        ReplicationConsumer replicationConsumer = kvAddressToReplicationConsumer.get(replica);
         replicationConsumer.add(POISON);
 
         ExecutorService service = services.get(replicationConsumer);
@@ -90,13 +93,13 @@ public class Replicator {
         service.shutdownNow();
         services.remove(replicationConsumer);
 
-        KVAddressToReplicationConsumer.remove(replica);
+        kvAddressToReplicationConsumer.remove(replica);
     }
 
     private void add(InetSocketAddress replica) throws IOException {
         LinkedBlockingQueue<KVItem> replicationQueue = new LinkedBlockingQueue<>();
         ReplicationConsumer replicationConsumer = new ReplicationConsumer(replicationQueue, POISON, getReplicaClient(replica));
-        KVAddressToReplicationConsumer.put(replica, replicationConsumer);
+        kvAddressToReplicationConsumer.put(replica, replicationConsumer);
         ExecutorService service = Executors.newSingleThreadExecutor();
         service.submit(replicationConsumer);
         services.put(replicationConsumer, service);
@@ -121,8 +124,8 @@ public class Replicator {
     }
 
     public void replicate(KVItem item) throws InterruptedException {
-        for (InetSocketAddress inetSocketAddress : KVAddressToReplicationConsumer.keySet()) {
-            KVAddressToReplicationConsumer.get(inetSocketAddress).add(item);
+        for (InetSocketAddress inetSocketAddress : kvAddressToReplicationConsumer.keySet()) {
+            kvAddressToReplicationConsumer.get(inetSocketAddress).add(item);
         }
     }
 }
