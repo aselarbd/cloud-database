@@ -265,7 +265,14 @@ class ConsistentHashMapTest {
         consistentHashMap.put(ip1);
         consistentHashMap.put(ip2);
 
-        assertEquals(consistentHashMap, consistentHashMap.getInstanceWithReplica());
+        ConsistentHashMap replicatedMap = consistentHashMap.getInstanceWithReplica();
+        assertEquals(2, replicatedMap.size());
+        List<InetSocketAddress> oneSuccessors = replicatedMap.getAllSuccessors("192.168.1.1:80");
+        List<InetSocketAddress> twoSuccessors = replicatedMap.getAllSuccessors("192.168.1.2:80");
+        assertEquals(1, oneSuccessors.size());
+        assertEquals(1, twoSuccessors.size());
+        assertEquals(ip1, oneSuccessors.get(0));
+        assertEquals(ip2, twoSuccessors.get(0));
     }
 
     @Test

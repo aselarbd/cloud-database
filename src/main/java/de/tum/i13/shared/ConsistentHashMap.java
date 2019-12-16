@@ -187,16 +187,15 @@ public class ConsistentHashMap {
     }
 
     /**
-     * Gets a map which contains replica addresses. If there are less than three nodes, the map is returned
-     * without changes.
+     * Gets a map which contains replica addresses. If there are less than three nodes, no replica are available.
      *
      * Otherwise, a new map containing all write nodes (elements added via #put) plus the two successors for
      * every node will be returned. Replica of the current instance are ignored!
      *
-     * @return A new instance with replica or the current instance if less than three nodes are available.
+     * @return A new instance with replica if enough elements are present, or the current instance for empty maps.
      */
     public ConsistentHashMap getInstanceWithReplica() {
-        if (size() < 3) {
+        if (size() == 0) {
             return this;
         }
 
@@ -208,11 +207,14 @@ public class ConsistentHashMap {
                 .collect(Collectors.toList());
         ConsistentHashMap newInstance = new ConsistentHashMap();
         final int listSize = baseAddrs.size();
+        final boolean doReplicate = (listSize >= 3);
         for (int i = 0; i < listSize; i++) {
             newInstance.put(baseAddrs.get(i));
-            // put replica and wrap around for last two elements
-            newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 1) % listSize));
-            newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 2) % listSize));
+            if (doReplicate) {
+                // put replica and wrap around for last two elements
+                newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 1) % listSize));
+                newInstance.putReplica(baseAddrs.get(i), baseAddrs.get((i + 2) % listSize));
+            }
         }
         rwl.readLock().unlock();
         return newInstance;

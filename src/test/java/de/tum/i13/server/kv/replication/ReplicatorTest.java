@@ -113,11 +113,12 @@ public class ReplicatorTest {
     }
 
 
-    /*
     @Test
     public void testReplicateDisconnect() throws IOException, InterruptedException {
         prepareRepl(TestConstants.IP_1);
         replicator.setReplicaSets(testMap);
+
+        Thread.sleep(REPL_THREAD_WAIT);
 
         // two instances are not replicated. Ensure both replica get disconnected.
         testMap.remove(TestConstants.IP_2);
@@ -129,10 +130,10 @@ public class ReplicatorTest {
 
         Thread.sleep(SHUTDOWN_WAIT);
 
-        //verify(kvClient, times(2)).close();
+        verify(kvClient, times(2)).close();
 
         replicator.replicate(new KVItem("foo", "bar"));
 
         verify(kvClient, never()).send(any(Message.class));
-    }*/
+    }
 }
