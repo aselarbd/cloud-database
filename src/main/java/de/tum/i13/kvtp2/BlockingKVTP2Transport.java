@@ -30,7 +30,8 @@ public class BlockingKVTP2Transport implements KVTP2Transport {
 
     @Override
     public String send(String request) throws IOException {
-        out.println(request);
+        out.print(request + "\r\n");
+        out.flush();
         return in.readLine();
     }
 

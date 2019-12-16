@@ -33,8 +33,14 @@ public class AddressConverter implements BiConsumer<MessageWriter, Message> {
             String kvPort = message.get("kvport");
             Message response = Message.getResponse(message);
             ServerState ecsAddress = ssm.getByKVAddress(new InetSocketAddress(kvIP, Integer.parseInt(kvPort)));
-            response.put("ecsip", ecsAddress.getECS().getHostString());
-            response.put("ecsport", Integer.toString(ecsAddress.getECS().getPort()));
+
+            if (ecsAddress != null) {
+                response.put("ecsip", ecsAddress.getECS().getHostString());
+                response.put("ecsport", Integer.toString(ecsAddress.getECS().getPort()));
+            } else {
+                response.setCommand("error");
+                response.put("msg", "ecs address not available");
+            }
             messageWriter.write(response);
             return;
         }

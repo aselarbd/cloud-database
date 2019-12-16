@@ -77,10 +77,14 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
                                     KVToECSMsg.put("kvip", successor.getHostString());
                                     KVToECSMsg.put("kvport", Integer.toString(successor.getPort()));
                                     Message kvToEcs = finalEcsClient.send(KVToECSMsg);
-                                    String ip = kvToEcs.get("ecsip");
-                                    int port = Integer.parseInt(kvToEcs.get("ecsport"));
-                                    KVTP2Client kvtp2Client = new KVTP2Client(ip, port);
-                                    clients.put(successor, kvtp2Client);
+                                    if (kvToEcs.getCommand().equals("error")) {
+                                        logger.warning("could not get ecs address, can't put values to successor");
+                                    } else {
+                                        String ip = kvToEcs.get("ecsip");
+                                        int port = Integer.parseInt(kvToEcs.get("ecsport"));
+                                        KVTP2Client kvtp2Client = new KVTP2Client(ip, port);
+                                        clients.put(successor, kvtp2Client);
+                                    }
                                 }
 
                                 clients.get(successor).send(put);

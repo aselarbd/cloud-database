@@ -1,6 +1,9 @@
 package de.tum.i13.kvtp2;
 
+import de.tum.i13.shared.Constants;
+
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -20,6 +23,7 @@ class TCPConnection extends Connection {
     private final SocketChannel channel;
 
     private TCPConnStringWriter tcpConnStringWriter;
+    private byte[] pendingRead;
 
     TCPConnection(SocketChannel channel, BiConsumer<StringWriter, byte[]> receiver) {
         super(channel);
@@ -45,6 +49,9 @@ class TCPConnection extends Connection {
     void read() throws IOException {
         readBuffer.clear();
         int numRead = channel.read(readBuffer);
+        if (numRead <= 2) {
+            System.out.println("read emtpy message");
+        }
         if (numRead == -1) {
             channel.close();
             key.cancel();
@@ -52,14 +59,48 @@ class TCPConnection extends Connection {
         }
 
         byte[] data = new byte[numRead];
-        readBuffer.flip();
-        readBuffer.get(data);
-        readBuffer.clear();
+
+        System.arraycopy(readBuffer.array(), 0, data, 0, numRead);
+
+        if (pendingRead != null && pendingRead.length > 0) {
+            byte[] concatenated = new byte[pendingRead.length + data.length];
+            System.arraycopy(pendingRead, 0, concatenated, 0, pendingRead.length);
+            System.arraycopy(data, 0, concatenated, pendingRead.length, data.length);
+            data = concatenated;
+        }
+
+        if (data.length > 128000) {
+            channel.close();
+            key.cancel();
+            return;
+        }
 
         if (receiver != null) {
-            receiver.accept(getStringWriter(), data);
+            pendingRead = processReceiveBuffer(data);
         }
         // drop message
+    }
+
+    private byte[] processReceiveBuffer(byte[] data) {
+        int length = data.length;
+        int start = 0;
+        for(int i = 1; i < length; i++) {
+            if(data[i] == '\n') {
+                if(data[i-1] == '\r') {
+
+                    byte[] concatenated = new byte[(i-1) - start];
+                    System.arraycopy(data, start, concatenated, 0, (i-1) - start);
+
+                    receiver.accept(getStringWriter(), concatenated);
+
+                    start = i + 1;
+                }
+            }
+        }
+        byte[] unprocessed = new byte[data.length - start];
+        System.arraycopy(data, start, unprocessed, 0, unprocessed.length);
+
+        return unprocessed;
     }
 
     public class TCPConnStringWriter implements StringWriter {

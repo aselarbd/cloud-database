@@ -63,8 +63,12 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                 int predecessorPort = 0;
                 try {
                     Message KVToECSResponse = ecsClient.send(KVToECSMsg);
-                    predecessorIP = KVToECSResponse.get("ecsip");
-                    predecessorPort = Integer.parseInt(KVToECSResponse.get("ecsport"));
+                    if (!KVToECSResponse.getCommand().equals("error")) {
+                        predecessorIP = KVToECSResponse.get("ecsip");
+                        predecessorPort = Integer.parseInt(KVToECSResponse.get("ecsport"));
+                    } else {
+                        logger.warning("Could not get ecs api address for kv server at " + newPredecessor);
+                    }
                 } catch (IOException e) {
                     // TODO: Handle the error, maybe try again. Tell ecs?
                     logger.warning("Could not get ecs api address for kv server at " + newPredecessor);

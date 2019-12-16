@@ -46,9 +46,12 @@ public class KVMain {
         try {
             logger.info("stopping server");
             kvServer.stop();
-            while(!kvServer.stopped()) {
+            int max = 3;
+            int attempts = 0;
+            while(!kvServer.stopped() && attempts < max) {
                 logger.info("waiting for kvServer shutdown...");
-                Thread.sleep(1000);
+                Thread.sleep(3000);
+                attempts++;
             }
             ecsServer.stop();
         } catch (IOException | InterruptedException e) {
