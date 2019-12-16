@@ -64,23 +64,15 @@ public class Replicator {
         for (InetSocketAddress successor : successors) {
             if (!kvAddressToReplicationConsumer.keySet().contains(successor)) {
                 add(successor);
+                replicateAllAt(keyRange, successor);
             }
         }
+
         for (InetSocketAddress a : kvAddressToReplicationConsumer.keySet()) {
             if ((!successors.contains(a))) {
                 remove(a);
             }
         }
-        Set<String> allKeys = store.getAllKeys((k) -> keyRange.getSuccessor(k).equals(address));
-        allKeys.forEach(k -> {
-            try {
-                replicate(store.get(k));
-            } catch (InterruptedException e) {
-                logger.warning("interrupted while replicating full keyset: " + e.getMessage());
-            } catch (IOException e) {
-                logger.warning("Could not fetch value for replication of key: " + e.getMessage());
-            }
-        });
     }
 
     private void remove(InetSocketAddress replica) throws InterruptedException {
@@ -125,7 +117,24 @@ public class Replicator {
 
     public void replicate(KVItem item) throws InterruptedException {
         for (InetSocketAddress inetSocketAddress : kvAddressToReplicationConsumer.keySet()) {
-            kvAddressToReplicationConsumer.get(inetSocketAddress).add(item);
+            replicateAt(item, inetSocketAddress);
         }
+    }
+
+    private void replicateAt(KVItem item, InetSocketAddress addr) throws InterruptedException {
+        kvAddressToReplicationConsumer.get(addr).add(item);
+    }
+
+    private void replicateAllAt(ConsistentHashMap keyRange, InetSocketAddress replica) throws IOException {
+        Set<String> allKeys = store.getAllKeys((k) -> keyRange.getSuccessor(k).equals(address));
+        allKeys.forEach(k -> {
+            try {
+                replicateAt(store.get(k), replica);
+            } catch (InterruptedException e) {
+                logger.warning("interrupted while replicating full keyset: " + e.getMessage());
+            } catch (IOException e) {
+                logger.warning("Could not fetch value for replication of key: " + e.getMessage());
+            }
+        });
     }
 }
