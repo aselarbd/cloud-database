@@ -16,7 +16,7 @@ public class ReplicaIntegrationTest {
     public static final Integer kv4Port = 5164;
     public static final Integer kv5Port = 5165;
     public static final Integer ecsPort = 5160;
-    public static final Integer WAIT_TIME_ITEM_REPL = 500;
+    public static final Integer WAIT_TIME_ITEM_REPL = 2000;
     public static final Integer WAIT_TIME_BALANCE = 2000;
 
     private void assertReplica(int[] kvPorts, String key, String value) throws IOException {

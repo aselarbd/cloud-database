@@ -2,6 +2,7 @@ package de.tum.i13.server.kv.Replication;
 
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
+import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 
 import java.io.IOException;
@@ -35,6 +36,9 @@ public class ReplicationConsumer implements Runnable {
                 if ((next = replicationQueue.take()).equals(poison)) break;
                 message.put("key", next.getKey());
                 message.put("value", next.getValue());
+                if (next.getValue() == null) {
+                    message.setCommand("delete");
+                }
                 message.put("timestamp", Long.toString(next.getTimestamp()));
                 client.send(message);
             } catch (InterruptedException e) {
