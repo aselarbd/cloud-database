@@ -59,6 +59,22 @@ public class KVLib {
     }
 
     /**
+     * get key range for new servers
+     *
+     * @return key range for each server that got by server or server stop message
+     * if server not responding
+     */
+    public String keyRangeRead() {
+        getKeyRanges();
+        if (keyRangesReplica == null){
+            LOGGER.log(Level.WARNING, "Metadata table on the kV Client is empty");
+            return "Server Doesn't have key range values";
+        }
+        LOGGER.log(Level.INFO, "Generate Key range");
+        return keyRangesReplica.getKeyrangeReadString();
+    }
+
+    /**
      * Connect to the given server.
      *
      * @param address The server IP address as String
@@ -122,6 +138,7 @@ public class KVLib {
         }
         // everything is empty. Reset keyranges and communicator map
         keyRanges = null;
+        keyRangesReplica = null;
         communicatorMap = new HashMap<>();
     }
 

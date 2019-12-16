@@ -51,6 +51,8 @@ public class KvClient {
                 new StringArrayParser(1, false), this::logLevel));
         this.actions.put("keyrange", new Action<>(
                 new StringArrayParser(0, false), this::keyRange));
+        this.actions.put("keyrange_read", new Action<>(
+                new StringArrayParser(0, false), this::keyRangeRead));
     }
 
     /**
@@ -105,12 +107,22 @@ public class KvClient {
 
 
     /**
-     * KeyRange function will get the key range from server
+     * KeyRange function will get the key ranges from server and output the write-keyrange
      *
      * @param args : arguments from commandline
      */
     private void keyRange(String[] args) {
         String res = kvLib.keyRange();
+        write(res);
+    }
+
+    /**
+     * KeyRangeRead function will get the key range from server and output the read-keyrange
+     *
+     * @param args : arguments from commandline
+     */
+    private void keyRangeRead(String[] args) {
+        String res = kvLib.keyRangeRead();
         write(res);
     }
 
@@ -124,6 +136,8 @@ public class KvClient {
                 + "\thelp\tPrints out this help message\n"
                 + "\tquit\tExits the client\n"
                 + "\tconnect <host> <port>\tConnects to the given server\n"
+                + "\tkeyrange\tGets keyrange data and outputs the keyrange without replica\n"
+                + "\tkeyrange_read\tGets keyrange data and outputs the keyrange including replica\n"
                 + "\tput <key> <value>\tPuts the given key-value pair to the server (requires connection)\n"
                 + "\tget <key>\tGets the key-value pair with the given key from the server (requires connection)\n"
                 + "\tdelete <key>\tDeletes the key-value pair with the given key from the server (requires connection)\n"

@@ -22,7 +22,7 @@ public class KeyRangeRead implements BiConsumer<MessageWriter, Message> {
     public void accept(MessageWriter messageWriter, Message message) {
         Message keyrangeResponse = Message.getResponse(message);
         keyrangeResponse.setCommand("keyrange_read");
-        keyrangeResponse.put("keyrange", keyRangeRead.getKeyrangeString());
+        keyrangeResponse.put("keyrange", keyRangeRead.getKeyrangeReadString());
         messageWriter.write(keyrangeResponse);
     }
 }
