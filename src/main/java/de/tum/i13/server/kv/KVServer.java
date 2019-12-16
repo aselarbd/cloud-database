@@ -3,6 +3,7 @@ package de.tum.i13.server.kv;
 import de.tum.i13.kvtp2.*;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
+import de.tum.i13.server.kv.Replication.Replicator;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.*;
 
@@ -20,6 +21,7 @@ public class KVServer {
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;
     private KVCache kvCache;
+    private Replicator replicator;
     private final Config config;
 
     private final InetSocketAddress address;
@@ -44,9 +46,14 @@ public class KVServer {
                 .algorithm(CacheBuilder.Algorithm.valueOf(cfg.cachedisplacement))
                 .build();
 
+        this.replicator = new Replicator(
+                new InetSocketAddress(cfg.listenaddr, cfg.port),
+                kvStore
+        );
+
         serverStoppedHandlerWrapper = new ServerStoppedHandler();
         serverWriteLockHandler = new ServerWriteLockHandler();
-        replicationHandler = new ReplicationHandler(this, new InetSocketAddress(cfg.listenaddr, cfg.port));
+        replicationHandler = new ReplicationHandler(replicator);
 
         keyRangeHandler = new KeyRange();
         keyRangeReadHandler = new KeyRangeRead();
@@ -170,7 +177,12 @@ public class KVServer {
         this.keyRangeHandler.setKeyRange(keyRange);
         final ConsistentHashMap replicated = keyRange.getInstanceWithReplica();
         this.keyRangeReadHandler.setKeyRangeRead(replicated);
-        this.replicationHandler.keyrangeUpdated(replicated);
+        try {
+            this.replicator.setEcsClient(getBlockingECSClient());
+            this.replicator.setReplicaSets(replicated);
+        } catch (IOException | InterruptedException e) {
+            logger.warning("Failed to update replicator: " + e.getMessage());
+        }
     }
 
     public ConsistentHashMap getKeyRange() {
