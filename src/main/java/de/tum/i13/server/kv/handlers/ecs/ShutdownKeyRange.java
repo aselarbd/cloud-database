@@ -68,7 +68,7 @@ public class ShutdownKeyRange implements BiConsumer<MessageWriter, Message> {
                             KVItem item = null;
                             try {
                                 item = kvServer.getItem(k);
-                                put.put("Key", item.getKey());
+                                put.put("key", item.getKey());
                                 put.put("value", item.getValue());
                                 InetSocketAddress successor = newKeyRange.getSuccessor(item.getKey());
 

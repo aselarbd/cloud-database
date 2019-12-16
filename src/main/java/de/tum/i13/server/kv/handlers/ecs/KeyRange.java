@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -75,16 +76,16 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                 }
 
                 KVTP2Client kvtp2Client = new KVTP2Client(predecessorIP, predecessorPort);
-
                 ExecutorService transferExecutor = Executors.newSingleThreadExecutor();
                 try {
+                    kvtp2Client.connect();
                     List<Future<String>> futures = transferExecutor.invokeAll(
                             oldKeys.stream().map((k) -> (Callable<String>) () -> {
                                 Message put = new Message("put");
                                 KVItem item = null;
                                 try {
                                     item = kvServer.getItem(k);
-                                    put.put("Key", item.getKey());
+                                    put.put("key", item.getKey());
                                     put.put("value", item.getValue());
                                     kvtp2Client.send(put);
                                 } catch (IOException e) {
@@ -97,11 +98,14 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
                         try {
                             f.get();
                         } catch (InterruptedException | ExecutionException e) {
-                            logger.warning("failed to finish putting value to new predecessor: " + e.getMessage());
+                            logger.log(Level.WARNING, "failed to finish putting value to new predecessor", e);
                         }
                     });
+                    kvtp2Client.close();
                 } catch (InterruptedException e) {
                     logger.warning("interrupted while putting values to new predecessor");
+                } catch (IOException e) {
+                    logger.log(Level.WARNING, "Failed to transfer elements", e);
                 }
 
                 Message finish = new Message("finish");
