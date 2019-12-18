@@ -1,0 +1,25 @@
+version: '3'
+services:
+  ecs:
+    build:
+      context: .
+      dockerfile: ecs.Dockerfile
+    image: ecs
+    ports:
+      - "5051:5051"
+    command: ["java", "-jar", "/usr/local/lib/ecs-server.jar", "-a", "0.0.0.0", "-p", "5051", "-ll=ALL"]
+
+  kv:
+    build:
+      context: .
+      dockerfile: kv.Dockerfile
+    image: kvserver
+    ports:
+      - "5150-5160:5153"
+    command: ["java", "-jar", "/usr/local/lib/kv-server.jar", "-a", "0.0.0.0", "-b", "ecs:5051", "-ll=ALL"]
+
+  client:
+    build:
+      context: .
+      dockerfile: kvc.Dockerfile
+    image: kvclient
