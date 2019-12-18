@@ -14,9 +14,9 @@ class TCPServerConnection extends Connection {
     private ServerSocketChannel ssc;
     private List<Connection> connections;
 
-    private BiConsumer<StringWriter, byte[]> receiver;
+    private BiConsumer<StringWriter, TCPMessage> receiver;
 
-    TCPServerConnection(String address, int port, Selector selector, BiConsumer<StringWriter, byte[]> receiver) throws IOException {
+    TCPServerConnection(String address, int port, Selector selector, BiConsumer<StringWriter, TCPMessage> receiver) throws IOException {
         super(ServerSocketChannel.open());
         this.receiver = receiver;
 

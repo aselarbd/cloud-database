@@ -23,12 +23,16 @@ public class Replicator {
 
     private static final KVItem POISON = new KVItem(Constants.REPLICATION_STOP_MARKER, Constants.REPLICATION_STOP_MARKER);
 
-    private final InetSocketAddress address;
+    private InetSocketAddress address;
+
     private KVTP2Client ecsClient;
     private final KVStore store;
     private final KVTP2ClientFactory clientFactory;
     private final Map<InetSocketAddress, ReplicationConsumer> kvAddressToReplicationConsumer;
     private final Map<ReplicationConsumer, ExecutorService> services;
+    public Replicator(KVStore store) {
+        this(null, store);
+    }
 
     public Replicator(
             InetSocketAddress address,
@@ -48,6 +52,10 @@ public class Replicator {
 
         this.kvAddressToReplicationConsumer = new HashMap<>();
         this.services = new HashMap<>();
+    }
+
+    public void setAddress(InetSocketAddress address) {
+        this.address = address;
     }
 
     public void setEcsClient(KVTP2Client ecsClient) {

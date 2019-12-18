@@ -1,9 +1,7 @@
 package de.tum.i13.kvtp2;
 
-import de.tum.i13.shared.Constants;
-
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -18,17 +16,20 @@ class TCPConnection extends Connection {
 
     private final ByteBuffer readBuffer;
 
-    private final BiConsumer<StringWriter, byte[]> receiver;
+    private final BiConsumer<StringWriter, TCPMessage> receiver;
 
     private final SocketChannel channel;
+    private final InetSocketAddress remoteAddress;
 
     private TCPConnStringWriter tcpConnStringWriter;
     private byte[] pendingRead;
 
-    TCPConnection(SocketChannel channel, BiConsumer<StringWriter, byte[]> receiver) {
+    TCPConnection(SocketChannel channel, BiConsumer<StringWriter, TCPMessage> receiver) throws IOException {
         super(channel);
         this.receiver = receiver;
         this.channel = (SocketChannel) super.channel;
+
+        this.remoteAddress = (InetSocketAddress) channel.getRemoteAddress();
 
         this.readBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
@@ -49,9 +50,6 @@ class TCPConnection extends Connection {
     void read() throws IOException {
         readBuffer.clear();
         int numRead = channel.read(readBuffer);
-        if (numRead <= 2) {
-            System.out.println("read emtpy message");
-        }
         if (numRead == -1) {
             channel.close();
             key.cancel();
@@ -91,7 +89,8 @@ class TCPConnection extends Connection {
                     byte[] concatenated = new byte[(i-1) - start];
                     System.arraycopy(data, start, concatenated, 0, (i-1) - start);
 
-                    receiver.accept(getStringWriter(), concatenated);
+                    TCPMessage tcpMessage = new TCPMessage(concatenated, this.remoteAddress);
+                    receiver.accept(getStringWriter(), tcpMessage);
 
                     start = i + 1;
                 }

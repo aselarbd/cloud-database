@@ -169,8 +169,8 @@ public class NonBlockingKVTP2Client {
         stringWriter.flush();
     }
 
-    private void receive(StringWriter w, byte[] request) {
-        String in = new String(request, ENCODING).trim(); // TODO: Maybe trim manually, might be faster
+    private void receive(StringWriter w, TCPMessage request) {
+        String in = new String(request.getBytes(), ENCODING).trim(); // TODO: Maybe trim manually, might be faster
         String[] msgs = in.split("\r\n");
         for (String s : msgs) {
             byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));

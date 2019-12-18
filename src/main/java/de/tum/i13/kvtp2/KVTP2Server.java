@@ -83,14 +83,15 @@ public class KVTP2Server {
         }
     }
 
-    private void serve(StringWriter w, byte[] request) {
-        String in = new String(request, ENCODING).trim(); // TODO: Maybe trim manually, might be faster
+    private void serve(StringWriter w, TCPMessage request) {
+        String in = new String(request.getBytes(), ENCODING).trim(); // TODO: Maybe trim manually, might be faster
         String[] msgs = in.split("\\R");
         for (String s : msgs) {
             byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
             Message msg = null;
             try {
                 msg = Message.parse(new String(decodedRequest, ENCODING));
+                msg.setSrc(request.getRemoteAddress());
             } catch (MalformedMessageException e) {
                 Message error = new Message("_error");
                 error.put("msg", "malformed message");

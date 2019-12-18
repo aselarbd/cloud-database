@@ -7,14 +7,25 @@ import de.tum.i13.shared.ConsistentHashMap;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
+import java.util.logging.Logger;
 
 public class ResponsibilityHandler implements HandlerWrapper {
 
-    private final InetSocketAddress kvAddress;
+    public static final Logger logger = Logger.getLogger(ResponsibilityHandler.class.getName());
+
+    private InetSocketAddress kvAddress;
     private final KeyRangeRead keyRangeHandler;
+
+    public ResponsibilityHandler(KeyRangeRead keyRangeReplica) {
+        this(keyRangeReplica, null);
+    }
 
     public ResponsibilityHandler(KeyRangeRead keyRangeReplica, InetSocketAddress kvAddress) {
         this.keyRangeHandler = keyRangeReplica;
+        this.kvAddress = kvAddress;
+    }
+
+    public void setKvAddress(InetSocketAddress kvAddress) {
         this.kvAddress = kvAddress;
     }
 
@@ -38,14 +49,18 @@ public class ResponsibilityHandler implements HandlerWrapper {
         return (w, m) -> {
             ConsistentHashMap keyRangeWithReplica = keyRangeHandler.getKeyRangeRead();
             if (m.get("key") == null || m.get("key").isEmpty()) {
+                logger.info("got request without key: " + m.toString());
                 replyError(w, m, "no key given");
             } else if (m.getCommand().matches("put|delete") &&
                     !keyRangeWithReplica.getSuccessor(m.get("key")).equals(kvAddress)) {
-               replyNotResponsible(w, m);
+                logger.info("request key out of keyrange: " + m.toString());
+                replyNotResponsible(w, m);
             } else if (m.getCommand().matches("get") &&
                         !keyRangeWithReplica.getAllSuccessors(m.get("key")).contains(kvAddress)) {
+                logger.info("request key out of keyrange: " + m.toString());
                 replyNotResponsible(w, m);
             } else {
+                logger.fine("accepting request: " + m.toString());
                 next.accept(w, m);
             }
         };

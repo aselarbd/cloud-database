@@ -26,20 +26,22 @@ public class KVServer {
     private Replicator replicator;
     private final Config config;
 
-    private final InetSocketAddress address;
+    private InetSocketAddress address;
 
     private final KeyRange keyRangeHandler;
     private final KeyRangeRead keyRangeReadHandler;
+    private final ResponsibilityHandler responsibilityHandler;
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
     private ECSServer controlAPIServer;
 
+    private KVTP2Client blockingECSClient;
+
     private ExecutorService shutdownService;
 
     public KVServer(Config cfg) throws IOException {
         this.config = cfg;
-        this.address = new InetSocketAddress(cfg.listenaddr, cfg.port);
         kvtp2Server = new KVTP2Server();
         kvtp2Server.setDecoder(new NullDecoder());
         kvtp2Server.setEncoder(new NullEncoder());
@@ -51,7 +53,6 @@ public class KVServer {
                 .build();
 
         this.replicator = new Replicator(
-                new InetSocketAddress(cfg.listenaddr, cfg.port),
                 kvStore
         );
 
@@ -62,20 +63,17 @@ public class KVServer {
         keyRangeHandler = new KeyRange();
         keyRangeReadHandler = new KeyRangeRead();
 
-        ResponsibilityHandler responsibilityHandler =
-                new ResponsibilityHandler(
-                        keyRangeReadHandler,
-                        new InetSocketAddress(cfg.listenaddr, cfg.port)
-                );
+        responsibilityHandler = new ResponsibilityHandler(
+                keyRangeReadHandler
+        );
 
         kvtp2Server.handle(
                 "get",
                 new LogRequest(logger).wrap(
                 serverStoppedHandlerWrapper.wrap(
-                serverWriteLockHandler.wrap(
                 responsibilityHandler.wrap(
                         new Get(kvCache, kvStore)
-                ))))
+                )))
         );
 
         kvtp2Server.handle(
@@ -150,22 +148,26 @@ public class KVServer {
         }
 
         Message registerMsg = new Message("register");
-        registerMsg.put("kvip", config.listenaddr);
         registerMsg.put("kvport", Integer.toString(config.port));
-        registerMsg.put("ecsip", controlAPIServer.getLocalAddress());
         registerMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
 
         HeartbeatListener heartbeatListener = new HeartbeatListener();
         heartbeatListener.start(config.port, new InetSocketAddress(config.listenaddr, config.port).getAddress());
 
         try {
-            blockingECSClient.send(registerMsg);
+            Message send = blockingECSClient.send(registerMsg);
+            setAddress(new InetSocketAddress(send.get("ip"), config.port));
         } catch (IOException e) {
             logger.warning("failed to send register message to ecs: " + e.getMessage());
         }
     }
 
-    private KVTP2Client blockingECSClient;
+    private void setAddress(InetSocketAddress address) {
+        this.address = address;
+        this.responsibilityHandler.setKvAddress(address);
+        this.replicator.setAddress(address);
+    }
+
     public KVTP2Client getBlockingECSClient() throws IOException {
         if (blockingECSClient != null) {
             return blockingECSClient;
@@ -225,6 +227,7 @@ public class KVServer {
     }
 
     public void start() throws IOException {
+        logger.info("starting kvserver on " + config.listenaddr + ":" + config.port);
         kvtp2Server.start(config.listenaddr, config.port);
     }
 

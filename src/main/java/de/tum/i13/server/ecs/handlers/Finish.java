@@ -17,7 +17,7 @@ public class Finish implements BiConsumer<MessageWriter, Message> {
 
     @Override
     public void accept(MessageWriter messageWriter, Message message) {
-        InetSocketAddress src = new InetSocketAddress(message.get("ecsip"), Integer.parseInt(message.get("ecsport")));
+        InetSocketAddress src = new InetSocketAddress(message.getSrc().getHostString(), Integer.parseInt(message.get("ecsport")));
 
         boolean serverRemains = ssm.getByECSAddress(src) != null;
 

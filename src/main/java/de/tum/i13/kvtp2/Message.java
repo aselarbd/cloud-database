@@ -1,5 +1,6 @@
 package de.tum.i13.kvtp2;
 
+import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -59,6 +60,8 @@ public class Message {
     private Version version;
     private Type type;
     private String command;
+
+    private InetSocketAddress src;
 
     private final Map<String, String> pairs = new LinkedHashMap<>();
 
@@ -194,5 +197,13 @@ public class Message {
 
     public String get(String key) {
         return pairs.get(key);
+    }
+
+    public InetSocketAddress getSrc() {
+        return src;
+    }
+
+    public void setSrc(InetSocketAddress src) {
+        this.src = src;
     }
 }

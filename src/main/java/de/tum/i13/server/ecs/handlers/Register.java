@@ -33,8 +33,9 @@ public class Register implements BiConsumer<MessageWriter, Message> {
 
     @Override
     public void accept(MessageWriter messageWriter, Message msg) {
-        InetSocketAddress kvAddr = new InetSocketAddress(msg.get("kvip"), Integer.parseInt(msg.get("kvport")));
-        InetSocketAddress ecsAddr = new InetSocketAddress(msg.get("ecsip"), Integer.parseInt(msg.get("ecsport")));
+        String remoteHostString = msg.getSrc().getHostString();
+        InetSocketAddress kvAddr = new InetSocketAddress(remoteHostString, Integer.parseInt(msg.get("kvport")));
+        InetSocketAddress ecsAddr = new InetSocketAddress(remoteHostString, Integer.parseInt(msg.get("ecsport")));
 
         ServerState serverState;
         try {
@@ -90,7 +91,8 @@ public class Register implements BiConsumer<MessageWriter, Message> {
             keyRange.put("keyrange", keyrangeString);
             serverState.getClient().send(keyRange);
             Message response = Message.getResponse(msg);
-            msg.setCommand("ok");
+            response.setCommand("ok");
+            response.put("ip", serverState.getKV().getHostString());
             messageWriter.write(response);
         } catch (IOException e) {
             logger.warning("failed to send keyrange to new server" + e.getMessage());

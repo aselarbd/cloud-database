@@ -23,7 +23,7 @@ public class Shutdown implements BiConsumer<MessageWriter, Message> {
 
     @Override
     public void accept(MessageWriter messageWriter, Message message) {
-        InetSocketAddress src = new InetSocketAddress(message.get("ecsip"), Integer.parseInt(message.get("ecsport")));
+        InetSocketAddress src = new InetSocketAddress(message.getSrc().getHostString(), Integer.parseInt(message.get("ecsport")));
         ServerState server = ssm.getByECSAddress(src);
 
         Message lock = Message.getResponse(message);
