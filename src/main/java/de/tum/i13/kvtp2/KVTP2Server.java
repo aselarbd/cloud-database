@@ -1,5 +1,7 @@
 package de.tum.i13.kvtp2;
 
+import de.tum.i13.kvtp2.middleware.Handler;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -15,8 +17,8 @@ public class KVTP2Server {
 
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
     private Selector selector;
-    private final Map<String, BiConsumer<MessageWriter, Message>> handlers;
-    private BiConsumer<MessageWriter, Message> defaultHandler;
+    private final Map<String, Handler> handlers;
+    private Handler defaultHandler;
 
     private TCPServerConnection serverConnection;
 
@@ -119,14 +121,14 @@ public class KVTP2Server {
         };
 
         if (handlers.containsKey(command)) {
-            handlers.get(command).accept(writer, request);
+            handlers.get(command).handle(writer, request);
         } else if (defaultHandler != null) {
-            defaultHandler.accept(writer, request);
+            defaultHandler.handle(writer, request);
         }
         // neither correct handler nor default handler set -> drop request
     }
 
-    public void setDefaultHandler(BiConsumer<MessageWriter, Message> defaultHandler) {
+    public void setDefaultHandler(Handler defaultHandler) {
         this.defaultHandler = defaultHandler;
     }
 
@@ -138,7 +140,7 @@ public class KVTP2Server {
      * @param command command to handle
      * @param handler handler to call for incoming message with command.
      */
-    public void handle(String command, BiConsumer<MessageWriter, Message> handler) {
+    public void handle(String command, Handler handler) {
         this.handlers.put(command, handler);
     }
 

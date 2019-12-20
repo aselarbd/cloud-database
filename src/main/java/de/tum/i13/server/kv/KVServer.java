@@ -1,6 +1,9 @@
 package de.tum.i13.server.kv;
 
-import de.tum.i13.kvtp2.*;
+import de.tum.i13.kvtp2.KVTP2Client;
+import de.tum.i13.kvtp2.KVTP2Server;
+import de.tum.i13.kvtp2.Message;
+import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
 import de.tum.i13.server.kv.replication.Replicator;
@@ -72,61 +75,61 @@ public class KVServer {
 
         kvtp2Server.handle(
                 "get",
-                new LogRequest(logger).wrap(
-                serverStoppedHandlerWrapper.wrap(
-                responsibilityHandler.wrap(
+                new LogRequest(logger).next(
+                serverStoppedHandlerWrapper.next(
+                responsibilityHandler.next(
                         new Get(kvCache, kvStore)
                 )))
         );
 
         kvtp2Server.handle(
                 "put",
-                new LogRequest(logger).wrap(
-                serverStoppedHandlerWrapper.wrap(
-                serverWriteLockHandler.wrap(
-                responsibilityHandler.wrap(
-                replicationHandler.wrap(
+                new LogRequest(logger).next(
+                serverStoppedHandlerWrapper.next(
+                serverWriteLockHandler.next(
+                responsibilityHandler.next(
+                replicationHandler.next(
                         new Put(this)
                 )))))
         );
 
         kvtp2Server.handle(
                 "delete",
-                new LogRequest(logger).wrap(
-                serverStoppedHandlerWrapper.wrap(
-                serverWriteLockHandler.wrap(
-                responsibilityHandler.wrap(
-                replicationHandler.wrap(
+                new LogRequest(logger).next(
+                serverStoppedHandlerWrapper.next(
+                serverWriteLockHandler.next(
+                responsibilityHandler.next(
+                replicationHandler.next(
                         new Delete(this)
                 )))))
         );
 
         kvtp2Server.handle(
             "keyrange",
-            new LogRequest(logger).wrap(
-            serverStoppedHandlerWrapper.wrap(
-            keyRangeHandler
+            new LogRequest(logger).next(
+            serverStoppedHandlerWrapper.next(
+                keyRangeHandler
             ))
         );
 
         kvtp2Server.handle(
             "keyrange_read",
-            new LogRequest(logger).wrap(
-            serverStoppedHandlerWrapper.wrap(
-            keyRangeReadHandler
+            new LogRequest(logger).next(
+            serverStoppedHandlerWrapper.next(
+                keyRangeReadHandler
             ))
         );
 
         kvtp2Server.handle(
                 "serverLogLevel",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                 logLevelHandler
                 )
         );
 
         kvtp2Server.handle(
                 "connected",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         MessageWriter::write)
         );
 

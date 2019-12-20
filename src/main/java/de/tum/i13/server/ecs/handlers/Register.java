@@ -4,6 +4,7 @@ import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2ClientFactory;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 import de.tum.i13.shared.HeartbeatSender;
@@ -11,10 +12,9 @@ import de.tum.i13.shared.HeartbeatSender;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
-public class Register implements BiConsumer<MessageWriter, Message> {
+public class Register implements Handler {
 
     private static final boolean DEBUG = false;
     public static final Logger logger = Logger.getLogger(Register.class.getName());
@@ -32,7 +32,7 @@ public class Register implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message msg) {
+    public void handle(MessageWriter messageWriter, Message msg) {
         String remoteHostString = msg.getSrc().getHostString();
         InetSocketAddress kvAddr = new InetSocketAddress(remoteHostString, Integer.parseInt(msg.get("kvport")));
         InetSocketAddress ecsAddr = new InetSocketAddress(remoteHostString, Integer.parseInt(msg.get("ecsport")));

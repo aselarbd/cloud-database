@@ -2,14 +2,13 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.kvtp2.middleware.HandlerWrapper;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.shared.ConsistentHashMap;
 
 import java.net.InetSocketAddress;
-import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
-public class ResponsibilityHandler implements HandlerWrapper {
+public class ResponsibilityHandler implements Handler {
 
     public static final Logger logger = Logger.getLogger(ResponsibilityHandler.class.getName());
 
@@ -29,7 +28,8 @@ public class ResponsibilityHandler implements HandlerWrapper {
         this.kvAddress = kvAddress;
     }
 
-    private void replyNotResponsible(MessageWriter w, Message m) {
+    @Override
+    public void handle(MessageWriter w, Message m) {
         Message notResponsibleMessage = Message.getResponse(m);
         notResponsibleMessage.setCommand("server_not_responsible");
         w.write(notResponsibleMessage);
@@ -45,7 +45,7 @@ public class ResponsibilityHandler implements HandlerWrapper {
     }
 
     @Override
-    public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
+    public Handler next(Handler next) {
         return (w, m) -> {
             ConsistentHashMap keyRangeWithReplica = keyRangeHandler.getKeyRangeRead();
             if (m.get("key") == null || m.get("key").isEmpty()) {
@@ -54,14 +54,13 @@ public class ResponsibilityHandler implements HandlerWrapper {
             } else if (m.getCommand().matches("put|delete") &&
                     !keyRangeWithReplica.getSuccessor(m.get("key")).equals(kvAddress)) {
                 logger.info("request key out of keyrange: " + m.toString());
-                replyNotResponsible(w, m);
+                handle(w, m);
             } else if (m.getCommand().matches("get") &&
-                        !keyRangeWithReplica.getAllSuccessors(m.get("key")).contains(kvAddress)) {
+                    !keyRangeWithReplica.getAllSuccessors(m.get("key")).contains(kvAddress)) {
                 logger.info("request key out of keyrange: " + m.toString());
-                replyNotResponsible(w, m);
+                handle(w, m);
             } else {
-                logger.fine("accepting request: " + m.toString());
-                next.accept(w, m);
+                next.handle(w, m);
             }
         };
     }

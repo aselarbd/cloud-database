@@ -28,19 +28,19 @@ public class Server {
 
         kvtp2Server.handle(
                 "register",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                 new Register(ssm)
                 )
         );
         kvtp2Server.handle(
                 "announce_shutdown",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                 new Shutdown(ssm)
                 )
         );
         kvtp2Server.handle(
                 "finish",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                 new Finish(ssm)
                 )
         );
@@ -48,13 +48,13 @@ public class Server {
         AddressConverter addressConverter = new AddressConverter(ssm);
         kvtp2Server.handle(
                 "ecs_to_kv",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         addressConverter
                 )
         );
         kvtp2Server.handle(
                 "kv_to_ecs",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         addressConverter
                 )
         );

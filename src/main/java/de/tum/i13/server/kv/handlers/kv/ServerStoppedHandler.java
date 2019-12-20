@@ -2,11 +2,9 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.kvtp2.middleware.HandlerWrapper;
+import de.tum.i13.kvtp2.middleware.Handler;
 
-import java.util.function.BiConsumer;
-
-public class ServerStoppedHandler implements HandlerWrapper {
+public class ServerStoppedHandler implements Handler {
 
     private boolean serverStopped;
 
@@ -19,15 +17,20 @@ public class ServerStoppedHandler implements HandlerWrapper {
     }
 
     @Override
-    public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
+    public void handle(MessageWriter writer, Message message) {
+        Message response = Message.getResponse(message);
+        response.setCommand("server_stopped");
+        writer.write(response);
+        writer.flush();
+    }
+
+    @Override
+    public Handler next(Handler next) {
         return (w, m) -> {
             if (serverStopped) {
-                Message response = Message.getResponse(m);
-                response.setCommand("server_stopped");
-                w.write(response);
-                w.flush();
+                handle(w, m);
             } else {
-                next.accept(w, m);
+                next.handle(w, m);
             }
         };
     }

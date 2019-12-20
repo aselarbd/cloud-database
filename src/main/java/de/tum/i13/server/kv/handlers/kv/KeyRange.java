@@ -2,11 +2,10 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.shared.ConsistentHashMap;
 
-import java.util.function.BiConsumer;
-
-public class KeyRange implements BiConsumer<MessageWriter, Message> {
+public class KeyRange implements Handler {
 
     private ConsistentHashMap keyRange;
 
@@ -19,7 +18,7 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         Message keyrangeResponse = Message.getResponse(message);
         keyrangeResponse.setCommand("keyrange");
         keyrangeResponse.put("keyrange", keyRange.getKeyrangeString());

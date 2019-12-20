@@ -2,6 +2,7 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.KVItem;
@@ -11,7 +12,7 @@ import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class Get implements BiConsumer<MessageWriter, Message> {
+public class Get implements Handler {
 
     public static final Logger logger = Logger.getLogger(Get.class.getName());
 
@@ -42,7 +43,7 @@ public class Get implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         String key = message.get("key");
         KVItem kvItem = kvCache.get(key);
         if (kvItem != null) {

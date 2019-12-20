@@ -2,13 +2,14 @@ package de.tum.i13.server.ecs.handlers;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 
 import java.net.InetSocketAddress;
 import java.util.function.BiConsumer;
 
-public class AddressConverter implements BiConsumer<MessageWriter, Message> {
+public class AddressConverter implements Handler {
 
     private final ServerStateMap ssm;
 
@@ -17,7 +18,7 @@ public class AddressConverter implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         String command = message.getCommand();
         if (command.equals("ecs_to_kv")) {
             String ecsIP = message.get("ecsip");

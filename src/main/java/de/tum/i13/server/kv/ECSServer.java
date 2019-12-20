@@ -23,35 +23,35 @@ public class ECSServer {
         SetLockHandler setLockHandlerHandler = new SetLockHandler(kvServer);
         ecsServer.handle(
                 "lock",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         setLockHandlerHandler
                 )
         );
 
         ecsServer.handle(
                 "keyrange",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         new KeyRange(kvServer)
                 )
         );
 
         ecsServer.handle(
                 "shutdown_keyrange",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         new ShutdownKeyRange(kvServer)
                 )
         );
 
         ecsServer.handle(
                 "put",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         new Put(kvServer)
                 )
         );
 
         ecsServer.handle(
                 "delete",
-                new LogRequest(logger).wrap(
+                new LogRequest(logger).next(
                         new Delete(kvServer)
                 )
         );

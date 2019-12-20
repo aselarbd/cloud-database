@@ -2,11 +2,9 @@ package de.tum.i13.server.kv.handlers.kv;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.kvtp2.middleware.HandlerWrapper;
+import de.tum.i13.kvtp2.middleware.Handler;
 
-import java.util.function.BiConsumer;
-
-public class ServerWriteLockHandler implements HandlerWrapper {
+public class ServerWriteLockHandler implements Handler {
 
     private boolean locked;
 
@@ -19,16 +17,21 @@ public class ServerWriteLockHandler implements HandlerWrapper {
     }
 
     @Override
-    public BiConsumer<MessageWriter, Message> wrap(BiConsumer<MessageWriter, Message> next) {
+    public Handler next(Handler next) {
         return (w, m) -> {
             if (locked) {
-                Message writeLock = Message.getResponse(m);
-                writeLock.setCommand("server_write_lock");
-                w.write(writeLock);
-                w.flush();
+                handle(w, m);
             } else {
-                next.accept(w, m);
+                next.handle(w, m);
             }
         };
+    }
+
+    @Override
+    public void handle(MessageWriter writer, Message message) {
+        Message writeLock = Message.getResponse(message);
+        writeLock.setCommand("server_write_lock");
+        writer.write(writeLock);
+        writer.flush();
     }
 }

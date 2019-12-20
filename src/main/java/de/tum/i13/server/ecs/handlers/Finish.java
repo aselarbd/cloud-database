@@ -2,12 +2,12 @@ package de.tum.i13.server.ecs.handlers;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.ecs.ServerStateMap;
 
 import java.net.InetSocketAddress;
-import java.util.function.BiConsumer;
 
-public class Finish implements BiConsumer<MessageWriter, Message> {
+public class Finish implements Handler {
 
     private final ServerStateMap ssm;
 
@@ -16,7 +16,7 @@ public class Finish implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         InetSocketAddress src = new InetSocketAddress(message.getSrc().getHostString(), Integer.parseInt(message.get("ecsport")));
 
         boolean serverRemains = ssm.getByECSAddress(src) != null;

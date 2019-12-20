@@ -2,13 +2,14 @@ package de.tum.i13.server.kv.handlers.ecs;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 
-public class Delete implements BiConsumer<MessageWriter, Message> {
+public class Delete implements Handler {
 
     public static final Logger logger = Logger.getLogger(Put.class.getName());
 
@@ -19,7 +20,7 @@ public class Delete implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         String key = message.get("key");
 
         try {

@@ -3,6 +3,7 @@ package de.tum.i13.server.kv.handlers.ecs;
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
@@ -17,7 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class KeyRange implements BiConsumer<MessageWriter, Message> {
+public class KeyRange implements Handler {
 
     public static final Logger logger = Logger.getLogger(KeyRange.class.getName());
 
@@ -31,7 +32,7 @@ public class KeyRange implements BiConsumer<MessageWriter, Message> {
     }
 
     @Override
-    public void accept(MessageWriter messageWriter, Message message) {
+    public void handle(MessageWriter messageWriter, Message message) {
         String keyRangeString = message.get("keyrange");
         ConsistentHashMap newKeyRange = ConsistentHashMap.fromKeyrangeString(keyRangeString);
         ConsistentHashMap oldKeyRange = nextKeyRange == null ? kvServer.getKeyRange() : nextKeyRange;
