@@ -53,6 +53,8 @@ public class KvClient {
                 new StringArrayParser(0, false), this::keyRange));
         this.actions.put("keyrange_read", new Action<>(
                 new StringArrayParser(0, false), this::keyRangeRead));
+        this.actions.put("serverLogLevel", new Action<>(
+                new StringArrayParser(1, false), this::serverLogLevel));
     }
 
     /**
@@ -143,6 +145,8 @@ public class KvClient {
                 + "\tdelete <key>\tDeletes the key-value pair with the given key from the server (requires connection)\n"
                 + "\tdisconnect\tDisconnects from the server\n"
                 + "\tlogLevel <level>\tSets the log level to one of\n"
+                + "\t\t" + LOG_LVL_NAMES+"\n"
+                + "\tserverLogLevel <level>\tSets the server log level to one of\n"
                 + "\t\t" + LOG_LVL_NAMES
         );
     }
@@ -234,6 +238,16 @@ public class KvClient {
                 write(LOG_LVL_NAMES);
             }
         } else {
+            write("Please choose one of the following levels:");
+            write(LOG_LVL_NAMES);
+        }
+    }
+
+    private void serverLogLevel (String[] args) {
+        final String level = args[0];
+        if(level.matches("[A-Z]+") && LOG_LVL_NAMES.contains(level)){
+             kvLib.changeServerLogLevel(level);
+        }else {
             write("Please choose one of the following levels:");
             write(LOG_LVL_NAMES);
         }

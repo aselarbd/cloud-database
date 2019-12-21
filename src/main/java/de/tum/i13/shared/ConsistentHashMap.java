@@ -3,10 +3,7 @@ package de.tum.i13.shared;
 import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -65,6 +62,17 @@ public class ConsistentHashMap {
         }
         // again perform a null check as map might be empty
         return (ceiling == null) ? new ArrayList<>() : ceiling.getValue();
+    }
+
+    /**
+     * Get all associated servers list
+     * @return List of InetSocketAddress of connected servers
+     */
+    public Set<InetSocketAddress> getAllServerList() {
+        return consistentHashMap.values()
+                .stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
     }
 
     /**

@@ -98,6 +98,39 @@ public class KVLib {
         return res;
     }
 
+    public void changeServerLogLevel(String level){
+
+        Set<InetSocketAddress> serversList = keyRanges.getAllServerList();
+
+        for (InetSocketAddress server : serversList){
+            try {
+                connect(server.getHostString(),server.getPort());
+            } catch (SocketCommunicatorException e) {
+                LOGGER.warning("Connection issue in "+server.getHostString()+":"+server.getPort());
+            }
+        }
+
+        if (!communicatorMap.isEmpty()) {
+            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
+                try {
+                    String logLevelResponse = anyCom.getValue().send("serverLogLevel"+" "+level);
+                    if (logLevelResponse.equals("server_stopped")) {
+                        continue;
+                    }
+                    InetSocketAddress serverIp = anyCom.getKey();
+                     LOGGER.info(serverIp.getHostString()+":"+serverIp.getPort()+" "+ logLevelResponse);
+
+                } catch (SocketCommunicatorException e) {
+                    it.remove();
+                }
+            }
+        }
+        // everything is empty. Reset communicator map
+        communicatorMap = new HashMap<>();
+    }
+
     private void dropCommunicator(InetSocketAddress address) {
         SocketCommunicator comm = communicatorMap.get(address);
         if (comm.isConnected()) {

@@ -34,6 +34,7 @@ public class KVServer {
     private ServerStoppedHandler serverStoppedHandlerWrapper;
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
+    private final LogLevelHandler logLevelHandler;
     private ECSServer controlAPIServer;
 
     private KVTP2Client blockingECSClient;
@@ -62,6 +63,8 @@ public class KVServer {
 
         keyRangeHandler = new KeyRange();
         keyRangeReadHandler = new KeyRangeRead();
+
+        logLevelHandler = new LogLevelHandler();
 
         responsibilityHandler = new ResponsibilityHandler(
                 keyRangeReadHandler
@@ -112,6 +115,13 @@ public class KVServer {
             serverStoppedHandlerWrapper.wrap(
             keyRangeReadHandler
             ))
+        );
+
+        kvtp2Server.handle(
+                "serverLogLevel",
+                new LogRequest(logger).wrap(
+                logLevelHandler
+                )
         );
 
         kvtp2Server.handle(

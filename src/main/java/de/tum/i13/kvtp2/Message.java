@@ -19,6 +19,7 @@ public class Message {
             put("delete", () -> new Parser().with(Type.REQUEST));
             put("keyrange", () -> new Parser().with(Type.REQUEST));
             put("keyrange_read", () -> new Parser().with(Type.REQUEST));
+            put("serverLogLevel", ()-> new Parser().with(Type.REQUEST).withFirstArgName("level"));
             put("put_success", () -> new Parser().with(Type.RESPONSE));
             put("put_update", () -> new Parser().with(Type.RESPONSE));
             put("put_error", () -> new Parser().with(Type.RESPONSE));
