@@ -7,13 +7,13 @@ import de.tum.i13.server.ecs.handlers.AddressConverter;
 import de.tum.i13.server.ecs.handlers.Finish;
 import de.tum.i13.server.ecs.handlers.Register;
 import de.tum.i13.server.ecs.handlers.Shutdown;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class Server {
 
-    public static final Logger logger = Logger.getLogger(Server.class.getName());
+    public static final Log logger = new Log(Server.class);
 
     private final String address;
     private final int port;

@@ -7,6 +7,7 @@ import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -15,11 +16,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class Replicator {
 
-    private static final Logger logger = Logger.getLogger(ReplicationConsumer.class.getName());
+    private static final Log logger =  new Log(Replicator.class);
 
     private static final KVItem POISON = new KVItem(Constants.REPLICATION_STOP_MARKER, Constants.REPLICATION_STOP_MARKER);
 
@@ -138,9 +138,9 @@ public class Replicator {
             try {
                 replicateAt(store.get(k), replica);
             } catch (InterruptedException e) {
-                logger.warning("interrupted while replicating full keyset: " + e.getMessage());
+                logger.warning("Interrupted while replicating full keyset", e);
             } catch (IOException e) {
-                logger.warning("Could not fetch value for replication of key: " + e.getMessage());
+                logger.warning("Could not fetch value for replication of key", e);
             }
         });
     }

@@ -1,16 +1,16 @@
 package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp2.KVTP2Client;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class ServerState {
 
-    public static Logger logger = Logger.getLogger(ServerState.class.getName());
+    public static Log logger = new Log(ServerState.class);
 
     private final InetSocketAddress ecs;
     private final InetSocketAddress kv;
@@ -26,7 +26,7 @@ public class ServerState {
             try {
                 this.client.close();
             } catch (IOException e) {
-                logger.warning("failed to close client: " + e.getMessage());
+                logger.warning("failed to close client", e);
             }
         });
     }

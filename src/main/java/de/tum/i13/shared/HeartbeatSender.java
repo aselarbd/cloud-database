@@ -8,11 +8,10 @@ import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class HeartbeatSender {
 
-    public static final Logger logger = Logger.getLogger(HeartbeatSender.class.getName());
+    public static final Log logger = new Log(HeartbeatSender.class);
     public static final int TIMEOUT = Constants.PING_TIMEOUT;
 
 
@@ -52,7 +51,7 @@ public class HeartbeatSender {
                     logger.fine("got " + new String(response.getData(), Constants.TELNET_ENCODING_CHARSET) + " from " + response.getAddress() + ":" + response.getPort());
 
                 } catch (IOException e) {
-                    logger.warning("lost connection, shutting server " + receiver.getHostString() + " down: " + e.getMessage());
+                    logger.warning("lost connection, shutting server " + receiver.getHostString() + " down", e);
                     exiter.run();
                     s.close();
                     ses.shutdown();

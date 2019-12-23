@@ -1,16 +1,16 @@
 package de.tum.i13.server.ecs;
 
 import de.tum.i13.shared.Config;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
 public class ECSMain {
 
-    public static final Logger logger = Logger.getLogger(ECSMain.class.getName());
+    public static final Log logger = new Log(ECSMain.class);
     private Server server;
 
     public ECSMain(String[] args) throws IOException {
@@ -32,7 +32,7 @@ public class ECSMain {
         try {
             server.close();
         } catch (IOException e) {
-            logger.warning("Exception on shutdown: " + e.getMessage());
+            logger.warning("Exception on shutdown", e);
         }
     }
 

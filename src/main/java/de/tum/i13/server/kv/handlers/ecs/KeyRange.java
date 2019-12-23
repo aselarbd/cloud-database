@@ -7,20 +7,18 @@ import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.function.BiConsumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class KeyRange implements Handler {
 
-    public static final Logger logger = Logger.getLogger(KeyRange.class.getName());
+    public static final Log logger = new Log(KeyRange.class);
 
     private final KVServer kvServer;
     private ExecutorService transferService;
@@ -55,7 +53,7 @@ public class KeyRange implements Handler {
                 try {
                     ecsClient = kvServer.getBlockingECSClient();
                 } catch (IOException e) {
-                    logger.severe("failed to get ecs client: " + e.getMessage());
+                    logger.severe("failed to get ecs client", e);
                 }
                 Message KVToECSMsg = new Message("kv_to_ecs");
                 KVToECSMsg.put("kvip", newPredecessor.getHostString());
@@ -73,7 +71,7 @@ public class KeyRange implements Handler {
                     }
                 } catch (IOException e) {
                     // TODO: Handle the error, maybe try again. Tell ecs?
-                    logger.warning("Could not get ecs api address for kv server at " + newPredecessor);
+                    logger.warning("Could not get ecs api address for kv server at " + newPredecessor, e);
                 }
 
                 KVTP2Client kvtp2Client = new KVTP2Client(predecessorIP, predecessorPort);
@@ -90,7 +88,7 @@ public class KeyRange implements Handler {
                                     put.put("value", item.getValue());
                                     kvtp2Client.send(put);
                                 } catch (IOException e) {
-                                    logger.warning("could not put item to new predecessor: " + item);
+                                    logger.warning("could not put item to new predecessor: " + item, e);
                                 }
                                 return null;
                             }).collect(Collectors.toSet())
@@ -99,14 +97,14 @@ public class KeyRange implements Handler {
                         try {
                             f.get();
                         } catch (InterruptedException | ExecutionException e) {
-                            logger.log(Level.WARNING, "failed to finish putting value to new predecessor", e);
+                            logger.warning("failed to finish putting value to new predecessor", e);
                         }
                     });
                     kvtp2Client.close();
                 } catch (InterruptedException e) {
                     logger.warning("interrupted while putting values to new predecessor");
                 } catch (IOException e) {
-                    logger.log(Level.WARNING, "Failed to transfer elements", e);
+                    logger.warning("Failed to transfer elements", e);
                 }
 
                 Message finish = new Message("finish");
@@ -118,7 +116,7 @@ public class KeyRange implements Handler {
                         kvServer.setLocked(false);
                     }
                 } catch (IOException e) {
-                    logger.warning("failed to send finish to ecs: " + e.getMessage());
+                    logger.warning("failed to send finish to ecs", e);
                 }
             });
             nextKeyRange = newKeyRange;

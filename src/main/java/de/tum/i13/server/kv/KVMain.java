@@ -1,16 +1,16 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.shared.Config;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Logger;
 
 import static de.tum.i13.shared.Config.parseCommandlineArgs;
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
 public class KVMain {
-    public static final Logger logger = Logger.getLogger(KVMain.class.getName());
+    public static final Log logger = new Log(KVMain.class);
 
     private final KVServer kvServer;
     private final ECSServer ecsServer;
@@ -31,7 +31,7 @@ public class KVMain {
             try {
                 this.ecsServer.start();
             } catch (IOException e) {
-                logger.severe("ecs control API of kvServer crashed" + e.getMessage());
+                logger.severe("ecs control API of kvServer crashed", e);
             }
         });
         ecsAPI.start();
@@ -55,7 +55,7 @@ public class KVMain {
             }
             ecsServer.stop();
         } catch (IOException | InterruptedException e) {
-            logger.severe("Failed to gracefully shut down servers: " + e.getMessage());
+            logger.severe("Failed to gracefully shut down servers", e);
         }
     }
 

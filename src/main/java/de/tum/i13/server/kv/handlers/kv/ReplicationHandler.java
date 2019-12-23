@@ -5,12 +5,10 @@ import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.replication.Replicator;
 import de.tum.i13.shared.KVItem;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import de.tum.i13.shared.Log;
 
 public class ReplicationHandler implements Handler {
-    private static final Logger logger = Logger.getLogger(ReplicationHandler.class.getName());
+    private static final Log logger = new Log(ReplicationHandler.class);
 
     private Replicator replicator;
 
@@ -23,7 +21,7 @@ public class ReplicationHandler implements Handler {
         try {
             replicator.replicate(new KVItem(message.get("key"), message.get("value")));
         } catch (InterruptedException e) {
-            logger.log(Level.WARNING, "failed to replicate " + message.toString(), e);
+            logger.warning("failed to replicate " + message.toString(), e);
         }
     }
 }

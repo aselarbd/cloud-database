@@ -11,15 +11,13 @@ import de.tum.i13.shared.parsers.KVResultParser;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Library to interact with a key-value server.
  */
 public class KVLib {
     private final KVResultParser parser;
-    private final static Logger LOGGER = Logger.getLogger(KVLib.class.getName());
+    private final static Log logger = new Log(KVLib.class);
 
     private ConsistentHashMap keyRanges;
     private ConsistentHashMap keyRangesReplica;
@@ -51,10 +49,10 @@ public class KVLib {
     public String keyRange() {
         getKeyRanges();
         if (keyRanges == null){
-            LOGGER.log(Level.WARNING, "Metadata table on the kV Client is empty");
+            logger.warning("Metadata table on the kV Client is empty");
             return "Server Doesn't have key range values";
         }
-        LOGGER.log(Level.INFO, "Generate Key range");
+        logger.info("Generate Key range");
         return keyRanges.getKeyrangeString();
     }
 
@@ -67,10 +65,10 @@ public class KVLib {
     public String keyRangeRead() {
         getKeyRanges();
         if (keyRangesReplica == null){
-            LOGGER.log(Level.WARNING, "Metadata table on the kV Client is empty");
+            logger.warning("Metadata table on the kV Client is empty");
             return "Server Doesn't have key range values";
         }
-        LOGGER.log(Level.INFO, "Generate Key range");
+        logger.info("Generate Key range");
         return keyRangesReplica.getKeyrangeReadString();
     }
 
@@ -106,7 +104,7 @@ public class KVLib {
             try {
                 connect(server.getHostString(),server.getPort());
             } catch (SocketCommunicatorException e) {
-                LOGGER.warning("Connection issue in "+server.getHostString()+":"+server.getPort());
+                logger.warning("Connection issue in " + server.getHostString() + ":" + server.getPort(), e);
             }
         }
 
@@ -120,7 +118,7 @@ public class KVLib {
                         continue;
                     }
                     InetSocketAddress serverIp = anyCom.getKey();
-                     LOGGER.info(serverIp.getHostString()+":"+serverIp.getPort()+" "+ logLevelResponse);
+                    logger.info(serverIp.getHostString() + ":" + serverIp.getPort() + " " + logLevelResponse);
 
                 } catch (SocketCommunicatorException e) {
                     it.remove();
@@ -195,7 +193,7 @@ public class KVLib {
         }
         if (requestFailureCounts.get(op) > MAX_RETRIES) {
             requestFailureCounts.put(op, 0);
-            LOGGER.info("Exceeded maximum retries. Aborting.");
+            logger.info("Exceeded maximum retries. Aborting.");
             return new KVResult("Server error");
         }
 
@@ -268,12 +266,12 @@ public class KVLib {
                 getKeyRanges();
                 return kvOperation(op, item);
             } else {
-                LOGGER.log(Level.WARNING, "Error in put()", e);
+                logger.warning("Error in put()", e);
                 requestFailureCounts.put(op, 0);
                 return new KVResult("Server error");
             }
         } catch (InterruptedException e) {
-            LOGGER.log(Level.WARNING, "Error in put() -> timeout()", e);
+            logger.warning("Error in put() -> timeout()", e);
             requestFailureCounts.put(op, 0);
             return new KVResult("Server error");
         }
@@ -322,7 +320,7 @@ public class KVLib {
                 s.getValue().disconnect();
                 res.append("Disconnected from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append("\n");
             } catch (SocketCommunicatorException e) {
-                LOGGER.log(Level.WARNING, "Could not close connection", e);
+                logger.warning("Could not close connection", e);
                 res.append("Unable to disconnect from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append(" - ").append(e.getMessage()).append("\n");
             }
         }

@@ -17,11 +17,10 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
-import java.util.logging.Logger;
 
 public class KVServer {
 
-    public static final Logger logger = Logger.getLogger(KVServer.class.getName());
+    public static final Log logger = new Log(KVServer.class);
 
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;
@@ -155,7 +154,7 @@ public class KVServer {
                 blockingECSClient = getBlockingECSClient();
                 connected = true;
             } catch (IOException e) {
-                logger.warning("could not start ecs client: " + e.getMessage());
+                logger.warning("could not start ecs client", e);
                 Thread.sleep(3000);
             }
         }
@@ -171,7 +170,7 @@ public class KVServer {
             Message send = blockingECSClient.send(registerMsg);
             setAddress(new InetSocketAddress(send.get("ip"), config.port));
         } catch (IOException e) {
-            logger.warning("failed to send register message to ecs: " + e.getMessage());
+            logger.warning("failed to send register message to ecs", e);
         }
     }
 
@@ -200,7 +199,7 @@ public class KVServer {
             this.replicator.setEcsClient(getBlockingECSClient());
             this.replicator.setReplicaSets(replicated);
         } catch (IOException | InterruptedException e) {
-            logger.warning("Failed to update replicator: " + e.getMessage());
+            logger.warning("Failed to update replicator", e);
         }
     }
 
@@ -216,7 +215,7 @@ public class KVServer {
         try {
             return kvStore.getAllKeys(predicate);
         } catch (IOException e) {
-            logger.warning("Could not read all keys for predicate from disk");
+            logger.warning("Could not read all keys for predicate from disk", e);
             return null;
         }
     }
@@ -257,7 +256,7 @@ public class KVServer {
             try {
                 send = blockingECSClient.send(shutdownMsg);
             } catch (IOException e) {
-                logger.warning("failed to send shutdown message");
+                logger.warning("failed to send shutdown message", e);
                 return;
             }
             logger.info("shutdown announcement response: " + send.toString());
@@ -296,7 +295,7 @@ public class KVServer {
             shutdownService.shutdownNow();
             blockingECSClient.close();
         } catch (IOException e) {
-            logger.warning("failed to close ecs client: " + e.getMessage());
+            logger.warning("failed to close ecs client", e);
         }
     }
 }

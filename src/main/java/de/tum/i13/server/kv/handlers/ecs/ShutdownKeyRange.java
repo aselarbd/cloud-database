@@ -7,6 +7,7 @@ import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,14 +15,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.function.BiConsumer;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ShutdownKeyRange implements Handler {
 
 
-    public static final Logger logger = Logger.getLogger(KeyRange.class.getName());
+    public static final Log logger = new Log(ShutdownKeyRange.class);
 
     private final KVServer kvServer;
 
@@ -38,7 +37,7 @@ public class ShutdownKeyRange implements Handler {
         try {
             ecsClient = kvServer.getBlockingECSClient();
         } catch (IOException e) {
-            logger.severe("failed to get ecs client: " + e.getMessage());
+            logger.severe("failed to get ecs client", e);
             return;
         }
         KVTP2Client finalEcsClient = ecsClient;
@@ -90,7 +89,7 @@ public class ShutdownKeyRange implements Handler {
 
                                 clients.get(successor).send(put);
                             } catch (IOException e) {
-                                logger.warning("could not put item to new KVServer: " + item);
+                                logger.warning("could not put item to new KVServer: " + item, e);
                             }
                             return null;
                         }).collect(Collectors.toSet())
@@ -100,7 +99,7 @@ public class ShutdownKeyRange implements Handler {
                     try {
                         f.get();
                     } catch (InterruptedException | ExecutionException e) {
-                        logger.warning("failed to finish putting value to new predecessor: " + e.getMessage());
+                        logger.warning("failed to finish putting value to new predecessor", e);
                     }
                 });
 
@@ -121,7 +120,7 @@ public class ShutdownKeyRange implements Handler {
                 kvServer.setStopped(true);
             }
         } catch (IOException e) {
-            logger.warning("failed to send finish for shutdown to ecs: " + e.getMessage());
+            logger.warning("failed to send finish for shutdown to ecs", e);
         }
     }
 }

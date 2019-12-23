@@ -3,6 +3,7 @@ package de.tum.i13.client;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
+import de.tum.i13.shared.Log;
 import de.tum.i13.shared.LogLevelChange;
 import de.tum.i13.shared.LogSetup;
 import de.tum.i13.shared.parsers.KVItemParser;
@@ -13,13 +14,12 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
 public class KvClient {
 
-    private final static Logger LOGGER = Logger.getLogger(KvClient.class.getName());
+    private final static Log logger = new Log(KvClient.class);
     private final static String PROMPT = "EchoClient> ";
     private final static String LOG_LVL_NAMES = "ALL | CONFIG | FINE | FINEST | INFO | OFF | SEVERE | WARNING";
     private final KVLib kvLib;
@@ -94,7 +94,7 @@ public class KvClient {
      */
     private void writeAndWarn(String line) {
         write(line);
-        LOGGER.warning(line);
+        logger.warning(line);
     }
 
     /**
@@ -104,7 +104,7 @@ public class KvClient {
      */
     private void writeAndLog(String line) {
         write(line);
-        LOGGER.info(line);
+        logger.info(line);
     }
 
 
@@ -165,14 +165,14 @@ public class KvClient {
             write("Not a valid port: " + args[1]);
             return;
         }
-        LOGGER.fine("Connecting to " + hostName + ":" + args[1]);
+        logger.fine("Connecting to " + hostName + ":" + args[1]);
         String resp;
         try {
             resp = kvLib.connect(hostName, port);
             write(resp);
         } catch (SocketCommunicatorException e) {
             writeAndWarn("Unable to connect: " + e.getMessage());
-            LOGGER.warning("Failed connection was to " + hostName + ":" + args[1]);
+            logger.warning("Failed connection was to " + hostName + ":" + args[1]);
         }
     }
 
@@ -233,7 +233,7 @@ public class KvClient {
                                 + change.getNewLevel().toString());
             } catch (IllegalArgumentException e) {
                 // use WARNING here as this should never happen due to the checks above
-                LOGGER.log(Level.WARNING, "Error while parsing log level", e);
+                logger.warning("Error while parsing log level", e);
                 write("Could not parse log level. Use one of");
                 write(LOG_LVL_NAMES);
             }
@@ -292,13 +292,13 @@ public class KvClient {
     public static void main(String[] args) {
         setupLogging(Path.of("client.log"), "ALL");
 
-        LOGGER.info("Creating a new Socket");
+        logger.info("Creating a new Socket");
         KvClient client = new KvClient();
 
         try {
             client.run();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Exception occurred in main()", e);
+            logger.severe("Exception occurred in main()", e);
         }
     }
 }

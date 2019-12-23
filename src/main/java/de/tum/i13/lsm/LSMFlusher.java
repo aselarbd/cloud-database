@@ -2,12 +2,12 @@ package de.tum.i13.lsm;
 
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Logger;
 
 /**
  * An LSMFlusher can run in a separate worker thread and regularly
@@ -15,7 +15,7 @@ import java.util.logging.Logger;
  */
 public class LSMFlusher extends Thread {
 
-    private static final Logger logger = Logger.getLogger(LSMFlusher.class.getName());
+    private static final Log logger = new Log(LSMFlusher.class);
 
     private static final long CACHE_FLUSH_FREQUENCY = 10000;
     private static final int MIN_FLUSH_SIZE = 200;
@@ -57,7 +57,7 @@ public class LSMFlusher extends Thread {
                     Thread.sleep(CACHE_FLUSH_FREQUENCY);
                     continue;
                 } catch (InterruptedException e) {
-                    logger.severe(e.getMessage());
+                    logger.severe("LSM Flusher interrupted", e);
                 }
             }
             logger.info("Trying to flush cache");
@@ -70,7 +70,7 @@ public class LSMFlusher extends Thread {
                 lsmFile.close();
                 lsmLog.append(new KVItem(Constants.FLUSH_MESSAGE, "", 0));
             } catch (IOException e) {
-                logger.severe("Failed to flush cache " + e.getMessage());
+                logger.severe("Failed to flush cache", e);
             }
         }
 

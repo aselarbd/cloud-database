@@ -3,15 +3,15 @@ package de.tum.i13.client.communication.impl;
 import de.tum.i13.client.communication.SocketCommunicator;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.StreamCloser;
+import de.tum.i13.shared.Log;
 
 import java.io.*;
 import java.net.SocketException;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 public class SocketCommunicatorImpl implements SocketCommunicator {
 
-    private final static Logger LOGGER = Logger.getLogger(SocketCommunicatorImpl.class.getName());
+    private final static Log logger = new Log(SocketCommunicatorImpl.class);
 
     private String encoding;
 
@@ -35,17 +35,17 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
             disconnect();
         }
         try {
-            LOGGER.info("Connecting to server");
+            logger.info("Connecting to server");
             streamCloser = streamCloserFactory.get();
             streamCloser.connect(address, port);
 
-            LOGGER.info("Getting the outputstream and inputstream");
+            logger.info("Getting the outputstream and inputstream");
             output = streamCloser.getOutputStream();
             input = new BufferedReader(new InputStreamReader(streamCloser.getInputStream()));
 
             return send("connected");
         } catch (Exception e){
-            LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "connect", e);
+            logger.severe("SocketCommunicatorImpl::connect failed", e);
             throw new SocketCommunicatorException(e);
         }
     }
@@ -74,16 +74,16 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
     @Override
     public void disconnect() throws SocketCommunicatorException {
         if (!isConnected()) {
-            LOGGER.info("No connection available, nothing to do");
+            logger.info("No connection available, nothing to do");
             return;
         }
         try {
-            LOGGER.info("Closing connection");
+            logger.info("Closing connection");
             output.close();
             input.close();
             streamCloser.close();
         } catch (Exception e) {
-            LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "disconnect", e);
+            logger.severe("SocketCommunicatorImpl::disconnect failed", e);
             throw new SocketCommunicatorException(e);
         }
     }
@@ -92,7 +92,7 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
     public String send(String message) throws SocketCommunicatorException {
         if (!isConnected()) {
             SocketCommunicatorException e = new SocketCommunicatorException("No connection");
-            LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "send", e);
+            logger.severe("SocketCommunicatorImpl::send connection failed", e);
             throw e;
         }
         // TODO: dynamic length check
@@ -104,13 +104,13 @@ public class SocketCommunicatorImpl implements SocketCommunicator {
         String toSend = message + "\r\n";
 
         try {
-            LOGGER.info("sending message: " + message);
+            logger.info("sending message: " + message);
             byte[] bytes = toSend.getBytes(encoding);
             output.write(bytes);
             output.flush();
             return receiveResponse();
         } catch(IOException e){
-            LOGGER.throwing(SocketCommunicatorImpl.class.getName(), "send", e);
+            logger.severe("SocketCommunicatorImpl::send failed", e);
             throw new SocketCommunicatorException(e);
         }
     }

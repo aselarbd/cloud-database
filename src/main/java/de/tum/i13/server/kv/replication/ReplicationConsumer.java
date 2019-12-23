@@ -3,14 +3,14 @@ package de.tum.i13.server.kv.replication;
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Logger;
 
 public class ReplicationConsumer implements Runnable {
 
-    private static final Logger logger = Logger.getLogger(ReplicationConsumer.class.getName());
+    private static final Log logger = new Log(ReplicationConsumer.class);
 
     private final BlockingQueue<KVItem> replicationQueue;
     private final KVItem poison;
@@ -30,7 +30,7 @@ public class ReplicationConsumer implements Runnable {
         try {
             this.client.close();
         } catch (IOException e) {
-            logger.warning("Failed to close consumer client " + e.getMessage());
+            logger.warning("Failed to close consumer client", e);
         }
     }
 
@@ -49,9 +49,9 @@ public class ReplicationConsumer implements Runnable {
                 message.put("timestamp", Long.toString(next.getTimestamp()));
                 client.send(message);
             } catch (InterruptedException e) {
-                logger.warning("interrupted while waiting for more replica items");
+                logger.warning("Interrupted while waiting for more replica items");
             } catch (IOException e) {
-                logger.warning("failed to send item to replica: " + e.getMessage());
+                logger.warning("Failed to send item to replica", e);
             }
         }
     }

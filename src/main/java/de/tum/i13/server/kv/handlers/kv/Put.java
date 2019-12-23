@@ -5,15 +5,13 @@ import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Put implements Handler {
 
-    public static final Logger logger = Logger.getLogger(Put.class.getName());
+    public static final Log logger = new Log(Put.class);
 
     private final KVServer kvServer;
 
@@ -49,7 +47,7 @@ public class Put implements Handler {
             String result = kvServer.put(item, true);
             writeSuccess(messageWriter, message, result, item);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Could not put value to Database", e);
+            logger.severe("Could not put value to Database", e);
             writeError(messageWriter, message, key);
         }
 

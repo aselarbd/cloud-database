@@ -6,14 +6,14 @@ import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 import de.tum.i13.shared.ConsistentHashMap;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.logging.Logger;
 
 public class Shutdown implements Handler {
 
-    public static final Logger logger = Logger.getLogger(Shutdown.class.getName());
+    public static final Log logger = new Log(Shutdown.class);
 
     private final ServerStateMap ssm;
 
@@ -32,7 +32,7 @@ public class Shutdown implements Handler {
         try {
             server.getClient().send(lock);
         } catch (IOException e) {
-            logger.warning("failed to lock server for shutdown" + e.getMessage());
+            logger.warning("failed to lock server for shutdown", e);
         }
 
         Message keyRange = new Message("keyrange");
@@ -46,7 +46,7 @@ public class Shutdown implements Handler {
                 kvSuccessor.getClient().send(keyRange);
             } catch (IOException e) {
                 // TODO: What to do if the successor has gone away?
-                logger.warning(e.getMessage());
+                logger.warning("Error while sending keyrange in shutdown", e);
             }
         } else {
             logger.warning("shutting down the last available KVServer");
@@ -57,7 +57,7 @@ public class Shutdown implements Handler {
             shutdownKeyRange.put("keyrange", newKeyRange.getKeyrangeString());
             server.getClient().send(shutdownKeyRange);
         } catch (IOException e) {
-            logger.warning("failed to set new keyrange to shutdown server: " + e.getMessage());
+            logger.warning("failed to set new keyrange to shutdown server", e);
         }
 
         ssm.remove(server);

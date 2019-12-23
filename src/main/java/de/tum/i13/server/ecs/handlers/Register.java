@@ -8,16 +8,16 @@ import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.ecs.ServerState;
 import de.tum.i13.server.ecs.ServerStateMap;
 import de.tum.i13.shared.HeartbeatSender;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.logging.Logger;
 
 public class Register implements Handler {
 
     private static final boolean DEBUG = false;
-    public static final Logger logger = Logger.getLogger(Register.class.getName());
+    public static final Log logger = new Log(Register.class);
     private final KVTP2ClientFactory clientFactory;
 
     private final ServerStateMap ssm;
@@ -43,7 +43,7 @@ public class Register implements Handler {
             client.connect();
             serverState = new ServerState(ecsAddr, kvAddr, client);
         } catch (IOException e) {
-            logger.warning("Failed to register new server, aborting: " + kvAddr + " : " + e.getMessage());
+            logger.warning("Failed to register new server, aborting: " + kvAddr, e);
             Message errorResponse = Message.getResponse(msg);
             errorResponse.setCommand("error");
             errorResponse.put("error", "could not connect to ecs API at " + ecsAddr);
@@ -74,7 +74,7 @@ public class Register implements Handler {
                     logger.warning("failed to send write lock to predecessor at: " + rebalancer.getECS() + " : " + r.get("msg"));
                 }
             } catch (IOException e) {
-                logger.warning("failed to send write lock to predecessor at: " + rebalancer.getECS() + " : " + e.getMessage());
+                logger.warning("failed to send write lock to predecessor at: " + rebalancer.getECS(), e);
             }
             try {
                 Message r = rebalancer.getClient().send(keyRange);
@@ -82,7 +82,7 @@ public class Register implements Handler {
                     logger.warning("failed to send keyrange to predecessor at: " + rebalancer.getECS() + " : " + r.get("msg"));
                 }
             } catch (IOException e) {
-                logger.warning("failed to send keyrange to predecessor at: " + rebalancer.getECS() + " : " + e.getMessage());
+                logger.warning("failed to send keyrange to predecessor at: " + rebalancer.getECS(), e);
             }
         }
 
@@ -95,7 +95,7 @@ public class Register implements Handler {
             response.put("ip", serverState.getKV().getHostString());
             messageWriter.write(response);
         } catch (IOException e) {
-            logger.warning("failed to send keyrange to new server" + e.getMessage());
+            logger.warning("failed to send keyrange to new server", e);
         }
         logger.info("succesfully registered new kvServer: " + kvAddr);
     }

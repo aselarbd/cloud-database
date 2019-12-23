@@ -2,15 +2,13 @@ package de.tum.i13.kvtp2.middleware;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-
-import java.util.function.BiConsumer;
-import java.util.logging.Logger;
+import de.tum.i13.shared.Log;
 
 public class LogRequest implements Handler {
 
-    private final Logger logger;
+    private final Log logger;
 
-    public LogRequest(Logger logger) {
+    public LogRequest(Log logger) {
         this.logger = logger;
     }
 

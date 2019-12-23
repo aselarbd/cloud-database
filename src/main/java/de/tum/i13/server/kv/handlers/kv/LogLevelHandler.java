@@ -3,15 +3,15 @@ package de.tum.i13.server.kv.handlers.kv;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.Handler;
+import de.tum.i13.shared.Log;
 import de.tum.i13.shared.LogLevelChange;
 import de.tum.i13.shared.LogSetup;
 
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class LogLevelHandler implements Handler {
 
-    private static final Logger LOGGER = Logger.getLogger(LogLevelHandler.class.getName());
+    private static final Log logger = new Log(LogLevelHandler.class);
 
     @Override
     public void handle(MessageWriter messageWriter, Message message) {
@@ -21,7 +21,7 @@ public class LogLevelHandler implements Handler {
 
         String msg = "Changed log Level from " + change.getPreviousLevel().toString() + " to "
                 + change.getNewLevel().toString();
-        LOGGER.info(msg);
+        logger.info(msg);
 
         Message logLevelResponse = Message.getResponse(message);
         logLevelResponse.setCommand("serverLogLevel");

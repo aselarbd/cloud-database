@@ -2,16 +2,16 @@ package de.tum.i13.server.ecs;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.ConsistentHashMap;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class ServerStateMap {
 
-    public static final Logger logger = Logger.getLogger(ServerStateMap.class.getName());
+    public static final Log logger = new Log(ServerStateMap.class);
 
     private final Map<InetSocketAddress, ServerState> ecsAddrToServerState = new HashMap<>();
     private final Map<InetSocketAddress, ServerState> kvAddrToServerState = new HashMap<>();
@@ -55,7 +55,7 @@ public class ServerStateMap {
                     try {
                         v.getClient().send(msg);
                     } catch (IOException e) {
-                        logger.warning("could not send broadcast to " + k);
+                        logger.warning("could not send broadcast to " + k, e);
                     }
                 });
     }

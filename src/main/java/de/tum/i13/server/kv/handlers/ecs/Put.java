@@ -5,14 +5,13 @@ import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
-import java.util.logging.Logger;
 
 public class Put implements Handler {
 
-    public static final Logger logger = Logger.getLogger(Put.class.getName());
+    public static final Log logger = new Log(Put.class);
 
     private final KVServer kvServer;
 
@@ -29,7 +28,7 @@ public class Put implements Handler {
         try {
             kvServer.put(item, false);
         } catch (IOException e) {
-            logger.warning("could not put value to store: " + item + " : " + e.getMessage());
+            logger.warning("could not put value to store: " + item, e);
             Message response = Message.getResponse(message);
             response.setCommand("error");
             response.put("msg", e.getMessage());

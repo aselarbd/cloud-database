@@ -5,13 +5,13 @@ import de.tum.i13.kvtp2.middleware.DefaultError;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.ecs.*;
 import de.tum.i13.shared.Config;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class ECSServer {
 
-    public static final Logger logger = Logger.getLogger(ECSServer.class.getName());
+    public static final Log logger = new Log(ECSServer.class);
 
     private Config config;
     private KVTP2Server ecsServer;

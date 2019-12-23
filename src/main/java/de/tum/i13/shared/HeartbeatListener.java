@@ -9,11 +9,10 @@ import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class HeartbeatListener {
 
-    public static final Logger logger = Logger.getLogger(HeartbeatListener.class.getName());
+    public static final Log logger = new Log(HeartbeatListener.class);
 
     public void start(int port, InetAddress address) throws SocketException {
         DatagramSocket s = new DatagramSocket(port, address);
@@ -35,7 +34,7 @@ public class HeartbeatListener {
                     }
                 }
             } catch (IOException e) {
-                logger.warning(e.getMessage());
+                logger.warning("Error in HeartbeatListener", e);
             }
         }, 0, TimeUnit.MILLISECONDS);
     }

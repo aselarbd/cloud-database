@@ -4,13 +4,13 @@ import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.shared.ConsistentHashMap;
+import de.tum.i13.shared.Log;
 
 import java.net.InetSocketAddress;
-import java.util.logging.Logger;
 
 public class ResponsibilityHandler implements Handler {
 
-    public static final Logger logger = Logger.getLogger(ResponsibilityHandler.class.getName());
+    public static final Log logger = new Log(ResponsibilityHandler.class);
 
     private InetSocketAddress kvAddress;
     private final KeyRangeRead keyRangeHandler;

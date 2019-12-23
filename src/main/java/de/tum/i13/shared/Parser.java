@@ -1,7 +1,6 @@
 package de.tum.i13.shared;
 
 import java.util.Arrays;
-import java.util.logging.Logger;
 
 /**
  * Basic logic to parse a command, or more generic, a string having the form
@@ -11,7 +10,7 @@ import java.util.logging.Logger;
  * It allows to turn the string into a specific object representation.
  */
 public abstract class Parser<T> {
-    private final static Logger LOGGER = Logger.getLogger(Parser.class.getName());
+    private final static Log logger = new Log(Parser.class);
     /**
      * Indicates the number of expected arguments
      *
@@ -52,10 +51,10 @@ public abstract class Parser<T> {
         }
         String[] command = input.split(" ");
         if (hasVariableArgs() && command.length - 1 < getArgCount()) {
-            LOGGER.fine("Too few arguments for variable-length command");
+            logger.fine("Too few arguments for variable-length command");
             return null;
         } else if (!hasVariableArgs() && command.length - 1 != getArgCount()) {
-            LOGGER.fine("Too few arguments for command");
+            logger.fine("Too few arguments for command");
             return null;
         }
         // basic checks passed, now perform command-specific checks.

@@ -2,12 +2,12 @@ package de.tum.i13.server.kv.caches;
 
 import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Logger;
 
 /**
  * LFUCache class contains implementation of the LFU Cache. In here cache maintain in a hash map and frequency of each
@@ -26,7 +26,7 @@ public class LFUCache implements KVCache {
 
     private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    private final Logger logger = Logger.getLogger(LFUCache.class.getName());
+    private final Log logger = new Log(LFUCache.class);
 
     public LFUCache (int size) {
         this.size = size;

@@ -6,15 +6,13 @@ import de.tum.i13.kvtp2.middleware.Handler;
 import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Get implements Handler {
 
-    public static final Logger logger = Logger.getLogger(Get.class.getName());
+    public static final Log logger = new Log(Get.class);
 
     private final KVCache kvCache;
     private final KVStore kvStore;
@@ -55,7 +53,7 @@ public class Get implements Handler {
         try {
             result = kvStore.get(key);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Could not get value from Database", e);
+            logger.severe("Could not get value from Database", e);
             writeError(messageWriter, message, key, "Internal server error");
             return;
         }

@@ -2,12 +2,12 @@ package de.tum.i13.server.kv.caches;
 
 import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.Log;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Logger;
 
 /**
  *  LRUCache class contains the implementation of the LRU cache. In here cache is maintain in a hashtable and
@@ -22,7 +22,7 @@ public class LRUCache implements KVCache {
 
     private final ReadWriteLock rwl = new ReentrantReadWriteLock();
 
-    private final Logger logger = Logger.getLogger(LRUCache.class.getName());
+    private final Log logger = new Log(LRUCache.class);
 
     public LRUCache(int size){
         this.size = size;
