@@ -12,7 +12,9 @@ import de.tum.i13.shared.parsers.StringArrayParser;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import static de.tum.i13.shared.LogSetup.setupLogging;
@@ -46,6 +48,9 @@ public class KvClient {
         ));
         this.actions.put("delete", new Action<>(
                 new KVItemParser(false), this::delete
+        ));
+        this.actions.put("scan", new Action<>(
+                new KVItemParser(false), this::scan
         ));
         this.actions.put("logLevel", new Action<>(
                 new StringArrayParser(1, false), this::logLevel));
@@ -142,6 +147,7 @@ public class KvClient {
                 + "\tkeyrange_read\tGets keyrange data and outputs the keyrange including replica\n"
                 + "\tput <key> <value>\tPuts the given key-value pair to the server (requires connection)\n"
                 + "\tget <key>\tGets the key-value pair with the given key from the server (requires connection)\n"
+                + "\tscan <key>\tGet all partial matching key value pairs from the server (requires connection)\n"
                 + "\tdelete <key>\tDeletes the key-value pair with the given key from the server (requires connection)\n"
                 + "\tdisconnect\tDisconnects from the server\n"
                 + "\tlogLevel <level>\tSets the log level to one of\n"
@@ -213,6 +219,18 @@ public class KvClient {
     private void delete(KVItem item) {
         KVResult res = kvLib.delete(item);
         write(res.toString());
+    }
+
+    /**
+     * Logic for scan command
+     *
+     * @param item Passed item
+     */
+    private void scan (KVItem item){
+        Set<KVResult> resultList = kvLib.scan(item);
+        for (KVResult result : resultList){
+            write(result.toString());
+        }
     }
 
     /**

@@ -41,6 +41,53 @@ public class KVLib {
     }
 
     /**
+     * scan returns a list of partially key matched item
+     *
+     * @param item partial key item
+     * @return KV Item list
+     */
+    public Set<KVResult> scan (KVItem item){
+
+        Set <KVResult> resultList = new HashSet<KVResult>();
+        connectToAllKVServers();
+        if (!communicatorMap.isEmpty()) {
+            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
+                try {
+                    String scanResponse = anyCom.getValue().send("scan"+" "+item.getKey());
+                    if (scanResponse.equals("server_stopped")) {
+                        continue;
+                    }
+                    //TODO process scan response and parse KV items through parser and return the set
+
+                    InetSocketAddress serverIp = anyCom.getKey();
+                    logger.info(serverIp.getHostString() + ":" + serverIp.getPort() + " " + scanResponse);
+
+                } catch (SocketCommunicatorException e) {
+                    it.remove();
+                }
+            }
+        }
+        // everything is empty. Reset communicator map
+        communicatorMap = new HashMap<>();
+
+        return resultList;
+    }
+
+    private void connectToAllKVServers () {
+        Set<InetSocketAddress> serversList = keyRanges.getAllServerList();
+
+        for (InetSocketAddress server : serversList){
+            try {
+                connect(server.getHostString(),server.getPort());
+            } catch (SocketCommunicatorException e) {
+                logger.warning("Connection issue in " + server.getHostString() + ":" + server.getPort(), e);
+            }
+        }
+    }
+
+    /**
      * get key range for new servers
      *
      * @return key range for each server that got by server or server stop message
@@ -97,17 +144,7 @@ public class KVLib {
     }
 
     public void changeServerLogLevel(String level){
-
-        Set<InetSocketAddress> serversList = keyRanges.getAllServerList();
-
-        for (InetSocketAddress server : serversList){
-            try {
-                connect(server.getHostString(),server.getPort());
-            } catch (SocketCommunicatorException e) {
-                logger.warning("Connection issue in " + server.getHostString() + ":" + server.getPort(), e);
-            }
-        }
-
+        connectToAllKVServers();
         if (!communicatorMap.isEmpty()) {
             Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
             while (it.hasNext()){
