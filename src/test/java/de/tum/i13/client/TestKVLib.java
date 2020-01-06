@@ -6,7 +6,9 @@ import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -33,23 +35,28 @@ public class TestKVLib {
     }
 
     @BeforeEach
-    public void initializeMocks() throws SocketCommunicatorException {
+    public void initializeMocks(TestInfo info) throws SocketCommunicatorException {
+        final boolean initLib = (!info.getTags().contains("no-lib-init"));
         // reset all communicators
         communicators = new ArrayList<>();
         currentCommunicator = 0;
         // create a new mock to be used for the first server
         communicators.add(mock(SocketCommunicator.class));
-        mockAllKeyrange();
+        if (initLib) {
+            mockAllKeyrange();
+        }
         // return the corresponding mock, depending on call count
         this.library = new KVLib(() -> {
             SocketCommunicator c = communicators.get(currentCommunicator);
             currentCommunicator++;
             return c;
         });
-        // initialize the lib with one server
-        this.library.connect("192.168.1.1", 80);
-        // reset again to allow changing send behavior of the first server
-        reset(communicators.get(0));
+        if (initLib) {
+            // initialize the lib with one server
+            this.library.connect("192.168.1.1", 80);
+            // reset again to allow changing send behavior of the first server
+            reset(communicators.get(0));
+        }
     }
 
     @Test
@@ -64,6 +71,30 @@ public class TestKVLib {
 
         // then - check if connection is properly forwarded to new communicator
         verify(communicators.get(1)).connect("localhost", 80);
+    }
+
+    @Test
+    @Tag("no-lib-init")
+    public void connectInvalidKeyrange() throws SocketCommunicatorException {
+        String[] invalidKeyranges = {
+                "test", "keyrange_success foo",
+                "keyrange_success " + TestConstants.KEYRANGE_INVALID_IP
+        };
+        for (String kr : invalidKeyranges) {
+            // always re-use communicator across factory calls in this case
+            currentCommunicator = 0;
+            when(communicators.get(0).send("keyrange")).thenReturn(kr);
+            // nothing should be thrown
+            this.library.connect("192.168.1.1", 80);
+            reset(communicators.get(0));
+            // now use a valid keyrange response but an invalid one for keyrange_read
+            currentCommunicator = 0;
+            when(communicators.get(0).send("keyrange")).thenReturn("keyrange_success "
+                    + TestConstants.KEYRANGE_SIMPLE);
+            when(communicators.get(0).send("keyrange_read")).thenReturn(kr);
+            this.library.connect("192.168.1.1", 80);
+            reset(communicators.get(0));
+        }
     }
 
     @Test

@@ -141,29 +141,45 @@ public class KVLib {
         communicatorMap.remove(address);
     }
 
+    private String getKeyRangeStr(String cmd, SocketCommunicator comm)
+            throws SocketCommunicatorException {
+        String keyRangeResponse = comm.send(cmd);
+        if (keyRangeResponse == null || keyRangeResponse.isEmpty()) {
+            logger.warning("Got empty response for keyrange");
+            return null;
+        }
+        if (keyRangeResponse.equals("server_stopped")) {
+            return null;
+        }
+        String[] responseSplitted = keyRangeResponse.split("\\s+");
+        if (responseSplitted.length < 2) {
+            logger.warning("Invalid keyrange response: " + keyRangeResponse);
+            return null;
+        }
+        return responseSplitted[1];
+    }
+
     private void getKeyRanges() {
         if (!communicatorMap.isEmpty()) {
             Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
             while (it.hasNext()){
                     Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
-                    String keyRangeResponse = anyCom.getValue().send("keyrange");
-                    if (keyRangeResponse.equals("server_stopped")) {
+                    String keyRangeString = getKeyRangeStr("keyrange", anyCom.getValue());
+                    if (keyRangeString == null) {
                         continue;
                     }
-                    String keyRangeString = keyRangeResponse.split("\\s+")[1];
                     keyRanges = ConsistentHashMap.fromKeyrangeString(keyRangeString);
-                    keyRangeResponse = anyCom.getValue().send("keyrange_read");
-                    keyRangeString = keyRangeResponse.split("\\s+")[1];
-                    // should usually not happen, but it is possible the server just got stopped. Ask another one
-                    // even if we already got the write-keyrange.
-                    if (keyRangeString.equals("server_stopped")) {
+                    keyRangeString = getKeyRangeStr("keyrange_read", anyCom.getValue());
+                    if (keyRangeString == null) {
                         continue;
                     }
                     keyRangesReplica = ConsistentHashMap.fromKeyrangeReadString(keyRangeString);
                     return;
                 } catch (SocketCommunicatorException e) {
                     it.remove();
+                } catch (IllegalArgumentException e) {
+                    logger.warning("Got invalid keyrange", e);
                 }
             }
         }
