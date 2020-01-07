@@ -20,6 +20,7 @@ public class Message {
             put("keyrange", () -> new Parser().with(Type.REQUEST));
             put("keyrange_read", () -> new Parser().with(Type.REQUEST));
             put("serverLogLevel", ()-> new Parser().with(Type.REQUEST).withFirstArgName("level"));
+            put("scan", () -> new Parser().with(Type.REQUEST).withFirstArgName("partialKey"));
             put("put_success", () -> new Parser().with(Type.RESPONSE));
             put("put_update", () -> new Parser().with(Type.RESPONSE));
             put("put_error", () -> new Parser().with(Type.RESPONSE));
@@ -29,6 +30,8 @@ public class Message {
             put("get_success", () -> new Parser().with(Type.RESPONSE));
             put("delete_success", () -> new Parser().with(Type.RESPONSE));
             put("delete_error", () -> new Parser().with(Type.RESPONSE));
+            put("scan_success", () -> new Parser().with(Type.RESPONSE).withSecondArgName("values"));
+            put("scan_error", () -> new GetErrorParser().with(Type.RESPONSE).withSecondArgName("msg"));
             put("keyrange_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
             put("keyrange_read_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
             put("error", () -> new Parser().with(Type.RESPONSE).withFirstArgName("description"));

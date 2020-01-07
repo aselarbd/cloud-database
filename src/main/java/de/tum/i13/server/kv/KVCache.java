@@ -1,6 +1,7 @@
 package de.tum.i13.server.kv;
 
 import de.tum.i13.shared.KVItem;
+import java.util.Set;
 
 /**
  * KVCache provides a common interface for different caching mechanisms
@@ -29,4 +30,12 @@ public interface KVCache {
      * @param key the key of the item to delete
      */
     void delete(String key);
+
+    /**
+     * Get a partial key matching item set form a cache
+     *
+     * @param key : partial key
+     * @return set of partially key matched items
+     */
+    Set<KVItem> scan(String key);
 }

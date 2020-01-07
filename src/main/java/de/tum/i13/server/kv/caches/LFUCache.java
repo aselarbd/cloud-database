@@ -5,7 +5,9 @@ import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -146,6 +148,28 @@ public class LFUCache implements KVCache {
 
         }finally {
             rwl.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Get a partial key matching item set form a cache
+     *
+     * @param key : partial key
+     * @return : set of partially key matched items
+     */
+    @Override
+    public Set<KVItem> scan(String key) {
+        Set<KVItem> matchingList = new HashSet<>();
+        try {
+            rwl.readLock().lock();
+            for (String k : this.cache.keySet()){
+                if (k.contains(key)){
+                    matchingList.add(this.cache.get(k));
+                }
+            }
+            return matchingList;
+        } finally {
+            rwl.readLock().unlock();
         }
     }
 }

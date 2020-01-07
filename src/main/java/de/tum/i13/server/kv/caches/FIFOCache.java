@@ -87,4 +87,26 @@ public class FIFOCache implements KVCache {
             rwl.writeLock().unlock();
         }
     }
+
+    /**
+     * Get a partial key matching item set form a cache
+     *
+     * @param key : partial key
+     * @return : set of partially key matched items
+     */
+    @Override
+    public Set<KVItem> scan(String key){
+        Set<KVItem> matchingList = new HashSet<>();
+        try {
+            rwl.readLock().lock();
+            for (String k : this.cache.keySet()){
+                if (k.contains(key)){
+                    matchingList.add(this.cache.get(k));
+                }
+            }
+            return matchingList;
+        } finally {
+            rwl.readLock().unlock();
+        }
+    }
 }

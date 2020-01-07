@@ -82,6 +82,14 @@ public class KVServer {
         );
 
         kvtp2Server.handle(
+                "scan",
+                new LogRequest(logger).next(
+                serverStoppedHandlerWrapper.next(
+                        new Scan(kvCache, kvStore)
+                ))
+        );
+
+        kvtp2Server.handle(
                 "put",
                 new LogRequest(logger).next(
                 serverStoppedHandlerWrapper.next(
