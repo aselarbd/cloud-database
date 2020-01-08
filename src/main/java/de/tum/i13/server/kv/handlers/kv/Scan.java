@@ -52,9 +52,10 @@ public class Scan implements Handler {
     @Override
     public void handle(MessageWriter writer, Message message) {
         String partialKey = message.get("partialKey");
-        Set<KVItem> cachedSet = kvCache.scan(partialKey);
 
+        Set<KVItem> cachedSet = kvCache.scan(partialKey);
         Set <KVItem> totalSet = new HashSet<>(cachedSet);
+
         try {
           Set<KVItem>  lsmSet = kvStore.scan(partialKey);
           totalSet.addAll(lsmSet);
@@ -68,9 +69,7 @@ public class Scan implements Handler {
             writeFound(writer, message, partialKey, totalSet);
             return;
         }
-
         writeError(writer, message, partialKey, "not found");
-
     }
 
 }
