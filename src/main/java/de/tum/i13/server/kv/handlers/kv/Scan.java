@@ -7,6 +7,8 @@ import de.tum.i13.server.kv.KVCache;
 import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 public class Scan implements Handler {
@@ -50,11 +52,24 @@ public class Scan implements Handler {
     @Override
     public void handle(MessageWriter writer, Message message) {
         String partialKey = message.get("partialKey");
-        Set<KVItem> kvItemSet = kvCache.scan(partialKey);
-        if (kvItemSet.size() > 0) {
-            writeFound(writer, message, partialKey, kvItemSet);
+        Set<KVItem> cachedSet = kvCache.scan(partialKey);
+
+        Set <KVItem> totalSet = new HashSet<>(cachedSet);
+        try {
+          Set<KVItem>  lsmSet = kvStore.scan(partialKey);
+          totalSet.addAll(lsmSet);
+        } catch (IOException e) {
+            logger.severe("Could not scan value from Database", e);
+            writeError(writer, message, partialKey, "Internal server error");
             return;
         }
+
+        if (totalSet.size() > 0) {
+            writeFound(writer, message, partialKey, totalSet);
+            return;
+        }
+
+        writeError(writer, message, partialKey, "not found");
 
     }
 

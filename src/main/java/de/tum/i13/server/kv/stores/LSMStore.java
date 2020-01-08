@@ -195,4 +195,58 @@ public class LSMStore implements KVStore {
 
         return matchingKeys;
     }
+
+    /**
+     * scan tries to get partially matched item set from the LSMTree by first looking if it is
+     * in the LSMCache and if it is not querying all LSMFiles and finding the
+     * most recent version.
+     *
+     * @param key partial key
+     *
+     * @return the requested item or empty set if it does not exist
+     *
+     * @throws IOException if an IO error occurs on reading the LSMFiles
+     */
+    @Override
+    public Set<KVItem> scan (String key) throws IOException{
+        Set<KVItem> cachedSet = lsmCache.scan(key);
+        Set<KVItem> totalSet = new HashSet<>(cachedSet);
+
+        Set<KVItem> lsmSet = new HashSet<>();
+
+        List<LSMFile> lsmFiles = listLSMFiles(lsmFileDir);
+        Set<String> totalKeySet =  new HashSet<>();
+
+        for (LSMFile f: lsmFiles){
+           totalKeySet.addAll(f.readIndex().keySet());
+        }
+        ArrayList<Lookup> lookUp = new ArrayList<>();
+        for (String k : totalKeySet){
+            lookUp.clear();
+            for (LSMFile f: lsmFiles){
+                Long position = f.readIndex().get(k);
+                if (position != null) {
+                    lookUp.add(new Lookup(f, position));
+                } else {
+                    f.close();
+                }
+            }
+            TreeMap<Long, KVItem> items = new TreeMap<>();
+            for (Lookup l : lookUp) {
+                KVItem kvItem = l.lsmFile.readValue(l.position);
+                if (kvItem != null) {
+                    items.put(kvItem.getTimestamp(), kvItem);
+                }
+                l.lsmFile.close();
+            }
+            if (items.size() > 0) {
+                KVItem lastEntry = items.lastEntry().getValue();
+                if (!lastEntry.getValue().equals(Constants.DELETE_MARKER)) {
+                    lsmSet.add(lastEntry);
+                }
+            }
+        }
+        totalSet.addAll(lsmSet);
+        return totalSet;
+    }
 }

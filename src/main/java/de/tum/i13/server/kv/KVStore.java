@@ -35,4 +35,15 @@ public interface KVStore {
     KVItem get(String key) throws IOException;
 
     Set<String> getAllKeys(Predicate<String> predicate) throws IOException;
+
+    /**
+     * get partially matched KVItem set from a persistent storage.
+     *
+     * @param key partial key
+     *
+     * @return partially matched item set or empty set
+     *
+     * @throws IOException if some error occurs on IO
+     */
+    Set<KVItem> scan(String key) throws IOException;
 }

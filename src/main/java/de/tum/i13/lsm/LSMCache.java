@@ -1,7 +1,10 @@
 package de.tum.i13.lsm;
 
+import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -78,5 +81,26 @@ public class LSMCache {
      */
     public int size() {
         return lsmCache.size();
+    }
+
+    /**
+     * get partially key matched KV items from lsm cache
+     *
+     * @param key : partial key
+     * @return partial matched key set
+     */
+    public Set<KVItem> scan (String key){
+        Set<KVItem> matchingList = new HashSet<>();
+        try {
+            rwl.readLock().lock();
+            for (String k : this.lsmCache.keySet()){
+                if (k.contains(key) && !this.lsmCache.get(k).getValue().equals(Constants.DELETE_MARKER)){
+                    matchingList.add(this.lsmCache.get(k));
+                }
+            }
+            return matchingList;
+        } finally {
+            rwl.readLock().unlock();
+        }
     }
 }
