@@ -6,6 +6,7 @@ import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
 import de.tum.i13.client.communication.impl.SocketStreamCloser;
 import de.tum.i13.shared.*;
+import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.KVResultParser;
 
 import java.net.InetSocketAddress;
@@ -46,33 +47,65 @@ public class KVLib {
      * @param item partial key item
      * @return KV Item list
      */
-    public Set<KVResult> scan (KVItem item){
+    public String scan (KVItem item){
 
-        Set <KVResult> resultList = new HashSet<KVResult>();
+        Map <String ,KVItem> resultMap = new HashMap<>();
+        StringBuilder errorMessage = new StringBuilder();
+        StringBuilder successMessage = new StringBuilder();
+        String serverMessage = "";
+
         connectToAllKVServers();
         if (!communicatorMap.isEmpty()) {
             Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
             while (it.hasNext()){
                 Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
-                    String scanResponse = anyCom.getValue().send("scan"+" "+item.getKey());
-                    if (scanResponse.equals("server_stopped")) {
+                    String serverScanResponse = anyCom.getValue().send("scan"+" "+item.getKey());
+                    if (serverScanResponse.equals("server_stopped")) {
+                        continue;
+                    }else if (serverScanResponse.equals("scan_error")){
+                        errorMessage.append(serverScanResponse);
                         continue;
                     }
-                    //TODO process scan response and parse KV items through parser and return the set
+                    else {
+                        String [] scanResponse = serverScanResponse.split(" ");
+                        serverMessage = scanResponse[0];
+                        String KVSet = String.join(" ", Arrays.copyOfRange(scanResponse,2, scanResponse.length));
 
-                    InetSocketAddress serverIp = anyCom.getKey();
-                    logger.info(serverIp.getHostString() + ":" + serverIp.getPort() + " " + scanResponse);
-
+                        if (KVSet.contains(",")){
+                            for (String kvPair : KVSet.split(",")){
+                                KVItem scanItem = KVItemParser.itemFromArgs(kvPair.split(" "));
+                                if(!resultMap.containsKey(scanItem.getKey())){
+                                    KVItem decodedItem = new KVItem(scanItem.getKey());
+                                    decodedItem.setValueFrom64(scanItem.getValue());
+                                    resultMap.put(scanItem.getKey(), decodedItem);
+                                }
+                            }
+                        }else {
+                            KVItem scanItem = KVItemParser.itemFromArgs(KVSet.split(" "));
+                            if(!resultMap.containsKey(scanItem.getKey())){
+                                KVItem decodedItem = new KVItem(scanItem.getKey());
+                                decodedItem.setValueFrom64(scanItem.getValue());
+                                resultMap.put(scanItem.getKey(), decodedItem);
+                            }
+                        }
+                    }
                 } catch (SocketCommunicatorException e) {
                     it.remove();
                 }
             }
         }
-        // everything is empty. Reset communicator map
         communicatorMap = new HashMap<>();
 
-        return resultList;
+        if (resultMap.size() >1){
+            successMessage.append(serverMessage).append("  <").append(item.getKey()).append("> ");
+            for (KVItem k: resultMap.values()){
+                successMessage.append(k.getKey()).append(":").append(k.getValue()).append(", ");
+            }
+            return successMessage.substring(0,successMessage.length() -2);
+        }else {
+            return errorMessage.toString();
+        }
     }
 
     private void connectToAllKVServers () {

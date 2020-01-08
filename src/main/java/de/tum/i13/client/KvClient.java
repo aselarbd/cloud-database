@@ -227,10 +227,9 @@ public class KvClient {
      * @param item Passed item
      */
     private void scan (KVItem item){
-        Set<KVResult> resultList = kvLib.scan(item);
-        for (KVResult result : resultList){
-            write(result.toString());
-        }
+        String scanResult = kvLib.scan(item);
+        write(scanResult);
+
     }
 
     /**

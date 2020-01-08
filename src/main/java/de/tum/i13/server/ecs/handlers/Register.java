@@ -16,7 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class Register implements Handler {
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     public static final Log logger = new Log(Register.class);
     private final KVTP2ClientFactory clientFactory;
 
