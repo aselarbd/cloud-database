@@ -144,6 +144,10 @@ public class NonBlockingKVTP2Client {
         };
     }
 
+    public void send(Message m) {
+        send(m, defaultHandler);
+    }
+
     public void send(Message m, BiConsumer<MessageWriter, Message> r) {
         InetSocketAddress target = defaultConnection;
 

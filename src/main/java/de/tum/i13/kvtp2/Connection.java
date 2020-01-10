@@ -26,9 +26,11 @@ public abstract class Connection {
     }
 
     public synchronized List<ChangeRequest> getPendingChanges() {
-        List<ChangeRequest> pcs = new LinkedList<>(this.pendingChanges);
-        this.pendingChanges.clear();
-        return pcs;
+        synchronized (pendingChanges) {
+            List<ChangeRequest> pcs = new LinkedList<>(this.pendingChanges);
+            this.pendingChanges.clear();
+            return pcs;
+        }
     }
 
     public synchronized List<ByteBuffer> getPendingWrites() {

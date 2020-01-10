@@ -34,7 +34,9 @@ class TCPConnection extends Connection {
         this.readBuffer = ByteBuffer.allocate(BUFFER_SIZE);
 
         int ops = channel.isConnected() ? SelectionKey.OP_READ : SelectionKey.OP_CONNECT;
-        this.pendingChanges.add(new ChangeRequest(this, ops));
+        synchronized (pendingChanges) {
+            this.pendingChanges.add(new ChangeRequest(this, ops));
+        }
     }
 
     @Override
