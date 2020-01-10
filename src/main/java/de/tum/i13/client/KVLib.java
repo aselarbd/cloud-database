@@ -61,11 +61,12 @@ public class KVLib {
                 Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
                 try {
                     String serverScanResponse = anyCom.getValue().send("scan"+" "+item.getKey());
-                    if (serverScanResponse.equals("server_stopped")) {
+                    if (serverScanResponse == null || serverScanResponse.equals("")){
                         continue;
+                    }
+                    if (serverScanResponse.equals("server_stopped")) {
                     }else if (serverScanResponse.equals("scan_error")){
                         errorMessage.append(serverScanResponse);
-                        continue;
                     }
                     else {
                         String [] scanResponse = serverScanResponse.split(" ");

@@ -211,11 +211,10 @@ public class LSMStore implements KVStore {
     public Set<KVItem> scan (String key) throws IOException{
         Set<KVItem> cachedSet = lsmCache.scan(key);
         Set<KVItem> totalSet = new HashSet<>(cachedSet);
-
         Set<KVItem> lsmSet = new HashSet<>();
-
         List<LSMFile> lsmFiles = listLSMFiles(lsmFileDir);
         Set<String> totalKeySet =  new HashSet<>();
+        Set<KVItem> matchingSet = new HashSet<>();
 
         for (LSMFile f: lsmFiles){
            totalKeySet.addAll(f.readIndex().keySet());
@@ -247,6 +246,12 @@ public class LSMStore implements KVStore {
             }
         }
         totalSet.addAll(lsmSet);
-        return totalSet;
+
+        for (KVItem item: totalSet){
+            if (item.getKey().contains(key)){
+                matchingSet.add(item);
+            }
+        }
+        return matchingSet;
     }
 }
