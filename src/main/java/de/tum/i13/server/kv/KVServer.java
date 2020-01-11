@@ -52,8 +52,6 @@ public class KVServer {
     public KVServer(Config cfg) throws IOException {
         this.config = cfg;
         kvtp2Server = new KVTP2Server();
-        kvtp2Server.setDecoder(new NullDecoder());
-        kvtp2Server.setEncoder(new NullEncoder());
 
         kvStore = new LSMStore(cfg.dataDir);
         kvCache = CacheBuilder.newBuilder()

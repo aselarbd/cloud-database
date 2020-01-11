@@ -11,16 +11,12 @@ import static org.hamcrest.Matchers.is;
 class Base64DecoderTest {
 
     @Test
-    void testDecodeByteArray() {
-        Decoder decoder = new Base64Decoder();
-        byte[] decoded = decoder.decode("aGVsbG8gd29ybGQK".getBytes());
-        assertThat(new String(decoded), is(equalTo("hello world\n")));
-    }
-
-    @Test
     void testDecodeString() {
         Decoder decoder = new Base64Decoder();
-        String decoded = decoder.decode("aGVsbG8gd29ybGQK", StandardCharsets.UTF_8);
+        String decoded = decoder.decode("b64:aGVsbG8gd29ybGQK", StandardCharsets.UTF_8);
         assertThat(decoded, is(equalTo("hello world\n")));
+        // leave values without b64: prefix unchanged
+        decoded = decoder.decode("test", StandardCharsets.UTF_8);
+        assertThat(decoded, is(equalTo("test")));
     }
 }

@@ -16,8 +16,11 @@ class EncodedMessageWriter implements MessageWriter {
 
     @Override
     public void write(Message message) {
-        String encodedMessage = encoder.encode(message.toString(), encoding);
-        responseWriter.write(encodedMessage);
+        String sendMessage = message.toString();
+        if (message.getVersion() != Message.Version.V1) {
+            sendMessage = encoder.encode(sendMessage, encoding);
+        }
+        responseWriter.write(sendMessage);
     }
 
     @Override

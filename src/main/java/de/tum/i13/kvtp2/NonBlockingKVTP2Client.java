@@ -18,12 +18,12 @@ import java.util.function.BiConsumer;
 
 public class NonBlockingKVTP2Client {
 
-    private static final Charset ENCODING = StandardCharsets.UTF_8;
+    private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
 
     private Selector selector;
 
-    private final Encoder encoder = new Base64Encoder();
-    private final Decoder decoder = new Base64Decoder();
+    private Encoder encoder = new Base64Encoder();
+    private Decoder decoder = new Base64Decoder();
 
     private final Map<InetSocketAddress, Connection> connections = new HashMap<>();
     private final Map<Integer, BiConsumer<MessageWriter, Message>> handlers = new HashMap<>();
@@ -52,6 +52,15 @@ public class NonBlockingKVTP2Client {
             handleSelect();
         }
     }
+
+    public void setDecoder(Decoder decoder) {
+        this.decoder = decoder;
+    }
+
+    public void setEncoder(Encoder encoder) {
+        this.encoder = encoder;
+    }
+
 
     private synchronized List<ChangeRequest> getPendingChanges() {
         List<ChangeRequest> crs = new LinkedList<>();
@@ -94,7 +103,7 @@ public class NonBlockingKVTP2Client {
         return connect(isa);
     }
 
-    private Future<Boolean> connect(InetSocketAddress address) throws IOException {
+    public Future<Boolean> connect(InetSocketAddress address) throws IOException {
         SocketChannel sc = SocketChannel.open();
         sc.configureBlocking(false);
         sc.connect(address);
@@ -157,9 +166,9 @@ public class NonBlockingKVTP2Client {
 
         this.handlers.put(m.getID(), r);
         Connection connection = connections.get(target);
-        StringWriter stringWriter = connection.getStringWriter();
-        stringWriter.write(encoder.encode(m.toString()));
-        stringWriter.flush();
+        EncodedMessageWriter wr = new EncodedMessageWriter(connection.getStringWriter(), encoder, ENCODING);
+        wr.write(m);
+        wr.flush();
     }
 
     public void send(InetSocketAddress target, Message m, BiConsumer<MessageWriter, Message> r) throws IOException, ExecutionException, InterruptedException {
@@ -168,23 +177,23 @@ public class NonBlockingKVTP2Client {
         }
         this.handlers.put(m.getID(), r);
         Connection connection = connections.get(target);
-        StringWriter stringWriter = connection.getStringWriter();
-        stringWriter.write(encoder.encode(m.toString()));
-        stringWriter.flush();
+        EncodedMessageWriter wr = new EncodedMessageWriter(connection.getStringWriter(), encoder, ENCODING);
+        wr.write(m);
+        wr.flush();
     }
 
     private void receive(StringWriter w, TCPMessage request) {
         String in = new String(request.getBytes(), ENCODING).trim(); // TODO: Maybe trim manually, might be faster
         String[] msgs = in.split("\r\n");
         for (String s : msgs) {
-            byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
+            String decodedRequest = decoder.decode(s, ENCODING);
             Message msg = null;
             try {
-                msg = Message.parse(new String(decodedRequest, ENCODING));
+                msg = Message.parse(decodedRequest);
             } catch (MalformedMessageException e) {
                 Message error = new Message("_error");
                 error.put("msg", "malformed message");
-                error.put("original", new String(decodedRequest, ENCODING));
+                error.put("original", decodedRequest);
                 receive(w, error);
                 return;
             }

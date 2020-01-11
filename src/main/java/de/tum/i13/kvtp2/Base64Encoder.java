@@ -5,13 +5,12 @@ import java.util.Base64;
 
 public class Base64Encoder implements Encoder {
 
-    @Override
-    public byte[] encode(byte[] decoded) {
+    byte[] encode(byte[] decoded) {
         return Base64.getEncoder().encode(decoded);
     }
 
     @Override
     public String encode(String decoded, Charset charset) {
-        return new String(encode(decoded.getBytes(charset)), charset);
+        return "b64:" + new String(encode(decoded.getBytes(charset)), charset);
     }
 }

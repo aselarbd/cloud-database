@@ -11,16 +11,9 @@ import static org.hamcrest.Matchers.is;
 class Base64EncoderTest {
 
     @Test
-    void encodeByteArray() {
-        Encoder encoder = new Base64Encoder();
-        byte[] encoded = encoder.encode("hello world\n".getBytes());
-        assertThat(new String(encoded), is(equalTo("aGVsbG8gd29ybGQK")));
-    }
-
-    @Test
     void testEncodeString() {
         Encoder encoder = new Base64Encoder();
         String encoded = encoder.encode("hello world\n", StandardCharsets.UTF_8);
-        assertThat(encoded, is(equalTo("aGVsbG8gd29ybGQK")));
+        assertThat(encoded, is(equalTo("b64:aGVsbG8gd29ybGQK")));
     }
 }

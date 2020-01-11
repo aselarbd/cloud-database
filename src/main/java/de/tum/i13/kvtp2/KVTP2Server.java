@@ -89,15 +89,15 @@ public class KVTP2Server {
         String in = new String(request.getBytes(), ENCODING).trim(); // TODO: Maybe trim manually, might be faster
         String[] msgs = in.split("\\R");
         for (String s : msgs) {
-            byte[] decodedRequest = decoder.decode(s.getBytes(ENCODING));
+            String decodedRequest = decoder.decode(s, ENCODING);
             Message msg = null;
             try {
-                msg = Message.parse(new String(decodedRequest, ENCODING));
+                msg = Message.parse(decodedRequest);
                 msg.setSrc(request.getRemoteAddress());
             } catch (MalformedMessageException e) {
                 Message error = new Message("_error");
                 error.put("msg", "malformed message");
-                error.put("original", new String(decodedRequest, ENCODING));
+                error.put("original", decodedRequest);
                 serve(w, error);
                 return;
             }
