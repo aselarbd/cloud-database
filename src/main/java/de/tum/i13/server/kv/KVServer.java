@@ -38,6 +38,7 @@ public class KVServer {
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
     private final LogLevelHandler logLevelHandler;
+    private final Subscribe subscriptionHandler;
     private final Publication publicationHandler;
 
     private final SubscriptionService subscriptionService;
@@ -80,6 +81,15 @@ public class KVServer {
         subscriptionService = new SubscriptionService();
         subscriptionService.run();
         publicationHandler = new Publication(subscriptionService);
+        subscriptionHandler = new Subscribe(subscriptionService);
+
+        kvtp2Server.handle(
+                "subscribe",
+                new LogRequest(logger).next(
+                responsibilityHandler.next(
+                        subscriptionHandler
+                ))
+        );
 
         kvtp2Server.handle(
                 "get",
