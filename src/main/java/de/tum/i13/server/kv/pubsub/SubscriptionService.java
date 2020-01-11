@@ -30,6 +30,19 @@ public class SubscriptionService {
         clientWriters.put(clientAddress, clientWriter);
     }
 
+    public void unsubscribe(String key, InetSocketAddress clientAddress) {
+        Set<String> subscribedKeys = clients.get(clientAddress);
+        Set<InetSocketAddress> clients = subscriptions.get(key);
+
+        if (subscribedKeys != null) {
+            subscribedKeys.remove(key);
+        }
+
+        if (clients != null) {
+            clients.remove(clientAddress);
+        }
+    }
+
     public void run() {
         ExecutorService notificationService = Executors.newSingleThreadExecutor();
         notificationService.submit(() -> {

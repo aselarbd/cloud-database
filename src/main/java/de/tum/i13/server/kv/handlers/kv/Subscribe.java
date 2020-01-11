@@ -21,6 +21,10 @@ public class Subscribe implements Handler {
     public void handle(MessageWriter writer, Message message) {
         logger.info("subscribe: " + message);
 
-        subscriptionService.subscribe(message.get("key"), message.getSrc(), writer);
+        if (message.getCommand().equals("subscribe")) {
+            subscriptionService.subscribe(message.get("key"), message.getSrc(), writer);
+        } else if (message.getCommand().equals("unsubscribe")) {
+            subscriptionService.unsubscribe(message.get("key"), message.getSrc());
+        }
     }
 }

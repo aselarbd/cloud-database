@@ -90,6 +90,14 @@ public class KVServer {
         );
 
         kvtp2Server.handle(
+                "unsubscribe",
+                new LogRequest(logger).next(
+                responsibilityHandler.next(
+                        subscriptionHandler
+                ))
+        );
+
+        kvtp2Server.handle(
                 "get",
                 new LogRequest(logger).next(
                 serverStoppedHandlerWrapper.next(
