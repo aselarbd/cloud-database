@@ -14,8 +14,7 @@ public class ParserCommonTest {
             new StringArrayParser(1, false),
             new StringArrayParser(3, true),
             new KVItemParser(false),
-            new KVItemParser(true),
-            new KVResultParser(),
+            new KVItemParser(true)
     };
 
     @Test

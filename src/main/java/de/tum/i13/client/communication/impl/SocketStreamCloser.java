@@ -12,6 +12,7 @@ import java.net.SocketException;
  * SocketStreamCloser provides an implementation of StreamCloser
  * using a java.net.Socket.
  */
+@Deprecated
 public class SocketStreamCloser implements StreamCloser {
 
     private Socket socket;

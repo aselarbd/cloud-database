@@ -9,6 +9,9 @@ import java.io.*;
 import java.net.SocketException;
 import java.util.function.Supplier;
 
+// TODO move some of the tests over to kvtp2 transports
+
+@Deprecated
 public class SocketCommunicatorImpl implements SocketCommunicator {
 
     private final static Log logger = new Log(SocketCommunicatorImpl.class);

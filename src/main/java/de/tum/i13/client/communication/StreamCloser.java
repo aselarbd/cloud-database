@@ -9,6 +9,7 @@ import java.net.SocketException;
  * StreamCloser provides an interface to create, close and
  * get Input- and OutputStreams to some remote end
  */
+@Deprecated
 public interface StreamCloser {
 
     /**

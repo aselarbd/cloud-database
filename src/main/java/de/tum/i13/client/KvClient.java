@@ -12,9 +12,7 @@ import de.tum.i13.shared.parsers.StringArrayParser;
 import java.io.*;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 
 import static de.tum.i13.shared.LogSetup.setupLogging;
@@ -176,7 +174,7 @@ public class KvClient {
         try {
             resp = kvLib.connect(hostName, port);
             write(resp);
-        } catch (SocketCommunicatorException e) {
+        } catch (IOException e) {
             writeAndWarn("Unable to connect: " + e.getMessage());
             logger.warning("Failed connection was to " + hostName + ":" + args[1]);
         }

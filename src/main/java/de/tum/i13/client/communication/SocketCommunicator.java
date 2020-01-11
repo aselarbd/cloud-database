@@ -5,7 +5,10 @@ import java.util.function.Supplier;
 
 /**
  * TCP socket communication interface.
+ *
+ * Deprecated. Use KVTP2 instead
  */
+@Deprecated
 public interface SocketCommunicator {
     /**
      * Initializes the communication library.

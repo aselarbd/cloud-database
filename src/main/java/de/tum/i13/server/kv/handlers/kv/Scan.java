@@ -25,8 +25,9 @@ public class Scan implements Handler {
     private String getKVSetAsString(Set<KVItem> kvItemSet){
         StringBuffer buffer = new StringBuffer("");
         for (KVItem item : kvItemSet){
-            buffer.append(item.toString());
-            buffer.append(",");
+            // TODO: handle real commas
+            buffer.append(item.toString().replace(" ", ","));
+            buffer.append(";");
         }
         return buffer.substring(0, buffer.length() -1);
     }

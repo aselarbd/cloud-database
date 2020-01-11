@@ -81,11 +81,11 @@ public class BenchmarkTest {
     private KVLib[] connectClients(int count) {
         KVLib[] connections = new KVLib[count];
         for (int i = 0; i < connections.length; i++) {
-            try {
+           try {
                 KVLib lib = new KVLib();
                 lib.connect("localhost", 5150);
                 connections[i] = lib;
-            } catch (SocketCommunicatorException e) {
+            } catch (IOException e) {
                 fail(e);
             }
         }

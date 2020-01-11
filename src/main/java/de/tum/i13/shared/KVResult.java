@@ -1,5 +1,7 @@
 package de.tum.i13.shared;
 
+import de.tum.i13.kvtp2.Message;
+
 /**
  * Wrapper class for KV server results. Contains a message (like put_success) and the assigned {@link KVItem}, if
  * any.
@@ -15,6 +17,23 @@ public class KVResult {
 
     public KVResult(String message) {
         this(message, null);
+    }
+
+    public KVResult(Message m) {
+       this.message = m.getCommand();
+        String key = m.get("key");
+        String val = m.get("value");
+        String msg = m.get("msg");
+        if (key != null && val != null) {
+            this.item = new KVItem(key, val);
+        } else if (key != null && msg != null) {
+            // if an error message was given, just store it as value
+            this.item = new KVItem(key, msg);
+        } else if (key != null) {
+            this.item = new KVItem(key);
+        } else {
+            this.item = null;
+        }
     }
 
     public KVItem getItem() {

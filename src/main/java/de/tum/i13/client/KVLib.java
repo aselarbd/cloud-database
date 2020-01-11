@@ -1,44 +1,70 @@
 package de.tum.i13.client;
 
 
-import de.tum.i13.client.communication.SocketCommunicator;
-import de.tum.i13.client.communication.SocketCommunicatorException;
-import de.tum.i13.client.communication.impl.SocketCommunicatorImpl;
-import de.tum.i13.client.communication.impl.SocketStreamCloser;
+import de.tum.i13.kvtp2.KVTP2Client;
+import de.tum.i13.kvtp2.KVTP2ClientFactory;
+import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.KVItemParser;
-import de.tum.i13.shared.parsers.KVResultParser;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.function.Supplier;
 
 /**
  * Library to interact with a key-value server.
  */
 public class KVLib {
-    private final KVResultParser parser;
     private final static Log logger = new Log(KVLib.class);
 
     private ConsistentHashMap keyRanges;
     private ConsistentHashMap keyRangesReplica;
-    private final Supplier<SocketCommunicator> communicatorFactory;
-    private Map<InetSocketAddress, SocketCommunicator> communicatorMap = new HashMap<>();
+    private KVTP2ClientFactory clientFactory;
+    private Map<InetSocketAddress, KVTP2Client> clientMap = new HashMap<>();
 
     private final Map<String, Integer> requestFailureCounts = new HashMap<>();
     private static final int MAX_RETRIES = 10;
 
     public KVLib() {
-        // Use a factory which returns new SocketCommunicatorImpl instances by default
-        this(SocketCommunicatorImpl::new);
+        this(KVTP2Client::new);
     }
 
-    public KVLib(Supplier<SocketCommunicator> communicatorFactory) {
-        this.parser = new KVResultParser();
-        this.communicatorFactory = communicatorFactory;
+    public KVLib(KVTP2ClientFactory clientFactory) {
+        this.clientFactory = clientFactory;
         this.requestFailureCounts.put("put", 0);
         this.requestFailureCounts.put("get", 0);
         this.requestFailureCounts.put("delete", 0);
+    }
+
+    /**
+     * We need to use V1 messages (plain telnet-compatible one liners) to be compatible with other
+     * server implementations.
+     *
+     * @param msg String to send
+     * @return message object to be used with KVTP2 clients
+     */
+    protected static Message getV1Msg(String msg) {
+        Message m = new Message(msg);
+        m.setVersion(Message.Version.V1);
+        return m;
+    }
+
+    /**
+     * Helper to send a KVTP2 message in telnet format, get the response and return it as string.
+     *
+     * @param client Client which should send the message
+     * @param msg Returned value
+     * @return
+     * @throws IOException
+     */
+    private String sendV1Msg(KVTP2Client client, String msg) throws IOException {
+        Message res = client.send(getV1Msg(msg));
+        // ignore malformed message errors
+        String val = res.get("original");
+        if (val == null) {
+            val = res.toString();
+        }
+        return val;
     }
 
     /**
@@ -48,6 +74,9 @@ public class KVLib {
      * @return KV Item list
      */
     public String scan (KVItem item){
+        if (keyRanges == null || keyRanges.size() <= 0) {
+            return "no server started";
+        }
 
         Map <String ,KVItem> resultMap = new HashMap<>();
         StringBuilder errorMessage = new StringBuilder();
@@ -55,48 +84,54 @@ public class KVLib {
         String serverMessage = "";
 
         connectToAllKVServers();
-        if (!communicatorMap.isEmpty()) {
-            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+        if (!clientMap.isEmpty()) {
+            Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> it = clientMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
+                Map.Entry<InetSocketAddress, KVTP2Client> anyCom = it.next();
                 try {
-                    String serverScanResponse = anyCom.getValue().send("scan"+" "+item.getKey());
-                    if (serverScanResponse == null || serverScanResponse.equals("")){
+                    Message scanReq = getV1Msg("scan");
+                    scanReq.put("partialKey", item.getKey());
+                    Message scanResp = anyCom.getValue().send(scanReq);
+                    if (scanResp == null || scanResp.getCommand().equals("_error")) {
                         continue;
                     }
-                    if (serverScanResponse.equals("server_stopped")) {
-                    }else if (serverScanResponse.equals("scan_error")){
-                        errorMessage.append(serverScanResponse);
+                    //String serverScanResponse = scanResp.toString();
+                    if (scanResp.getCommand().equals("server_stopped")) {
+                        // just skip server
+                    } else if (scanResp.getCommand().equals("scan_error")){
+                        errorMessage.append(scanResp.toString());
                     }
                     else {
-                        String [] scanResponse = serverScanResponse.split(" ");
-                        serverMessage = scanResponse[0];
-                        String KVSet = String.join(" ", Arrays.copyOfRange(scanResponse,2, scanResponse.length));
-
-                        if (KVSet.contains(",")){
-                            for (String kvPair : KVSet.split(",")){
-                                KVItem scanItem = KVItemParser.itemFromArgs(kvPair.split(" "));
-                                if(!resultMap.containsKey(scanItem.getKey())){
+                        serverMessage = scanResp.getCommand();
+                        String KVSet = scanResp.get("values");
+                        if (KVSet == null || KVSet.isEmpty()) {
+                            errorMessage.append(scanResp.toString());
+                        } else {
+                            if (KVSet.contains(";")) {
+                                for (String kvPair : KVSet.split(";")) {
+                                    KVItem scanItem = KVItemParser.itemFromArgs(kvPair.split(","));
+                                    if (!resultMap.containsKey(scanItem.getKey())) {
+                                        KVItem decodedItem = new KVItem(scanItem.getKey());
+                                        decodedItem.setValueFrom64(scanItem.getValue());
+                                        resultMap.put(scanItem.getKey(), decodedItem);
+                                    }
+                                }
+                            } else {
+                                KVItem scanItem = KVItemParser.itemFromArgs(KVSet.split(","));
+                                if (!resultMap.containsKey(scanItem.getKey())) {
                                     KVItem decodedItem = new KVItem(scanItem.getKey());
                                     decodedItem.setValueFrom64(scanItem.getValue());
                                     resultMap.put(scanItem.getKey(), decodedItem);
                                 }
                             }
-                        }else {
-                            KVItem scanItem = KVItemParser.itemFromArgs(KVSet.split(" "));
-                            if(!resultMap.containsKey(scanItem.getKey())){
-                                KVItem decodedItem = new KVItem(scanItem.getKey());
-                                decodedItem.setValueFrom64(scanItem.getValue());
-                                resultMap.put(scanItem.getKey(), decodedItem);
-                            }
                         }
                     }
-                } catch (SocketCommunicatorException e) {
+                } catch (IOException e) {
                     it.remove();
                 }
             }
         }
-        communicatorMap = new HashMap<>();
+        clientMap = new HashMap<>();
 
         if (resultMap.size() >1){
             successMessage.append(serverMessage).append("  <").append(item.getKey()).append("> ");
@@ -115,7 +150,7 @@ public class KVLib {
         for (InetSocketAddress server : serversList){
             try {
                 connect(server.getHostString(),server.getPort());
-            } catch (SocketCommunicatorException e) {
+            } catch (IOException e) {
                 logger.warning("Connection issue in " + server.getHostString() + ":" + server.getPort(), e);
             }
         }
@@ -162,59 +197,69 @@ public class KVLib {
      * @return the message returned by the server or
      * a useful error message if no connection could be established
      *
-     * @throws SocketCommunicatorException if the connection fails.
+     * @throws java.io.IOException if the connection fails.
      */
-    public String connect(String address, int port) throws SocketCommunicatorException {
+    public String connect(String address, int port) throws IOException {
         InetSocketAddress addr = new InetSocketAddress(address, port);
-        if (communicatorMap.get(addr) != null) {
+        if (clientMap.get(addr) != null) {
             return "already connected";
         }
-        SocketCommunicator communicator = this.communicatorFactory.get();
-        communicator.init(SocketStreamCloser::new, Constants.TELNET_ENCODING);
-        String res = communicator.connect(address, port);
-        communicatorMap.put(new InetSocketAddress(address, port), communicator);
+        KVTP2Client client = clientFactory.get(address, port);
+        client.connect();
+        String res = sendV1Msg(client, "connected");
+        clientMap.put(new InetSocketAddress(address, port), client);
         getKeyRanges();
         return res;
     }
 
     public void changeServerLogLevel(String level){
+        if (keyRanges == null || keyRanges.size() <= 0) {
+            return;
+        }
         connectToAllKVServers();
-        if (!communicatorMap.isEmpty()) {
-            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+
+        if (!clientMap.isEmpty()) {
+            Iterator<Map.Entry<InetSocketAddress,KVTP2Client>> it = clientMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
+                Map.Entry<InetSocketAddress,KVTP2Client> anyCom = it.next();
                 try {
-                    String logLevelResponse = anyCom.getValue().send("serverLogLevel"+" "+level);
+                    Message logLvlMsg = getV1Msg("serverLogLevel");
+                    logLvlMsg.put("level", level);
+                    Message res = anyCom.getValue().send(logLvlMsg);
+                    if (res == null) {
+                        continue;
+                    }
+                    String logLevelResponse = res.toString();
                     if (logLevelResponse.equals("server_stopped")) {
                         continue;
                     }
                     InetSocketAddress serverIp = anyCom.getKey();
                     logger.info(serverIp.getHostString() + ":" + serverIp.getPort() + " " + logLevelResponse);
 
-                } catch (SocketCommunicatorException e) {
+                } catch (IOException e) {
                     it.remove();
                 }
             }
         }
         // everything is empty. Reset communicator map
-        communicatorMap = new HashMap<>();
+        clientMap = new HashMap<>();
     }
 
-    private void dropCommunicator(InetSocketAddress address) {
-        SocketCommunicator comm = communicatorMap.get(address);
+    private void dropClient(InetSocketAddress address) {
+        KVTP2Client comm = clientMap.get(address);
         if (comm.isConnected()) {
             try {
-                comm.disconnect();
-            } catch (SocketCommunicatorException e) {
-                // no problem, we want to drop the communicator anyway
+                comm.close();
+            } catch (IOException e) {
+                // no problem, we want to drop the client anyway
             }
         }
-        communicatorMap.remove(address);
+        clientMap.remove(address);
     }
 
-    private String getKeyRangeStr(String cmd, SocketCommunicator comm)
-            throws SocketCommunicatorException {
-        String keyRangeResponse = comm.send(cmd);
+    private String getKeyRangeStr(String cmd, KVTP2Client client)
+            throws IOException {
+        String keyRangeResponse = sendV1Msg(client, cmd);
         if (keyRangeResponse == null || keyRangeResponse.isEmpty()) {
             logger.warning("Got empty response for keyrange");
             return null;
@@ -231,10 +276,10 @@ public class KVLib {
     }
 
     private void getKeyRanges() {
-        if (!communicatorMap.isEmpty()) {
-            Iterator<Map.Entry<InetSocketAddress,SocketCommunicator>> it = communicatorMap.entrySet().iterator();
+        if (!clientMap.isEmpty()) {
+            Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> it = clientMap.entrySet().iterator();
             while (it.hasNext()){
-                    Map.Entry<InetSocketAddress,SocketCommunicator> anyCom = it.next();
+                    Map.Entry<InetSocketAddress, KVTP2Client> anyCom = it.next();
                 try {
                     String keyRangeString = getKeyRangeStr("keyrange", anyCom.getValue());
                     if (keyRangeString == null) {
@@ -247,7 +292,7 @@ public class KVLib {
                     }
                     keyRangesReplica = ConsistentHashMap.fromKeyrangeReadString(keyRangeString);
                     return;
-                } catch (SocketCommunicatorException e) {
+                } catch (IOException e) {
                     it.remove();
                 } catch (IllegalArgumentException e) {
                     logger.warning("Got invalid keyrange", e);
@@ -257,7 +302,7 @@ public class KVLib {
         // everything is empty. Reset keyranges and communicator map
         keyRanges = null;
         keyRangesReplica = null;
-        communicatorMap = new HashMap<>();
+        clientMap = new HashMap<>();
     }
 
     private void incrementFailures(String op) {
@@ -293,21 +338,21 @@ public class KVLib {
             targetServer = keyRanges.getSuccessor(item.getKey());
         }
 
-        if (!communicatorMap.containsKey(targetServer)) {
+        if (!clientMap.containsKey(targetServer)) {
             String address = targetServer.getHostString();
             int port = targetServer.getPort();
             try {
                 connect(address, port);
-            } catch (SocketCommunicatorException e) {
+            } catch (IOException e) {
                 incrementFailures(op);
                 getKeyRanges();
                 return kvOperation(op, item);
             }
         }
 
-        SocketCommunicator communicator = communicatorMap.get(targetServer);
+        KVTP2Client client = clientMap.get(targetServer);
 
-        if (!communicator.isConnected()) {
+        if (!client.isConnected()) {
             return new KVResult("not connected");
         }
         try {
@@ -322,9 +367,17 @@ public class KVLib {
             } else {
                 sendItem = item;
             }
-            String result = communicator.send(op + " " + sendItem.toString());
-            KVResult res = parser.parse(result);
-            if (res == null || op.equals("get") && res.getItem() == null) {
+            Message sendMsg = getV1Msg(op);
+            sendMsg.put("key", sendItem.getKey());
+            if (sendItem.getValue() != null) {
+                sendMsg.put("value", sendItem.getValue());
+            }
+            Message resMsg = client.send(sendMsg);
+            if (resMsg == null) {
+                return new KVResult("Empty response");
+            }
+            KVResult res = new KVResult(resMsg);
+            if (op.equals("get") && res.getItem() == null) {
                 requestFailureCounts.put(op, 0);
                 return new KVResult("Empty response");
             } else if (res.getMessage().equals("get_error")) {
@@ -344,12 +397,12 @@ public class KVLib {
             requestFailureCounts.put(op, 0);
             // decode the value if present
             return res.decoded();
-        } catch (SocketCommunicatorException e) {
+        } catch (IOException e) {
             // server might just got removed, retry once before aborting
             if (requestFailureCounts.get(op) < MAX_RETRIES - 1) {
                 requestFailureCounts.put(op, MAX_RETRIES - 1);
                 // delete the communicator and update key ranges
-                dropCommunicator(targetServer);
+                dropClient(targetServer);
                 getKeyRanges();
                 return kvOperation(op, item);
             } else {
@@ -398,21 +451,20 @@ public class KVLib {
     /**
      * Close the connection. Does nothing if the client isn't connected.
      *
-     * @throws SocketCommunicatorException if an error occurs while closing the connection.
      */
     public String disconnect() {
         StringBuilder res = new StringBuilder();
-        for (Map.Entry<InetSocketAddress, SocketCommunicator> s : communicatorMap.entrySet()) {
+        for (Map.Entry<InetSocketAddress, KVTP2Client> s : clientMap.entrySet()) {
             try {
-                s.getValue().disconnect();
+                s.getValue().close();
                 res.append("Disconnected from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append("\n");
-            } catch (SocketCommunicatorException e) {
+            } catch (IOException e) {
                 logger.warning("Could not close connection", e);
                 res.append("Unable to disconnect from ").append(InetSocketAddressTypeConverter.addrString(s.getKey())).append(" - ").append(e.getMessage()).append("\n");
             }
         }
         // use an empty map again for the next connection
-        communicatorMap = new HashMap<>();
+        clientMap = new HashMap<>();
         return res.toString();
     }
 
