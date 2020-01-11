@@ -6,6 +6,7 @@ import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.middleware.LogRequest;
 import de.tum.i13.server.kv.handlers.kv.*;
+import de.tum.i13.server.kv.pubsub.SubscriptionService;
 import de.tum.i13.server.kv.replication.Replicator;
 import de.tum.i13.server.kv.stores.LSMStore;
 import de.tum.i13.shared.*;
@@ -38,6 +39,8 @@ public class KVServer {
     private final ReplicationHandler replicationHandler;
     private final LogLevelHandler logLevelHandler;
     private final Publication publicationHandler;
+
+    private final SubscriptionService subscriptionService;
 
     private ECSServer controlAPIServer;
 
@@ -74,7 +77,9 @@ public class KVServer {
                 keyRangeReadHandler
         );
 
-        publicationHandler = new Publication();
+        subscriptionService = new SubscriptionService();
+        subscriptionService.run();
+        publicationHandler = new Publication(subscriptionService);
 
         kvtp2Server.handle(
                 "get",
