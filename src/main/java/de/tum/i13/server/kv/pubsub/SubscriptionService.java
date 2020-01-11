@@ -2,6 +2,8 @@ package de.tum.i13.server.kv.pubsub;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
+import de.tum.i13.shared.ConsistentHashMap;
+import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 
 import java.net.InetSocketAddress;
@@ -43,7 +45,12 @@ public class SubscriptionService {
     private void notifyClient(InetSocketAddress dest, KVItem update) {
         Message notification = new Message("put_update");
         notification.put("key", update.getKey());
-        notification.put("value", update.getValue());
+
+        if (update.getValue().equals(Constants.DELETE_MARKER)) {
+            notification.setCommand("delete");
+        } else {
+            notification.put("value", update.getValue());
+        }
         clientWriters.get(dest).write(notification);
     }
 }
