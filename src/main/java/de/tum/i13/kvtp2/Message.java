@@ -70,10 +70,14 @@ public class Message {
     private final Map<String, String> pairs = new LinkedHashMap<>();
 
     public Message(String command) {
+        this(command, Version.V2);
+    }
+
+    public Message(String command, Version version) {
         this.id = getNextID();
         this.type = Type.REQUEST;
         this.command = command;
-        this.version = Version.V2;
+        this.version = version;
     }
 
     private int getNextID() {

@@ -37,7 +37,7 @@ public class TestKVLib {
     }
 
     private static Message keyrangeMsg(String kr) {
-        Message msg = KVLib.getV1Msg("keyrange_success");
+        Message msg = new Message("keyrange_success", Message.Version.V1);
         msg.put("keyrange", kr);
         return msg;
     }
@@ -110,20 +110,20 @@ public class TestKVLib {
             // always re-use communicator across factory calls in this case
             currentCommunicator = 0;
             when(clients.get(0).send(msgWith("connected")))
-                    .thenReturn(KVLib.getV1Msg("ok"));
+                    .thenReturn(new Message("ok", Message.Version.V1));
             when(clients.get(0).send(msgWith("keyrange")))
-                    .thenReturn(KVLib.getV1Msg(kr));
+                    .thenReturn(new Message(kr, Message.Version.V1));
             // nothing should be thrown
             this.library.connect("192.168.1.1", 80);
             reset(clients.get(0));
             // now use a valid keyrange response but an invalid one for keyrange_read
             currentCommunicator = 0;
             when(clients.get(0).send(msgWith("connected")))
-                    .thenReturn(KVLib.getV1Msg("ok"));
+                    .thenReturn(new Message("ok", Message.Version.V1));
             when(clients.get(0).send(msgWith("keyrange")))
                     .thenReturn(keyrangeMsg(TestConstants.KEYRANGE_SIMPLE));
             when(clients.get(0).send(msgWith("keyrange_read")))
-                    .thenReturn(KVLib.getV1Msg(kr));
+                    .thenReturn(new Message(kr, Message.Version.V1));
             this.library.connect("192.168.1.1", 80);
             reset(clients.get(0));
         }
@@ -142,7 +142,7 @@ public class TestKVLib {
     @Test
     public void putValue() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
-        Message successMsg = KVLib.getV1Msg("put_success");
+        Message successMsg = new Message("put_success", Message.Version.V1);
         successMsg.put("key", "key");
         when(clients.get(0).send(any())).thenReturn(successMsg);
 
@@ -159,7 +159,7 @@ public class TestKVLib {
     public void putValueErr() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
         final String encVal = new String(Base64.getEncoder().encode("val".getBytes()));
-        Message errorMsg = KVLib.getV1Msg("put_error");
+        Message errorMsg = new Message("put_error", Message.Version.V1);
         errorMsg.put("key", "key");
         errorMsg.put("value", encVal);
         when(clients.get(0).send(any())).thenReturn(errorMsg);
@@ -260,7 +260,7 @@ public class TestKVLib {
     @Test
     public void getValue() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
-        Message successMsg = KVLib.getV1Msg("get_success");
+        Message successMsg = new Message("get_success", Message.Version.V1);
         successMsg.put("key", "key");
         successMsg.put("value", new String(Base64.getEncoder().encode("val".getBytes())));
         when(clients.get(0).send(any())).thenReturn(successMsg);
@@ -304,7 +304,7 @@ public class TestKVLib {
     @Test
     public void getValueServerNoItem() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
-        when(clients.get(0).send(any())).thenReturn(KVLib.getV1Msg("get_success"));
+        when(clients.get(0).send(any())).thenReturn(new Message("get_success", Message.Version.V1));
 
         // when
         KVResult result = this.library.get(new KVItem("key"));
@@ -318,7 +318,7 @@ public class TestKVLib {
     public void getValueServerError() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
         final String errorStr = "some Error Message with mixed Case";
-        Message errorMsg = KVLib.getV1Msg("get_error");
+        Message errorMsg = new Message("get_error", Message.Version.V1);
         errorMsg.put("key", "key");
         errorMsg.put("msg", errorStr);
         when(clients.get(0).send(any())).thenReturn(errorMsg);
@@ -349,7 +349,7 @@ public class TestKVLib {
     @Test
     public void deleteValue() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
-        Message successMsg = KVLib.getV1Msg("delete_success");
+        Message successMsg = new Message("delete_success", Message.Version.V1);
         successMsg.put("key", "key");
         when(clients.get(0).send(any())).thenReturn(successMsg);
 
@@ -365,7 +365,7 @@ public class TestKVLib {
     @Test
     public void deleteValueError() throws IOException {
         when(clients.get(0).isConnected()).thenReturn(true);
-        Message errorMsg = KVLib.getV1Msg("delete_error");
+        Message errorMsg = new Message("delete_error", Message.Version.V1);
         errorMsg.put("key", "key");
         when(clients.get(0).send(any())).thenReturn(errorMsg);
 

@@ -37,28 +37,18 @@ public class KVLib {
     }
 
     /**
-     * We need to use V1 messages (plain telnet-compatible one liners) to be compatible with other
-     * server implementations.
-     *
-     * @param msg String to send
-     * @return message object to be used with KVTP2 clients
-     */
-    protected static Message getV1Msg(String msg) {
-        Message m = new Message(msg);
-        m.setVersion(Message.Version.V1);
-        return m;
-    }
-
-    /**
      * Helper to send a KVTP2 message in telnet format, get the response and return it as string.
      *
+     * IMPORTANT: This only works for sending messages *without* arguments! If you need arguments, construct
+     * the messages by yourself.
+     *
      * @param client Client which should send the message
-     * @param msg Returned value
+     * @param cmd The command to send
      * @return
      * @throws IOException
      */
-    private String sendV1Msg(KVTP2Client client, String msg) throws IOException {
-        Message res = client.send(getV1Msg(msg));
+    private String sendV1Msg(KVTP2Client client, String cmd) throws IOException {
+        Message res = client.send(new Message(cmd, Message.Version.V1));
         // ignore malformed message errors
         String val = res.get("original");
         if (val == null) {
@@ -89,7 +79,7 @@ public class KVLib {
             while (it.hasNext()){
                 Map.Entry<InetSocketAddress, KVTP2Client> anyCom = it.next();
                 try {
-                    Message scanReq = getV1Msg("scan");
+                    Message scanReq = new Message("scan", Message.Version.V1);
                     scanReq.put("partialKey", item.getKey());
                     Message scanResp = anyCom.getValue().send(scanReq);
                     if (scanResp == null || scanResp.getCommand().equals("_error")) {
@@ -131,7 +121,6 @@ public class KVLib {
                 }
             }
         }
-        clientMap = new HashMap<>();
 
         if (resultMap.size() >1){
             successMessage.append(serverMessage).append("  <").append(item.getKey()).append("> ");
@@ -223,7 +212,7 @@ public class KVLib {
             while (it.hasNext()){
                 Map.Entry<InetSocketAddress,KVTP2Client> anyCom = it.next();
                 try {
-                    Message logLvlMsg = getV1Msg("serverLogLevel");
+                    Message logLvlMsg = new Message("serverLogLevel", Message.Version.V1);
                     logLvlMsg.put("level", level);
                     Message res = anyCom.getValue().send(logLvlMsg);
                     if (res == null) {
@@ -241,8 +230,6 @@ public class KVLib {
                 }
             }
         }
-        // everything is empty. Reset communicator map
-        clientMap = new HashMap<>();
     }
 
     private void dropClient(InetSocketAddress address) {
@@ -367,7 +354,7 @@ public class KVLib {
             } else {
                 sendItem = item;
             }
-            Message sendMsg = getV1Msg(op);
+            Message sendMsg = new Message(op, Message.Version.V1);
             sendMsg.put("key", sendItem.getKey());
             if (sendItem.getValue() != null) {
                 sendMsg.put("value", sendItem.getValue());
