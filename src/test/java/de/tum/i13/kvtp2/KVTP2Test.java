@@ -64,6 +64,8 @@ public class KVTP2Test {
             }
         });
 
+        Thread.sleep(50);
+
         startNewPingClient("1");
         startNewPingClient("2");
         startNewPingClient("3");
