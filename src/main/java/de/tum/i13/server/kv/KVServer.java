@@ -37,6 +37,8 @@ public class KVServer {
     private final ServerWriteLockHandler serverWriteLockHandler;
     private final ReplicationHandler replicationHandler;
     private final LogLevelHandler logLevelHandler;
+    private final Publication publicationHandler;
+
     private ECSServer controlAPIServer;
 
     private KVTP2Client blockingECSClient;
@@ -72,6 +74,8 @@ public class KVServer {
                 keyRangeReadHandler
         );
 
+        publicationHandler = new Publication();
+
         kvtp2Server.handle(
                 "get",
                 new LogRequest(logger).next(
@@ -96,8 +100,9 @@ public class KVServer {
                 serverWriteLockHandler.next(
                 responsibilityHandler.next(
                 replicationHandler.next(
+                publicationHandler.next(
                         new Put(this)
-                )))))
+                ))))))
         );
 
         kvtp2Server.handle(
@@ -107,8 +112,9 @@ public class KVServer {
                 serverWriteLockHandler.next(
                 responsibilityHandler.next(
                 replicationHandler.next(
+                publicationHandler.next(
                         new Delete(this)
-                )))))
+                ))))))
         );
 
         kvtp2Server.handle(
