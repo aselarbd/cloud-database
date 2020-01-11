@@ -21,11 +21,11 @@ public class SubscriberTest {
             }
         });
 
-        sub.subscribe(new KVItem("Test"));
+        sub.subscribe("Test");
         Thread.sleep(5000);
-        sub.unsubscribe(new KVItem("Test"));
-        sub.subscribe(new KVItem("Test2"));
-        sub.subscribe(new KVItem("Test3"));
+        sub.unsubscribe("Test");
+        sub.subscribe("Test2");
+        sub.subscribe("Test3");
         Thread.sleep(50000);
     }
 }

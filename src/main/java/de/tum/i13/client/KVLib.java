@@ -1,6 +1,7 @@
 package de.tum.i13.client;
 
 
+import de.tum.i13.client.subscription.SubscriptionService;
 import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2ClientFactory;
 import de.tum.i13.kvtp2.Message;
@@ -10,6 +11,7 @@ import de.tum.i13.shared.parsers.KVItemParser;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Library to interact with a key-value server.
@@ -244,6 +246,15 @@ public class KVLib {
         clientMap.remove(address);
     }
 
+    public SubscriptionService getSubscriptionService(Consumer<KVItem> updateHandler, Consumer<String> outputHandler) {
+        return new SubscriptionService(this::subscriptionServiceKeyrangeUpdate, updateHandler, outputHandler);
+    }
+
+    private ConsistentHashMap subscriptionServiceKeyrangeUpdate() {
+        getKeyRanges();
+        return keyRanges;
+    }
+
     private String getKeyRangeStr(String cmd, KVTP2Client client)
             throws IOException {
         String keyRangeResponse = sendV1Msg(client, cmd);
@@ -262,7 +273,7 @@ public class KVLib {
         return responseSplitted[1];
     }
 
-    private void getKeyRanges() {
+    private synchronized void getKeyRanges() {
         if (!clientMap.isEmpty()) {
             Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> it = clientMap.entrySet().iterator();
             while (it.hasNext()){

@@ -1,6 +1,7 @@
 package de.tum.i13.client;
 
 import de.tum.i13.client.communication.SocketCommunicatorException;
+import de.tum.i13.client.subscription.SubscriptionService;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.Log;
@@ -23,6 +24,7 @@ public class KvClient {
     private final static String PROMPT = "EchoClient> ";
     private final static String LOG_LVL_NAMES = "ALL | CONFIG | FINE | FINEST | INFO | OFF | SEVERE | WARNING";
     private final KVLib kvLib;
+    private final SubscriptionService subscriptionService;
     private final BufferedReader inReader;
     private final Map<String, Action> actions;
 
@@ -32,6 +34,9 @@ public class KvClient {
 
     public KvClient(Reader inReader) {
         this.kvLib = new KVLib();
+        this.subscriptionService = this.kvLib.getSubscriptionService(
+                kvItem -> write("updated " + kvItem.toString()),
+                this::write);
         this.inReader = new BufferedReader(inReader);
         this.actions = new HashMap<>();
         this.actions.put("connect", new Action<>(
@@ -49,6 +54,14 @@ public class KvClient {
         ));
         this.actions.put("scan", new Action<>(
                 new KVItemParser(false), this::scan
+        ));
+        this.actions.put("subscribe", new Action<>(
+                new KVItemParser(false),
+                kvItem -> write(this.subscriptionService.subscribe(kvItem.getKey()))
+        ));
+        this.actions.put("unsubscribe", new Action<>(
+                new KVItemParser(false),
+                kvItem -> write(this.subscriptionService.unsubscribe(kvItem.getKey()))
         ));
         this.actions.put("logLevel", new Action<>(
                 new StringArrayParser(1, false), this::logLevel));

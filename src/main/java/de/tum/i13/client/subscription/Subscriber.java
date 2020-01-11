@@ -56,21 +56,21 @@ public class Subscriber {
     }
 
     /**
-     * Subscribe to updates of the given key. The value of this KVItem is ignored.
+     * Subscribe to updates of the given key.
      *
-     * @param element Key to subscribe.
+     * @param key Key to subscribe.
      */
-    public void subscribe(KVItem element) {
-        client.send(v1MsgWithKey("subscribe", element.getKey()));
+    public void subscribe(String key) {
+        client.send(v1MsgWithKey("subscribe", key));
     }
 
     /**
-     * Stop receiving updates of the given key. The value of this KVItem is ignored.
+     * Stop receiving updates of the given key.
      *
-     * @param element Key to unsubscribe.
+     * @param key Key to unsubscribe.
      */
-    public void unsubscribe(KVItem element) {
-        client.send(v1MsgWithKey("unsubscribe", element.getKey()));
+    public void unsubscribe(String key) {
+        client.send(v1MsgWithKey("unsubscribe", key));
     }
 
     private Message v1MsgWithKey(String cmd, String key) {
