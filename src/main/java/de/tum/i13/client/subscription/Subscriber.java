@@ -1,5 +1,6 @@
 package de.tum.i13.client.subscription;
 
+import de.tum.i13.client.subscription.SubscriberEvent.EventType;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
 import de.tum.i13.kvtp2.NonBlockingKVTP2Client;
@@ -20,8 +21,9 @@ import java.util.function.Consumer;
  */
 public class Subscriber {
     private final static Log logger = new Log(Subscriber.class);
+    private final InetSocketAddress addr;
     Consumer<KVItem> updateCallback;
-    Consumer<String> errorCallback;
+    Consumer<SubscriberEvent> eventHandler;
     NonBlockingKVTP2Client client;
 
     /**
@@ -31,15 +33,16 @@ public class Subscriber {
      * @param updateCallback A function taking a KVItem as argument. This gets called when a subscribed key
      *                       changes. It will be executed in the runner's thread, so you might need to take care
      *                       if you want to execute logic in a specific thread.
-     * @param errorCallback A function which is called when an error is received (server not responsible,
-     *                      unknown message, ...)
+     * @param eventHandler A function which is called when an event happens which needs some management service
+     *                     action (server down, server not responsible, error, ...)
      * @throws IOException If the connection to the server fails
      */
     public Subscriber(InetSocketAddress addr, Consumer<KVItem> updateCallback,
-                      Consumer<String> errorCallback) throws IOException {
+                      Consumer<SubscriberEvent> eventHandler) throws IOException {
         this.client = new NonBlockingKVTP2Client();
+        this.addr = addr;
         this.updateCallback = updateCallback;
-        this.errorCallback = errorCallback;
+        this.eventHandler = eventHandler;
         // setup client
         this.client.setDefaultHandler(this::messageHandler);
         Future<Boolean> connected = this.client.connect(addr);
@@ -97,8 +100,8 @@ public class Subscriber {
             }
             updateCallback.accept(res.getItem());
         } else if (message != null && message.getCommand().equals("server_not_responsible_for")) {
-            String key = message.get("key") != null ? " " + message.get("key") : "";
-            errorCallback.accept("server_not_responsible_for" + key);
+            String key = message.get("key") != null ? message.get("key") : "";
+            eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_NOT_RESPONSIBLE, key));
         }
     }
 }
