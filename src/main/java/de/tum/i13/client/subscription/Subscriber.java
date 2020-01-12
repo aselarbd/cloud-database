@@ -88,7 +88,7 @@ public class Subscriber {
     }
 
     private void messageHandler(MessageWriter writer, Message message) {
-        if (message != null && message.getCommand().equals("put_update")) {
+        if (message != null && message.getCommand().equals("pubsub_update")) {
             KVResult res = new KVResult(message);
             try {
                 res = res.decoded();
@@ -96,9 +96,9 @@ public class Subscriber {
                 logger.info("could not decode value for " + message, e);
             }
             updateCallback.accept(res.getItem());
-        } else if (message != null && message.getCommand().equals("server_not_responsible")) {
+        } else if (message != null && message.getCommand().equals("server_not_responsible_for")) {
             String key = message.get("key") != null ? " " + message.get("key") : "";
-            errorCallback.accept("server_not_responsible" + key);
+            errorCallback.accept("server_not_responsible_for" + key);
         }
     }
 }

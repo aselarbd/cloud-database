@@ -56,7 +56,7 @@ public class SubscriptionService {
     }
 
     private void notifyClient(InetSocketAddress dest, KVItem update) {
-        Message notification = new Message("put_update");
+        Message notification = new Message("pubsub_update");
         notification.put("key", update.getKey());
 
         if (update.getValue().equals(Constants.DELETE_MARKER)) {

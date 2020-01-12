@@ -25,6 +25,7 @@ public class Message {
             put("put_update", () -> new Parser().with(Type.RESPONSE));
             put("put_error", () -> new Parser().with(Type.RESPONSE));
             put("server_stopped", () -> new Parser().with(Type.RESPONSE));
+            put("server_not_responsible", () -> new Parser().with(Type.RESPONSE));
             put("server_write_lock", () -> new Parser().with(Type.RESPONSE));
             put("get_error", () -> new GetErrorParser().with(Type.RESPONSE).withSecondArgName("msg"));
             put("get_success", () -> new Parser().with(Type.RESPONSE));

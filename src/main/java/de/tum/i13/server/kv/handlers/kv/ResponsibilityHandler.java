@@ -33,6 +33,8 @@ public class ResponsibilityHandler implements Handler {
         Message notResponsibleMessage = Message.getResponse(m);
         notResponsibleMessage.setCommand("server_not_responsible");
         if (m.getCommand().matches("(un)?subscribe")) {
+            // use different message to distinguish from standardized (V1) one without arguments
+            notResponsibleMessage.setCommand("server_not_responsible_for");
             notResponsibleMessage.put("key", m.get("key"));
         }
         w.write(notResponsibleMessage);
