@@ -21,6 +21,8 @@ import java.util.function.Consumer;
  */
 public class Subscriber {
     private final static Log logger = new Log(Subscriber.class);
+    private final static int HEALTH_INTVL = 10000;
+    private int pendingHealthReplies = 0;
     private final InetSocketAddress addr;
     Consumer<KVItem> updateCallback;
     Consumer<SubscriberEvent> eventHandler;
@@ -56,6 +58,7 @@ public class Subscriber {
             } catch (Exception e) {
                 // log whatever goes wrong
                 logger.warning("Subscriber client crashed", e);
+                eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "executor"));
             }
         });
         // await connection establishment
@@ -64,6 +67,25 @@ public class Subscriber {
         } catch (InterruptedException | ExecutionException e) {
             throw new IOException("Could not connect", e);
         }
+        // periodically check if server is alive
+        ExecutorService alivenessChecker = Executors.newSingleThreadExecutor();
+        alivenessChecker.submit(() -> {
+            try {
+                while(true) {
+                    Thread.sleep(HEALTH_INTVL);
+                    if (pendingHealthReplies > 1) {
+                        logger.info("Health checker unresponsive");
+                        eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "health"));
+                        return;
+                    }
+                    pendingHealthReplies++;
+                    client.send(new Message("health"));
+                }
+            } catch (Exception e) {
+                logger.info("Health checker failed", e);
+                eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "health"));
+            }
+        });
     }
 
     /**
@@ -72,7 +94,12 @@ public class Subscriber {
      * @param key Key to subscribe.
      */
     public void subscribe(String key) {
-        client.send(msgWithKey("subscribe", key));
+        try {
+            client.send(msgWithKey("subscribe", key));
+        } catch (RuntimeException e) {
+            logger.info("Failed to send subscribe", e);
+            eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "subscribe"));
+        }
     }
 
     /**
@@ -81,7 +108,12 @@ public class Subscriber {
      * @param key Key to unsubscribe.
      */
     public void unsubscribe(String key) {
-        client.send(msgWithKey("unsubscribe", key));
+        try {
+            client.send(msgWithKey("unsubscribe", key));
+        } catch (RuntimeException e) {
+            logger.info("Failed to send unsubscribe", e);
+            eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "unsubscribe"));
+        }
     }
 
     private Message msgWithKey(String cmd, String key) {
@@ -91,17 +123,45 @@ public class Subscriber {
     }
 
     private void messageHandler(MessageWriter writer, Message message) {
-        if (message != null && message.getCommand().equals("pubsub_update")) {
-            KVResult res = new KVResult(message);
-            try {
-                res = res.decoded();
-            } catch (IllegalArgumentException e) {
-                logger.info("could not decode value for " + message, e);
-            }
-            updateCallback.accept(res.getItem());
-        } else if (message != null && message.getCommand().equals("server_not_responsible_for")) {
-            String key = message.get("key") != null ? message.get("key") : "";
-            eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_NOT_RESPONSIBLE, key));
+        if (message == null) {
+            logger.info("Got empty message at " + addr.toString());
+            return;
+        }
+        switch (message.getCommand()) {
+            case "pubsub_update":
+                KVResult res = new KVResult(message);
+                try {
+                    res = res.decoded();
+                } catch (IllegalArgumentException e) {
+                    logger.info("could not decode value for " + message, e);
+                }
+                updateCallback.accept(res.getItem());
+                break;
+            case "server_not_responsible_for":
+                String key = message.get("key");
+                if (key == null) {
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.OTHER,
+                            "Invalid message " + message.toString()));
+                } else {
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_NOT_RESPONSIBLE, key));
+                }
+                break;
+            case "health":
+                pendingHealthReplies--;
+                String stopped = message.get("server_stopped");
+                if (stopped == null) {
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.OTHER,
+                            "Invalid message " + message.toString()));
+                } else if (stopped.equals("true")){
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_NOT_READY,""));
+                }
+                break;
+            case "error":
+                eventHandler.accept(new SubscriberEvent(addr, EventType.OTHER,
+                        "KV Server does not support PubSub extension"));
+                break;
+            default:
+                logger.info("Got unexpected message " + message.toString());
         }
     }
 }

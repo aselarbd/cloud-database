@@ -14,13 +14,13 @@ public class SubscriberEvent {
     }
 
     EventType type;
-    String message;
+    String description;
     InetSocketAddress src;
 
-    public SubscriberEvent(InetSocketAddress src, EventType type, String message) {
+    public SubscriberEvent(InetSocketAddress src, EventType type, String description) {
         this.src = src;
         this.type = type;
-        this.message = message;
+        this.description = description;
     }
 
     public InetSocketAddress getSource() {
@@ -31,7 +31,7 @@ public class SubscriberEvent {
         return type;
     }
 
-    public String getMessage() {
-        return message;
+    public String getDescription() {
+        return description;
     }
 }

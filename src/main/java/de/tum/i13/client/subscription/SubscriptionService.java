@@ -80,6 +80,7 @@ public class SubscriptionService {
             keyrangeLock.lock();
             keyrange = null;
             keyrangeLock.unlock();
+            // use state map to determine which action is to be retried
             if (subscribedKeys.contains(key)) {
                 subscribeOrUnsubscribe(key, subscriber -> subscriber.subscribe(key));
             } else {
@@ -92,25 +93,34 @@ public class SubscriptionService {
     private void subscriberEventHandler(SubscriberEvent event) {
         switch(event.getType()) {
             case SERVER_NOT_RESPONSIBLE:
-                final String key = event.getMessage();
+                final String key = event.getDescription();
                 logger.info(event.getSource().toString() + " not responsible for " + key);
                 if (retries.contains(key)) {
                     outputHandler.accept("Failed to determine responsible server for " + key);
                     logger.info("Retry failed for " + key);
-                    retries.remove(key);
+                    // restore previous state
+                    if (subscribedKeys.contains(key)) {
+                        // failed subscribe - consider unsubscribed again
+                        subscribedKeys.remove(key);
+                    } else {
+                        // failed subscribe - consider as still subscribed
+                        subscribedKeys.add(key);
+                    }
                 } else {
                     retries.add(key);
                     retry(key);
                 }
                 break;
             case SERVER_DOWN:
+                // TODO manage new responsibilities
                 break;
             case SERVER_NOT_READY:
                 // TODO determine possibly pending actions and retry
                 break;
             case OTHER:
+                // use default action for other events, fall-through intended
             default:
-                outputHandler.accept(event.getMessage());
+                outputHandler.accept(event.getDescription());
         }
     }
 
@@ -118,9 +128,11 @@ public class SubscriptionService {
         if (subscribedKeys.contains(key)) {
             return "Already subscribed";
         }
+        // clear potential previous retries
+        retries.remove(key);
         return subscribeOrUnsubscribe(key, subscriber -> {
-            subscriber.subscribe(key);
             subscribedKeys.add(key);
+            subscriber.subscribe(key);
         });
     }
 
@@ -128,9 +140,11 @@ public class SubscriptionService {
         if (!subscribedKeys.contains(key)) {
             return "Not subscribed";
         }
+        // clear potential previous retries
+        retries.remove(key);
         return subscribeOrUnsubscribe(key, subscriber -> {
-            subscriber.unsubscribe(key);
             subscribedKeys.remove(key);
+            subscriber.unsubscribe(key);
         });
     }
 
