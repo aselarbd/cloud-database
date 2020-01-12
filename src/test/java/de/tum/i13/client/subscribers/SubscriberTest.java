@@ -19,7 +19,7 @@ public class SubscriberTest {
             public void accept(KVItem kvItem) {
                 System.out.println(kvItem);
             }
-        });
+        }, s -> {});
 
         sub.subscribe("Test");
         Thread.sleep(5000);

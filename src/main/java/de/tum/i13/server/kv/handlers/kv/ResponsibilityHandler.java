@@ -32,6 +32,9 @@ public class ResponsibilityHandler implements Handler {
     public void handle(MessageWriter w, Message m) {
         Message notResponsibleMessage = Message.getResponse(m);
         notResponsibleMessage.setCommand("server_not_responsible");
+        if (m.getCommand().matches("(un)?subscribe")) {
+            notResponsibleMessage.put("key", m.get("key"));
+        }
         w.write(notResponsibleMessage);
         w.flush();
     }
@@ -51,7 +54,7 @@ public class ResponsibilityHandler implements Handler {
             if (m.get("key") == null || m.get("key").isEmpty()) {
                 logger.info("got request without key: " + m.toString());
                 replyError(w, m, "no key given");
-            } else if (m.getCommand().matches("put|delete") &&
+            } else if (m.getCommand().matches("put|delete|(un)?subscribe") &&
                     !keyRangeWithReplica.getSuccessor(m.get("key")).equals(kvAddress)) {
                 logger.info("request key out of keyrange: " + m.toString());
                 handle(w, m);

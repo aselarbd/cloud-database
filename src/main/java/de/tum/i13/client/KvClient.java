@@ -35,7 +35,7 @@ public class KvClient {
     public KvClient(Reader inReader) {
         this.kvLib = new KVLib();
         this.subscriptionService = this.kvLib.getSubscriptionService(
-                kvItem -> write("updated " + kvItem.toString()),
+                kvItem -> write("Subscription update: " + kvItem.toString()),
                 this::write);
         this.inReader = new BufferedReader(inReader);
         this.actions = new HashMap<>();

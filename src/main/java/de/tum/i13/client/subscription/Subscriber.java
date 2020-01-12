@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 public class Subscriber {
     private final static Log logger = new Log(Subscriber.class);
     Consumer<KVItem> updateCallback;
+    Consumer<String> errorCallback;
     NonBlockingKVTP2Client client;
 
     /**
@@ -30,11 +31,15 @@ public class Subscriber {
      * @param updateCallback A function taking a KVItem as argument. This gets called when a subscribed key
      *                       changes. It will be executed in the runner's thread, so you might need to take care
      *                       if you want to execute logic in a specific thread.
+     * @param errorCallback A function which is called when an error is received (server not responsible,
+     *                      unknown message, ...)
      * @throws IOException If the connection to the server fails
      */
-    public Subscriber(InetSocketAddress addr, Consumer<KVItem> updateCallback) throws IOException {
+    public Subscriber(InetSocketAddress addr, Consumer<KVItem> updateCallback,
+                      Consumer<String> errorCallback) throws IOException {
         this.client = new NonBlockingKVTP2Client();
         this.updateCallback = updateCallback;
+        this.errorCallback = errorCallback;
         // setup client
         this.client.setDefaultHandler(this::messageHandler);
         Future<Boolean> connected = this.client.connect(addr);
@@ -45,6 +50,9 @@ public class Subscriber {
                 this.client.start();
             } catch (IOException e) {
                 logger.warning("Failed to start subscriber client", e);
+            } catch (Exception e) {
+                // log whatever goes wrong
+                logger.warning("Subscriber client crashed", e);
             }
         });
         // await connection establishment
@@ -61,7 +69,7 @@ public class Subscriber {
      * @param key Key to subscribe.
      */
     public void subscribe(String key) {
-        client.send(v1MsgWithKey("subscribe", key));
+        client.send(msgWithKey("subscribe", key));
     }
 
     /**
@@ -70,12 +78,11 @@ public class Subscriber {
      * @param key Key to unsubscribe.
      */
     public void unsubscribe(String key) {
-        client.send(v1MsgWithKey("unsubscribe", key));
+        client.send(msgWithKey("unsubscribe", key));
     }
 
-    private Message v1MsgWithKey(String cmd, String key) {
+    private Message msgWithKey(String cmd, String key) {
         Message msg = new Message(cmd);
-        msg.setVersion(Message.Version.V1);
         msg.put("key", key);
         return msg;
     }
@@ -83,7 +90,15 @@ public class Subscriber {
     private void messageHandler(MessageWriter writer, Message message) {
         if (message != null && message.getCommand().equals("put_update")) {
             KVResult res = new KVResult(message);
+            try {
+                res = res.decoded();
+            } catch (IllegalArgumentException e) {
+                logger.info("could not decode value for " + message, e);
+            }
             updateCallback.accept(res.getItem());
+        } else if (message != null && message.getCommand().equals("server_not_responsible")) {
+            String key = message.get("key") != null ? " " + message.get("key") : "";
+            errorCallback.accept("server_not_responsible" + key);
         }
     }
 }

@@ -41,12 +41,12 @@ public class SubscriptionService {
         try {
             Subscriber sub = subscribers.get(responsibleServer);
             if (sub == null) {
-                sub = new Subscriber(responsibleServer, updateHandler);
+                sub = new Subscriber(responsibleServer, updateHandler, outputHandler);
                 subscribers.put(responsibleServer, sub);
             }
             logger.info("Subscribe/unsubscribe action for key " + key + " on " + responsibleServer.toString());
             action.accept(sub);
-            return "ok";
+            return "sent request";
         } catch (IOException e) {
             logger.warning("Failed to connect", e);
             return "Failed to connect - " + e.getMessage();
