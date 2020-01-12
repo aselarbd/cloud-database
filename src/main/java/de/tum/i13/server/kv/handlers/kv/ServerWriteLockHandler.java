@@ -34,4 +34,8 @@ public class ServerWriteLockHandler implements Handler {
         writer.write(writeLock);
         writer.flush();
     }
+
+    public boolean getLocked() {
+        return locked;
+    }
 }

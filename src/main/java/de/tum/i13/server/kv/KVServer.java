@@ -82,6 +82,13 @@ public class KVServer {
         subscriptionHandler = new Subscribe(subscriptionService);
 
         kvtp2Server.handle(
+                "health",
+                new LogRequest(logger).next(
+                    new Health(serverStoppedHandlerWrapper, serverWriteLockHandler)
+                )
+        );
+
+        kvtp2Server.handle(
                 "subscribe",
                 new LogRequest(logger).next(
                 responsibilityHandler.next(
