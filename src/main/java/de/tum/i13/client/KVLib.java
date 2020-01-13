@@ -81,13 +81,12 @@ public class KVLib {
             while (it.hasNext()){
                 Map.Entry<InetSocketAddress, KVTP2Client> anyCom = it.next();
                 try {
-                    Message scanReq = new Message("scan", Message.Version.V1);
+                    Message scanReq = new Message("scan", Message.Version.V2);
                     scanReq.put("partialKey", item.getKey());
                     Message scanResp = anyCom.getValue().send(scanReq);
                     if (scanResp == null || scanResp.getCommand().equals("_error")) {
                         continue;
                     }
-                    //String serverScanResponse = scanResp.toString();
                     if (scanResp.getCommand().equals("server_stopped")) {
                         // just skip server
                     } else if (scanResp.getCommand().equals("scan_error")){
@@ -95,26 +94,15 @@ public class KVLib {
                     }
                     else {
                         serverMessage = scanResp.getCommand();
-                        String KVSet = scanResp.get("values");
-                        if (KVSet == null || KVSet.isEmpty()) {
-                            errorMessage.append(scanResp.toString());
-                        } else {
-                            if (KVSet.contains(";")) {
-                                for (String kvPair : KVSet.split(";")) {
-                                    KVItem scanItem = KVItemParser.itemFromArgs(kvPair.split(","));
-                                    if (!resultMap.containsKey(scanItem.getKey())) {
-                                        KVItem decodedItem = new KVItem(scanItem.getKey());
-                                        decodedItem.setValueFrom64(scanItem.getValue());
-                                        resultMap.put(scanItem.getKey(), decodedItem);
-                                    }
-                                }
-                            } else {
-                                KVItem scanItem = KVItemParser.itemFromArgs(KVSet.split(","));
-                                if (!resultMap.containsKey(scanItem.getKey())) {
-                                    KVItem decodedItem = new KVItem(scanItem.getKey());
-                                    decodedItem.setValueFrom64(scanItem.getValue());
-                                    resultMap.put(scanItem.getKey(), decodedItem);
-                                }
+
+                        int kvCount = Integer.parseInt(scanResp.get("count"));
+                        for (int i=1; i<=kvCount; i++){
+                            String k = scanResp.get("K"+i);
+                            String v = scanResp.get("V"+i);
+                            if (!resultMap.containsKey(k)){
+                                KVItem decodedItem = new KVItem(k);
+                                decodedItem.setValueFrom64(v);
+                                resultMap.put(k, decodedItem);
                             }
                         }
                     }
@@ -124,7 +112,7 @@ public class KVLib {
             }
         }
 
-        if (resultMap.size() >1){
+        if (resultMap.size() > 0){
             successMessage.append(serverMessage).append("  <").append(item.getKey()).append("> ");
             for (KVItem k: resultMap.values()){
                 successMessage.append(k.getKey()).append(":").append(k.getValue()).append(", ");
