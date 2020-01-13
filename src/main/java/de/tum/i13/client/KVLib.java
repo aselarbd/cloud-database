@@ -6,8 +6,6 @@ import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2ClientFactory;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.shared.*;
-import de.tum.i13.shared.parsers.KVItemParser;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
