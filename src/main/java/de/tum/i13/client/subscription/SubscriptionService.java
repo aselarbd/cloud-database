@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -23,7 +25,7 @@ public class SubscriptionService {
     private static final Log logger = new Log(SubscriptionService.class);
     private static final int RETRY_WAIT = 2000;
     Map<InetSocketAddress, Subscriber> subscribers = new HashMap<>();
-    Set<String> subscribedKeys = new HashSet<>();
+    Map<String, InetSocketAddress> subscribedKeys = new HashMap<>();
     Set<String> retries = new HashSet<>();
     ConsistentHashMap keyrange = null;
     Supplier<ConsistentHashMap> keyrangeUpdater;
@@ -39,7 +41,7 @@ public class SubscriptionService {
         this.outputHandler = outputHandler;
     }
 
-    private String subscribeOrUnsubscribe(String key, Consumer<Subscriber> action) {
+    private String subscribeOrUnsubscribe(String key, BiConsumer<InetSocketAddress, Subscriber> action) {
         keyrangeLock.lock();
         if (keyrange == null) {
             logger.fine("Reloading keyranges for subscriber");
@@ -50,22 +52,24 @@ public class SubscriptionService {
             keyrangeLock.unlock();
             return "No servers available";
         }
-        InetSocketAddress responsibleServer = keyrange.getSuccessor(key);
-        try {
-            Subscriber sub = subscribers.get(responsibleServer);
-            if (sub == null) {
-                sub = new Subscriber(responsibleServer, updateHandler, this::subscriberEventHandler);
-                subscribers.put(responsibleServer, sub);
+        List<InetSocketAddress> responsibleServers = keyrange.getAllSuccessors(key);
+        String status = "";
+        for (InetSocketAddress responsibleServer : responsibleServers) {
+            try {
+                Subscriber sub = subscribers.get(responsibleServer);
+                if (sub == null) {
+                    sub = new Subscriber(responsibleServer, updateHandler, this::subscriberEventHandler);
+                    subscribers.put(responsibleServer, sub);
+                }
+                logger.info("Subscribe/unsubscribe action for key " + key + " on " + responsibleServer.toString());
+                action.accept(responsibleServer, sub);
+            } catch (IOException e) {
+                logger.warning("Failed to connect", e);
+                status += "\nFailed to connect - " + e.getMessage();
             }
-            logger.info("Subscribe/unsubscribe action for key " + key + " on " + responsibleServer.toString());
-            action.accept(sub);
-            return "sent request";
-        } catch (IOException e) {
-            logger.warning("Failed to connect", e);
-            return "Failed to connect - " + e.getMessage();
-        } finally {
-            keyrangeLock.unlock();
         }
+        keyrangeLock.unlock();
+        return "sent requests" + status;
     }
 
     private void retry(String key) {
@@ -82,10 +86,10 @@ public class SubscriptionService {
             keyrange = null;
             keyrangeLock.unlock();
             // use state map to determine which action is to be retried
-            if (subscribedKeys.contains(key)) {
-                subscribeOrUnsubscribe(key, subscriber -> subscriber.subscribe(key));
+            if (subscribedKeys.keySet().contains(key)) {
+                subscribeOrUnsubscribe(key, (addr, subscriber) -> subscriber.subscribe(key));
             } else {
-                subscribeOrUnsubscribe(key, subscriber -> subscriber.unsubscribe(key));
+                subscribeOrUnsubscribe(key, (addr, subscriber) -> subscriber.unsubscribe(key));
             }
             logger.fine("Sent retry for " + key);
         });
@@ -100,12 +104,12 @@ public class SubscriptionService {
                     outputHandler.accept("Failed to determine responsible server for " + key);
                     logger.info("Retry failed for " + key);
                     // restore previous state
-                    if (subscribedKeys.contains(key)) {
+                    if (subscribedKeys.keySet().contains(key)) {
                         // failed subscribe - consider unsubscribed again
                         subscribedKeys.remove(key);
                     } else {
                         // failed subscribe - consider as still subscribed
-                        subscribedKeys.add(key);
+                        subscribedKeys.put(key, event.getSource());
                     }
                 } else {
                     retries.add(key);
@@ -126,24 +130,24 @@ public class SubscriptionService {
     }
 
     public String subscribe(String key) {
-        if (subscribedKeys.contains(key)) {
+        if (subscribedKeys.keySet().contains(key)) {
             return "Already subscribed";
         }
         // clear potential previous retries
         retries.remove(key);
-        return subscribeOrUnsubscribe(key, subscriber -> {
-            subscribedKeys.add(key);
+        return subscribeOrUnsubscribe(key, (addr, subscriber) -> {
+            subscribedKeys.put(key, addr);
             subscriber.subscribe(key);
         });
     }
 
     public String unsubscribe(String key) {
-        if (!subscribedKeys.contains(key)) {
+        if (!subscribedKeys.keySet().contains(key)) {
             return "Not subscribed";
         }
         // clear potential previous retries
         retries.remove(key);
-        return subscribeOrUnsubscribe(key, subscriber -> {
+        return subscribeOrUnsubscribe(key, (addr, subscriber) -> {
             subscribedKeys.remove(key);
             subscriber.unsubscribe(key);
         });

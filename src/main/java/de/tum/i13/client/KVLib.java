@@ -238,7 +238,7 @@ public class KVLib {
 
     private ConsistentHashMap subscriptionServiceKeyrangeUpdate() {
         getKeyRanges();
-        return keyRanges;
+        return keyRangesReplica;
     }
 
     private String getKeyRangeStr(String cmd, KVTP2Client client)
