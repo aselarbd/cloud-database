@@ -3,6 +3,9 @@ package de.tum.i13;
 import de.tum.i13.client.KVLib;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.TaskRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +35,16 @@ public class EnronTest {
     public static final Integer kv4Port = 5164;
     public static final Integer kv5Port = 5165;
     public static final Integer ecsPort = 5160;
+
+    @BeforeAll
+    public static void startup() throws Exception {
+        TaskRunner.reset();
+    }
+
+    @AfterAll
+    public static void shutdown() throws Exception {
+        TaskRunner.shutdown();
+    }
 
     @Test
     public void test(@TempDir Path tmpDir1, @TempDir Path tmpDir2, @TempDir Path tmpDir3,
@@ -87,5 +100,6 @@ public class EnronTest {
 //        kvThread5.join(WAIT_TIME_BALANCE);
         ecsThread.interrupt();
         ecsThread.join(WAIT_TIME_BALANCE);
+        TaskRunner.shutdown();
     }
 }

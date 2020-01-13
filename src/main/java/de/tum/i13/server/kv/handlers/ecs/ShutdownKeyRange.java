@@ -8,6 +8,7 @@ import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -48,21 +49,17 @@ public class ShutdownKeyRange implements Handler {
         messageWriter.flush();
 
         if (newKeyRange.size() <= 0) {
-            ExecutorService finishExecutor = Executors.newSingleThreadExecutor();
-            finishExecutor.submit(() -> {
+            TaskRunner.run(() -> {
                 sendFinish(finalEcsClient);
             });
             return;
         }
 
-        ExecutorService transferService = Executors.newSingleThreadExecutor();
-
-        transferService.submit(() -> {
+        TaskRunner.run(() -> {
             Map<InetSocketAddress, KVTP2Client> clients = new HashMap<>();
 
-            ExecutorService transferExecutor = Executors.newSingleThreadExecutor();
             try {
-                List<Future<String>> futures = transferExecutor.invokeAll(
+                List<Future<String>> futures = TaskRunner.runAll(
                         kvServer.getAllKeys((k) -> true).stream().map((k) -> (Callable<String>) () -> {
                             Message put = new Message("put");
                             KVItem item = null;

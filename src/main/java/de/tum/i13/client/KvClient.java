@@ -7,6 +7,7 @@ import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.Log;
 import de.tum.i13.shared.LogLevelChange;
 import de.tum.i13.shared.LogSetup;
+import de.tum.i13.shared.TaskRunner;
 import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.StringArrayParser;
 
@@ -298,6 +299,7 @@ public class KvClient {
                 write("EchoClient is going to exit now. Goodbye!");
                 // ensure disconnect. By specification, calling this when not connected does nothing
                 kvLib.disconnect();
+                subscriptionService.quit();
                 exit = true;
             } else {
                 // Look up what to do
@@ -330,5 +332,6 @@ public class KvClient {
         } catch (Exception e) {
             logger.severe("Exception occurred in main()", e);
         }
+        TaskRunner.shutdown();
     }
 }

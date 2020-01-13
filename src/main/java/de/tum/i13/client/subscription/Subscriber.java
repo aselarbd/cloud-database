@@ -7,12 +7,11 @@ import de.tum.i13.kvtp2.NonBlockingKVTP2Client;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.KVResult;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
@@ -24,6 +23,7 @@ public class Subscriber {
     private final static int HEALTH_INTVL = 10000;
     private int pendingHealthReplies = 0;
     private final InetSocketAddress addr;
+    private boolean exit = false;
     Consumer<KVItem> updateCallback;
     Consumer<SubscriberEvent> eventHandler;
     NonBlockingKVTP2Client client;
@@ -49,8 +49,7 @@ public class Subscriber {
         this.client.setDefaultHandler(this::messageHandler);
         Future<Boolean> connected = this.client.connect(addr);
         // start client service
-        ExecutorService clientExecutor = Executors.newSingleThreadExecutor();
-        clientExecutor.submit(() -> {
+        TaskRunner.run(() -> {
             try {
                 this.client.start();
             } catch (IOException e) {
@@ -68,10 +67,9 @@ public class Subscriber {
             throw new IOException("Could not connect", e);
         }
         // periodically check if server is alive
-        ExecutorService alivenessChecker = Executors.newSingleThreadExecutor();
-        alivenessChecker.submit(() -> {
+        TaskRunner.run(() -> {
             try {
-                while(true) {
+                while(!exit) {
                     Thread.sleep(HEALTH_INTVL);
                     if (pendingHealthReplies > 1) {
                         logger.info("Health checker unresponsive");
@@ -81,6 +79,8 @@ public class Subscriber {
                     pendingHealthReplies++;
                     client.send(new Message("health"));
                 }
+            } catch (InterruptedException e) {
+                // all fine
             } catch (Exception e) {
                 logger.info("Health checker failed", e);
                 eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "health"));
@@ -114,6 +114,11 @@ public class Subscriber {
             logger.info("Failed to send unsubscribe", e);
             eventHandler.accept(new SubscriberEvent(addr, EventType.SERVER_DOWN, "unsubscribe"));
         }
+    }
+
+    public void quit() {
+        client.quit();
+        exit = true;
     }
 
     private Message msgWithKey(String cmd, String key) {

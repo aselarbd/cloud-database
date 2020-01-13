@@ -2,6 +2,7 @@ package de.tum.i13.server.kv;
 
 import de.tum.i13.shared.Config;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -54,6 +55,7 @@ public class KVMain {
                 attempts++;
             }
             ecsServer.stop();
+            TaskRunner.shutdown();
         } catch (IOException | InterruptedException e) {
             logger.severe("Failed to gracefully shut down servers", e);
         }

@@ -2,6 +2,7 @@ package de.tum.i13.server.ecs;
 
 import de.tum.i13.shared.Config;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 
@@ -31,6 +32,7 @@ public class ECSMain {
         logger.info("Closing ecs server");
         try {
             server.close();
+            TaskRunner.shutdown();
         } catch (IOException e) {
             logger.warning("Exception on shutdown", e);
         }

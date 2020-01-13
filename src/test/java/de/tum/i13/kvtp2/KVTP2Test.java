@@ -1,5 +1,8 @@
 package de.tum.i13.kvtp2;
 
+import de.tum.i13.shared.TaskRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +15,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 @Disabled
 public class KVTP2Test {
+
+    @BeforeAll
+    public static void startup() throws Exception {
+        TaskRunner.reset();
+    }
+
+    @AfterAll
+    public static void shutdown() throws Exception {
+        TaskRunner.shutdown();
+    }
 
     private class Pair {
         private MessageWriter messageWriter;

@@ -8,19 +8,20 @@ import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.CancelledKeyException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class SubscriptionService {
 
     private static final Log logger = new Log(SubscriptionService.class);
+
+    private boolean exit = false;
 
     private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
 
@@ -94,15 +95,24 @@ public class SubscriptionService {
     }
 
     public void run() {
-        ExecutorService notificationService = Executors.newSingleThreadExecutor();
-        notificationService.submit(() -> {
-            while (true) {
-                KVItem take = changes.take();
-                for (InetSocketAddress dest : subscriptions.get(take.getKey())) {
-                    notifyClient(dest, take);
+        TaskRunner.run(() -> {
+            while (!exit) {
+                try {
+                    KVItem take = changes.take();
+                    for (InetSocketAddress dest : subscriptions.get(take.getKey())) {
+                        notifyClient(dest, take);
+                    }
+                } catch (InterruptedException e) {
+                    // all fine
+                } catch (IOException e) {
+                    logger.warning("notifyClient failed", e);
                 }
             }
         });
+    }
+
+    public void stop() {
+        exit = true;
     }
 
     private void notifyClient(InetSocketAddress dest, KVItem update) throws IOException {

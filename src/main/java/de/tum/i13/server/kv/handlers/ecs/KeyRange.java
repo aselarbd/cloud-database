@@ -8,6 +8,7 @@ import de.tum.i13.server.kv.KVServer;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -21,7 +22,6 @@ public class KeyRange implements Handler {
     public static final Log logger = new Log(KeyRange.class);
 
     private final KVServer kvServer;
-    private ExecutorService transferService;
 
     private ConsistentHashMap nextKeyRange;
 
@@ -44,11 +44,8 @@ public class KeyRange implements Handler {
                             .getSuccessor(s)
                             .equals(kvServer.getAddress())
             );
-            if (transferService == null) {
-                transferService = Executors.newSingleThreadExecutor();
-            }
 
-            transferService.submit(() -> {
+            TaskRunner.run(() -> {
                 KVTP2Client ecsClient = null;
                 try {
                     ecsClient = kvServer.getBlockingECSClient();
@@ -75,10 +72,9 @@ public class KeyRange implements Handler {
                 }
 
                 KVTP2Client kvtp2Client = new KVTP2Client(predecessorIP, predecessorPort);
-                ExecutorService transferExecutor = Executors.newSingleThreadExecutor();
                 try {
                     kvtp2Client.connect();
-                    List<Future<String>> futures = transferExecutor.invokeAll(
+                    List<Future<String>> futures = TaskRunner.runAll(
                             oldKeys.stream().map((k) -> (Callable<String>) () -> {
                                 Message put = new Message("put");
                                 KVItem item = null;
@@ -121,7 +117,7 @@ public class KeyRange implements Handler {
             });
             nextKeyRange = newKeyRange;
         } else {
-            Executors.newSingleThreadExecutor().submit(() -> {
+            TaskRunner.run(() -> {
                 kvServer.setKeyRange(newKeyRange);
                 nextKeyRange = null;
             });

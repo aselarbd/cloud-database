@@ -7,6 +7,9 @@ import de.tum.i13.kvtp2.Message;
 import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.TaskRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,6 +31,16 @@ public class ReplicatorTest {
 
     private static int REPL_THREAD_WAIT = 50;
     private static int SHUTDOWN_WAIT = 5050;
+
+    @BeforeAll
+    public static void startup() throws Exception {
+        TaskRunner.reset();
+    }
+
+    @AfterAll
+    public static void shutdown() throws Exception {
+        TaskRunner.shutdown();
+    }
 
     @BeforeEach
     public void prepareTest() throws IOException {

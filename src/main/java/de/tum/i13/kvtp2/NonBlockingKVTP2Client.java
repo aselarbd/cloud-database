@@ -31,6 +31,8 @@ public class NonBlockingKVTP2Client {
 
     private InetSocketAddress defaultConnection;
 
+    private boolean exit = false;
+
     public NonBlockingKVTP2Client() throws IOException {
         this(SelectorProvider.provider());
     }
@@ -40,7 +42,7 @@ public class NonBlockingKVTP2Client {
     }
 
     public void start() throws IOException {
-        while(true) {
+        while(!exit) {
             for (ChangeRequest cr : getPendingChanges()) {
                 if (cr.selectionKey != null) {
                     cr.selectionKey.interestOps(cr.ops);
@@ -59,6 +61,11 @@ public class NonBlockingKVTP2Client {
 
     public void setEncoder(Encoder encoder) {
         this.encoder = encoder;
+    }
+
+    public void quit() {
+        exit = true;
+        this.selector.wakeup();
     }
 
 

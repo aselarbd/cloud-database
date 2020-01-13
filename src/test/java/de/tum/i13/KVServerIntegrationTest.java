@@ -1,5 +1,6 @@
 package de.tum.i13;
 
+import de.tum.i13.shared.TaskRunner;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ public class KVServerIntegrationTest {
 
     @BeforeAll
     public static void startup(@TempDir Path tmpDir) throws InterruptedException, IOException {
+        TaskRunner.reset();
         ecsThread = IntegrationTestHelpers.startECS(ecsPort);
         kvThread = IntegrationTestHelpers.startKVServer(tmpDir.toString(), kvPort, ecsPort, 1);
 
@@ -33,6 +35,7 @@ public class KVServerIntegrationTest {
         kvThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
         ecsThread.interrupt();
         ecsThread.join(2 * IntegrationTestHelpers.EXIT_WAIT);
+        TaskRunner.shutdown();
     }
 
     @Test

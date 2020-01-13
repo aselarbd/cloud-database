@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 public class KVServer {
@@ -46,8 +44,6 @@ public class KVServer {
     private ECSServer controlAPIServer;
 
     private KVTP2Client blockingECSClient;
-
-    private ExecutorService shutdownService;
 
     public KVServer(Config cfg) throws IOException {
         this.config = cfg;
@@ -287,14 +283,14 @@ public class KVServer {
     }
 
     public void stop() throws IOException {
+        subscriptionService.stop();
         logger.info("sending shutdown announcement");
         Message shutdownMsg = new Message("announce_shutdown");
         shutdownMsg.put("ecsip", controlAPIServer.getLocalAddress());
         shutdownMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
         KVTP2Client blockingECSClient = getBlockingECSClient();
 
-        shutdownService = Executors.newSingleThreadExecutor();
-        shutdownService.submit(() -> {
+        TaskRunner.run(() -> {
             Message send;
             try {
                 send = blockingECSClient.send(shutdownMsg);
@@ -335,7 +331,6 @@ public class KVServer {
 
     private void cleanup() {
         try {
-            shutdownService.shutdownNow();
             blockingECSClient.close();
         } catch (IOException e) {
             logger.warning("failed to close ecs client", e);

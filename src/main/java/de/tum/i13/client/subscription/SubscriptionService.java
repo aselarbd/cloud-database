@@ -3,6 +3,7 @@ package de.tum.i13.client.subscription;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.Log;
+import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,8 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -68,8 +67,7 @@ public class SubscriptionService {
 
     private void retry(String key) {
         // run a separate thread for retry as it might take longer, so the receive logic doesn't get blocked
-        ExecutorService retryExec = Executors.newSingleThreadExecutor();
-        retryExec.submit(() -> {
+        TaskRunner.run(() -> {
             // give servers some time to rebalance
             try {
                 Thread.sleep(RETRY_WAIT);
@@ -145,6 +143,12 @@ public class SubscriptionService {
         return subscribeOrUnsubscribe(key, subscriber -> {
             subscribedKeys.remove(key);
             subscriber.unsubscribe(key);
+        });
+    }
+
+    public void quit() {
+        subscribers.forEach((inetSocketAddress, subscriber) -> {
+            subscriber.quit();
         });
     }
 

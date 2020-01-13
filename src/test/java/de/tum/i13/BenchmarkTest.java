@@ -3,6 +3,9 @@ package de.tum.i13;
 import de.tum.i13.client.KVLib;
 import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.shared.KVItem;
+import de.tum.i13.shared.TaskRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +38,16 @@ public class BenchmarkTest {
 
     private Process ecs;
     private Process[] kvServers;
+
+    @BeforeAll
+    public static void startup() throws Exception {
+        TaskRunner.reset();
+    }
+
+    @AfterAll
+    public static void shutdown() throws Exception {
+        TaskRunner.shutdown();
+    }
 
     @Disabled
     @Test
