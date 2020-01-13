@@ -8,10 +8,26 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Class Message provides a datatype for abstracting the information
+ * which is send over the network. It provides two versions for serialization
+ * and parsing. V1 is compatible with the public API specification of KV-Servers
+ * and KV-Clients, V2 provides a simple Key-Value message format.
+ *
+ * Messages have some Metadata and some content. The metadata includes:
+ * an ID - to match responses to requests
+ * a Version - V1 or V2 as described above
+ * a type - Request/Response
+ * a command - which is used to route the message to the correct handler in a server
+ */
 public class Message {
 
     private static final String KEY_VALUE_DELIMITER = ":";
 
+    /**
+     * oldStyleKeyWords provides the API Messages for V1 and defines the parser
+     * which is used for each version.
+     */
     private static final Map<String, Supplier<Parser>> oldStyleKeyWords = new HashMap<>() {
         {
             put("put", () -> new PutParser().with(Type.REQUEST).withFullText());
@@ -44,6 +60,9 @@ public class Message {
             "^(" + String.join("|", oldStyleKeyWords.keySet()) + ").*$"
     );
 
+    /**
+     * Type determines, whether the message is a request or a response to a request.
+     */
     public enum Type {
         REQUEST,
         RESPONSE;
@@ -70,10 +89,21 @@ public class Message {
 
     private final Map<String, String> pairs = new LinkedHashMap<>();
 
+    /**
+     * Creates a new V2 message with a given command.
+     *
+     * @param command The default command for this message. Can be changed by a separate setter
+     */
     public Message(String command) {
         this(command, Version.V2);
     }
 
+    /**
+     * Creates a new Message with a given command and version
+     *
+     * @param command The default command for this message. Can be changed by a separate setter
+     * @param version The version to be used for the new message.
+     */
     public Message(String command, Version version) {
         this.id = getNextID();
         this.type = Type.REQUEST;
@@ -85,10 +115,21 @@ public class Message {
         return nextID++;
     }
 
+    /**
+     * Add a new key-value pair to the message
+     *
+     * @param key key
+     * @param value value
+     */
     public void put(String key, String value) {
         pairs.put(key, value);
     }
 
+    /**
+     * Get the message body as string
+     *
+     * @return
+     */
     public String body() {
         StringBuilder sb = new StringBuilder();
         pairs.forEach((k, v) -> sb.append(k)
@@ -115,6 +156,15 @@ public class Message {
         return String.join(" ", command, joined).trim();
     }
 
+    /**
+     * Parse a string as a message. Message Version is set by a regular expression.
+     * If the first word matches a keyword of the public KV-Server API, V1 is used,
+     * otherwise V2.
+     *
+     * @param msg Message to parse
+     * @return A new Message object, containing the key-value pairs taken from the string representation
+     * @throws MalformedMessageException If a message has a bad format
+     */
     public static Message parse(String msg) throws MalformedMessageException {
         String[] lines = msg.split("\\R");
 
@@ -164,6 +214,11 @@ public class Message {
         return msg;
     }
 
+    /**
+     * Convenience method to get a response for a given request (which has the same message id)
+     * @param request to get a response for
+     * @return a new response with the same request id as the request
+     */
     public static Message getResponse(Message request) {
         Message response = new Message(request.getCommand());
         response.type = Type.RESPONSE;

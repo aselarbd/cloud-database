@@ -16,6 +16,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
+/**
+ * {@link NonBlockingKVTP2Client} provides a non blocking client, for the kvtp2 protocol.
+ * The client is supposed to be run in background in a separate thread, operations can be executed
+ * from the main thread.
+ */
 public class NonBlockingKVTP2Client {
 
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
@@ -33,14 +38,29 @@ public class NonBlockingKVTP2Client {
 
     private boolean exit = false;
 
+    /**
+     * Create a new client with a default SelectorProvider
+     * @throws IOException If an I/O error occurs
+     */
     public NonBlockingKVTP2Client() throws IOException {
         this(SelectorProvider.provider());
     }
 
+    /**
+     * Creates a new client using the given SelectorProvider
+     *
+     * @param provider provider to use for the nio client
+     * @throws IOException If an I/O error occurs
+     */
     public NonBlockingKVTP2Client(SelectorProvider provider) throws IOException {
         this.selector = provider.openSelector();
     }
 
+    /**
+     * Start the client event loop
+     *
+     * @throws IOException If an I/O error occurs
+     */
     public void start() throws IOException {
         while(!exit) {
             for (ChangeRequest cr : getPendingChanges()) {
@@ -55,10 +75,20 @@ public class NonBlockingKVTP2Client {
         }
     }
 
+    /**
+     * Set a different decoder for this client (Default is base64)
+     *
+     * @param decoder decoder to use
+     */
     public void setDecoder(Decoder decoder) {
         this.decoder = decoder;
     }
 
+    /**
+     * Set a different encoder for this client (Default is base64)
+     *
+     * @param encoder encoder to use
+     */
     public void setEncoder(Encoder encoder) {
         this.encoder = encoder;
     }
@@ -67,7 +97,6 @@ public class NonBlockingKVTP2Client {
         exit = true;
         this.selector.wakeup();
     }
-
 
     private synchronized List<ChangeRequest> getPendingChanges() {
         List<ChangeRequest> crs = new LinkedList<>();
@@ -105,11 +134,30 @@ public class NonBlockingKVTP2Client {
         return false;
     }
 
+    /**
+     * Connect to the server at address:port. Returns a future, which will resolve,
+     * when the connection was established. This is supposed to be called from
+     * the main thread.
+     *
+     * @param address address to connect to
+     * @param port port to connect to
+     * @return a Future object, which resolves when the operation is finished.
+     * @throws IOException If an I/O error occurs
+     */
     public Future<Boolean> connect(String address, int port) throws IOException {
         InetSocketAddress isa = new InetSocketAddress(address, port);
         return connect(isa);
     }
 
+    /**
+     * Connect to the server at address. Returns a future, which will resolve,
+     * when the connection was established. This is supposed to be called from
+     * the main thread.
+     *
+     * @param address address to connect to
+     * @return a Future object, which resolves when the operation is finished.
+     * @throws IOException If an I/O error occurs
+     */
     public Future<Boolean> connect(InetSocketAddress address) throws IOException {
         SocketChannel sc = SocketChannel.open();
         sc.configureBlocking(false);
@@ -160,10 +208,23 @@ public class NonBlockingKVTP2Client {
         };
     }
 
+    /**
+     * send an asynchronous message to the connected server. Any responses
+     * will be handled by a defaultHandler if present or otherwise dropped.
+     *
+     * @param m message to send.
+     */
     public void send(Message m) {
         send(m, defaultHandler);
     }
 
+    /**
+     * Send an asynchronous message to the server. Responses will be handled by
+     * the given BiConsumer.
+     *
+     * @param m Message to send
+     * @param r BiConsumer, which will handle any responses.
+     */
     public void send(Message m, BiConsumer<MessageWriter, Message> r) {
         InetSocketAddress target = defaultConnection;
 
@@ -178,6 +239,16 @@ public class NonBlockingKVTP2Client {
         wr.flush();
     }
 
+    /**
+     * Same as {@link NonBlockingKVTP2Client#send(Message, BiConsumer)} but connects to a server first.
+     *
+     * @param target server to connect to
+     * @param m Message to send
+     * @param r BiConsumer, which will handle any responses.
+     * @throws IOException If an I/O error occurs
+     * @throws ExecutionException If the connection fails
+     * @throws InterruptedException If the connection is interrupted
+     */
     public void send(InetSocketAddress target, Message m, BiConsumer<MessageWriter, Message> r) throws IOException, ExecutionException, InterruptedException {
         if (!connections.containsKey(target)) {
             connect(target).get();
@@ -218,6 +289,12 @@ public class NonBlockingKVTP2Client {
         // neither correct handler nor default handler set -> drop response
     }
 
+    /**
+     * Set a default handler for all response messages, which are not handled by
+     * a more specific handler.
+     *
+     * @param defaultHandler Default BiConsumer to handle responses
+     */
     public void setDefaultHandler(BiConsumer<MessageWriter, Message> defaultHandler) {
         this.defaultHandler = defaultHandler;
     }

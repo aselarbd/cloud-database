@@ -13,6 +13,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+/**
+ * A KVTP2Server runs a nio-server, which can handle incoming messasges
+ *
+ * Handlers can be registered individually per server instance using {@link Handler}-implementations.
+ */
 public class KVTP2Server {
 
     private static final Charset ENCODING = StandardCharsets.ISO_8859_1;
@@ -27,15 +32,31 @@ public class KVTP2Server {
     private Decoder decoder = new Base64Decoder();
     private Encoder encoder = new Base64Encoder();
 
+    /**
+     * Create a new server with a default SelectorProvider
+     * @throws IOException If an I/O error occurs
+     */
     public KVTP2Server() throws IOException {
         this(SelectorProvider.provider());
     }
 
+    /**
+     * Creates a new server using the given SelectorProvider
+     *
+     * @param provider provider to use for the nio server
+     * @throws IOException If an I/O error occurs
+     */
     public KVTP2Server(SelectorProvider provider) throws IOException {
         this.handlers = new HashMap<>();
         this.selector = provider.openSelector();
     }
 
+    /**
+     * Start the server at the given address and port
+     * @param address address to run this server on
+     * @param port port to listen on. If 0, a random free port is selected.
+     * @throws IOException If an I/O error occurs
+     */
     public void start(String address, int port) throws IOException {
         listenTCP(address, port);
         while (!shutdown) {
@@ -55,6 +76,11 @@ public class KVTP2Server {
         serverConnection = new TCPServerConnection(address, port, this.selector, this::serve);
     }
 
+    /**
+     * Get the port number on which this server is running
+     *
+     * @return local port number of this server.
+     */
     public int getLocalPort() {
         return serverConnection.getLocalPort();
     }
@@ -128,6 +154,11 @@ public class KVTP2Server {
         // neither correct handler nor default handler set -> drop request
     }
 
+    /**
+     * Set a default handler, which will be used for all Messages, which are not
+     * handled by another more specific handler.
+     * @param defaultHandler defaultHandler to use
+     */
     public void setDefaultHandler(Handler defaultHandler) {
         this.defaultHandler = defaultHandler;
     }
@@ -135,7 +166,7 @@ public class KVTP2Server {
     /**
      * handle configures a new handler for this server. The given handler
      * will be called for incoming messages with the given command. Think of
-     * the command as what route and methods are in http.
+     * the command as a combination of what route and methods are in http.
      *
      * @param command command to handle
      * @param handler handler to call for incoming message with command.
@@ -144,14 +175,29 @@ public class KVTP2Server {
         this.handlers.put(command, handler);
     }
 
+    /**
+     * Set a different decoder for this server (Default is base64)
+     *
+     * @param decoder decoder to use
+     */
     public void setDecoder(Decoder decoder) {
         this.decoder = decoder;
     }
 
+    /**
+     * Set a different encoder for this server (Default is base64)
+     *
+     * @param encoder encoder to use
+     */
     public void setEncoder(Encoder encoder) {
         this.encoder = encoder;
     }
 
+    /**
+     * Shutdown the server
+     *
+     * @throws IOException If an I/O error occurs
+     */
     public void shutdown() throws IOException {
         serverConnection.close();
         shutdown = true;
