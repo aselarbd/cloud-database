@@ -140,7 +140,14 @@ public class SubscriptionService {
                 connectReplica(inetSocketAddress);
             }
         }
-        replicaClients.entrySet().removeIf(next -> !currentReplicaSet.contains(next.getKey()));
+        Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> iterator = replicaClients.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<InetSocketAddress, KVTP2Client> next = iterator.next();
+            if (currentReplicaSet.contains(next.getKey())) {
+                next.getValue().close();
+                iterator.remove();
+            }
+        }
 
         for (KVTP2Client client : replicaClients.values()) {
             Message message = new Message("cancelnotification");
