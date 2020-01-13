@@ -160,6 +160,8 @@ public class KvClient {
                 + "\tget <key>\tGets the key-value pair with the given key from the server (requires connection)\n"
                 + "\tscan <key>\tGet all partial matching key value pairs from the server (requires connection)\n"
                 + "\tdelete <key>\tDeletes the key-value pair with the given key from the server (requires connection)\n"
+                + "\tsubscribe <key>\tGives notifications about the key's value updates (requires connection)\n"
+                + "\tunsubscribe <key>\tStop sending notifications about key's value updates (requires connection)\n"
                 + "\tdisconnect\tDisconnects from the server\n"
                 + "\tlogLevel <level>\tSets the log level to one of\n"
                 + "\t\t" + LOG_LVL_NAMES+"\n"
