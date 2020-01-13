@@ -21,8 +21,6 @@ public class SubscriptionService {
 
     private static final Log logger = new Log(SubscriptionService.class);
 
-    private boolean exit = false;
-
     private TaskRunner taskRunner;
 
     private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
@@ -46,6 +44,7 @@ public class SubscriptionService {
 
     public void notify(KVItem item) {
         changes.add(item);
+        run();
     }
 
     public void replicateNotification(KVItem item) {
@@ -99,7 +98,7 @@ public class SubscriptionService {
 
     public void run() {
         taskRunner.run(() -> {
-            while (!exit) {
+            while (changes.size() > 0) {
                 try {
                     KVItem take = changes.take();
                     for (InetSocketAddress dest : subscriptions.get(take.getKey())) {
@@ -112,10 +111,6 @@ public class SubscriptionService {
                 }
             }
         });
-    }
-
-    public void stop() {
-        exit = true;
     }
 
     private void notifyClient(InetSocketAddress dest, KVItem update) throws IOException {

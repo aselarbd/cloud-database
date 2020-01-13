@@ -289,7 +289,6 @@ public class KVServer {
     }
 
     public void stop() throws IOException, InterruptedException {
-        subscriptionService.stop();
         logger.info("sending shutdown announcement");
         Message shutdownMsg = new Message("announce_shutdown");
         shutdownMsg.put("ecsip", controlAPIServer.getLocalAddress());
