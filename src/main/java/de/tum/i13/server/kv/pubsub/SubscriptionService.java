@@ -24,10 +24,6 @@ public class SubscriptionService {
     private TaskRunner taskRunner;
 
     private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
-
-    private Map<InetSocketAddress, MessageWriter> replicatedClientWriters = Collections.synchronizedMap(new HashMap<>());
-    private Map<InetSocketAddress, Set<String>> replicatedClients = Collections.synchronizedMap(new HashMap<>());
-    private Map<String, Set<InetSocketAddress>> replicatedSubscriptions = Collections.synchronizedMap(new HashMap<>());
     private Map<String, List<KVItem>> replicatedNotifications = Collections.synchronizedMap(new HashMap<>());
 
     private Map<InetSocketAddress, MessageWriter> clientWriters = Collections.synchronizedMap(new HashMap<>());
@@ -66,20 +62,7 @@ public class SubscriptionService {
                 iterator.remove();
             }
         }
-    }
-
-    public void subscribeReplicatedClient(String key, InetSocketAddress clientAddress, MessageWriter clientWriter) {
-        replicatedClients.computeIfAbsent(clientAddress, k -> new HashSet<>()).add(key);
-        replicatedSubscriptions.computeIfAbsent(key, k -> new HashSet<>()).add(clientAddress);
-        replicatedClientWriters.put(clientAddress, clientWriter);
-    }
-
-    public void unsubscribeReplicatedClient(String key, InetSocketAddress clientAddress) {
-        if (replicatedSubscriptions.containsKey(key)) {
-            replicatedSubscriptions.get(key).remove(clientAddress);
-        }
-        replicatedClients.remove(clientAddress);
-        replicatedClientWriters.remove(clientAddress);
+        run();
     }
 
     public void subscribe(String key, InetSocketAddress clientAddress, MessageWriter clientWriter) {
