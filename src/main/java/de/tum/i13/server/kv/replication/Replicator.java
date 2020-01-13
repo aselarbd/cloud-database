@@ -83,6 +83,10 @@ public class Replicator {
         }
     }
 
+    public Set<InetSocketAddress> getCurrentReplicaSet() {
+        return kvAddressToReplicationConsumer.keySet();
+    }
+
     private void remove(InetSocketAddress replica) throws InterruptedException {
 
         ReplicationConsumer replicationConsumer = kvAddressToReplicationConsumer.get(replica);
@@ -110,7 +114,7 @@ public class Replicator {
      * @param addr address of the replica server
      * @return a client to talk to the replica server
      */
-    private KVTP2Client getReplicaClient(InetSocketAddress addr) throws IOException {
+    public KVTP2Client getReplicaClient(InetSocketAddress addr) throws IOException {
         Message KVToECSMsg = new Message("kv_to_ecs");
         KVToECSMsg.put("kvip", addr.getHostString());
         KVToECSMsg.put("kvport", Integer.toString(addr.getPort()));

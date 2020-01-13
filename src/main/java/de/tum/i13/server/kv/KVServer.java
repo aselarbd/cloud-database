@@ -76,7 +76,7 @@ public class KVServer {
                 keyRangeReadHandler
         );
 
-        subscriptionService = new SubscriptionService();
+        subscriptionService = new SubscriptionService(replicator);
         subscriptionService.run();
         publicationHandler = new Publication(subscriptionService);
         subscriptionHandler = new Subscribe(subscriptionService);
@@ -237,6 +237,7 @@ public class KVServer {
         this.keyRangeHandler.setKeyRange(keyRange);
         final ConsistentHashMap replicated = keyRange.getInstanceWithReplica();
         this.keyRangeReadHandler.setKeyRangeRead(replicated);
+        this.subscriptionService.takeResponsibility(keyRange, this.address);
         try {
             this.replicator.setEcsClient(getBlockingECSClient());
             this.replicator.setReplicaSets(replicated);
@@ -339,5 +340,9 @@ public class KVServer {
         } catch (IOException e) {
             logger.warning("failed to close ecs client", e);
         }
+    }
+
+    public SubscriptionService getSubscriptionService() {
+        return subscriptionService;
     }
 }

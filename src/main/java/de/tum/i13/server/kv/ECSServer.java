@@ -45,14 +45,22 @@ public class ECSServer {
         ecsServer.handle(
                 "put",
                 new LogRequest(logger).next(
+                new Publication(kvServer.getSubscriptionService()).next(
                         new Put(kvServer)
-                )
+                ))
         );
 
         ecsServer.handle(
                 "delete",
                 new LogRequest(logger).next(
                         new Delete(kvServer)
+                )
+        );
+
+        ecsServer.handle(
+                "cancelnotification",
+                new LogRequest(logger).next(
+                        new CancelNotification(kvServer.getSubscriptionService())
                 )
         );
 

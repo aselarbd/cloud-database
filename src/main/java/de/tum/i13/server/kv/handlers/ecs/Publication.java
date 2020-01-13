@@ -1,4 +1,4 @@
-package de.tum.i13.server.kv.handlers.kv;
+package de.tum.i13.server.kv.handlers.ecs;
 
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
@@ -28,6 +28,6 @@ public class Publication implements Handler {
         if (message.getCommand().equals("delete")) {
             item.setValue(Constants.DELETE_MARKER);
         }
-        subscriptionService.notify(item);
+        subscriptionService.replicateNotification(item);
     }
 }

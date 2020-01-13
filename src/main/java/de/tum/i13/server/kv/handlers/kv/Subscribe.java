@@ -22,9 +22,14 @@ public class Subscribe implements Handler {
         logger.info("subscribe: " + message);
 
         if (message.getCommand().equals("subscribe")) {
-            subscriptionService.subscribe(message.get("key"), message.getSrc(), writer);
+            if (message.get("replication") != null && message.get("replication").equals("true")) {
+                subscriptionService.subscribeReplicatedClient(message.get("key"), message.getSrc(), writer);
+            } else {
+                subscriptionService.subscribe(message.get("key"), message.getSrc(), writer);
+            }
         } else if (message.getCommand().equals("unsubscribe")) {
             subscriptionService.unsubscribe(message.get("key"), message.getSrc());
+            subscriptionService.unsubscribeReplicatedClient(message.get("key"), message.getSrc());
         }
     }
 }

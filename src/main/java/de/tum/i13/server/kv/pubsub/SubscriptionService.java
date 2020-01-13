@@ -1,8 +1,9 @@
 package de.tum.i13.server.kv.pubsub;
 
+import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.kvtp2.MessageWriter;
-import de.tum.i13.server.kv.KVServer;
+import de.tum.i13.server.kv.replication.Replicator;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.Constants;
 import de.tum.i13.shared.KVItem;
@@ -19,15 +20,63 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class SubscriptionService {
 
-    public static final Log logger = new Log(SubscriptionService.class);
+    private static final Log logger = new Log(SubscriptionService.class);
+
+    private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
+
+    private Map<InetSocketAddress, MessageWriter> replicatedClientWriters = Collections.synchronizedMap(new HashMap<>());
+    private Map<InetSocketAddress, Set<String>> replicatedClients = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, Set<InetSocketAddress>> replicatedSubscriptions = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, List<KVItem>> replicatedNotifications = Collections.synchronizedMap(new HashMap<>());
 
     private Map<InetSocketAddress, MessageWriter> clientWriters = Collections.synchronizedMap(new HashMap<>());
     private Map<InetSocketAddress, Set<String>> clients = Collections.synchronizedMap(new HashMap<>());
     private Map<String, Set<InetSocketAddress>> subscriptions = Collections.synchronizedMap(new HashMap<>());
     private BlockingQueue<KVItem> changes = new LinkedBlockingQueue<>();
 
+    private Replicator replicator;
+
+    public SubscriptionService(Replicator replicator) {
+        this.replicator = replicator;
+    }
+
     public void notify(KVItem item) {
         changes.add(item);
+    }
+
+    public void replicateNotification(KVItem item) {
+        replicatedNotifications.computeIfAbsent(item.getKey(), k -> new LinkedList<>()).add(item);
+    }
+
+    public void cancelNotification(KVItem item) {
+        if (replicatedNotifications.containsKey(item.getKey())) {
+            replicatedNotifications.get(item.getKey()).remove(item);
+        }
+    }
+
+    public void takeResponsibility(ConsistentHashMap keyRange, InetSocketAddress address) {
+        Iterator<Map.Entry<String, List<KVItem>>> iterator = replicatedNotifications.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, List<KVItem>> next = iterator.next();
+            if (keyRange.getSuccessor(next.getKey()).equals(address)) {
+                changes.addAll(next.getValue());
+                iterator.remove();
+            }
+        }
+    }
+
+    public void subscribeReplicatedClient(String key, InetSocketAddress clientAddress, MessageWriter clientWriter) {
+        replicatedClients.computeIfAbsent(clientAddress, k -> new HashSet<>()).add(key);
+        replicatedSubscriptions.computeIfAbsent(key, k -> new HashSet<>()).add(clientAddress);
+        replicatedClientWriters.put(clientAddress, clientWriter);
+    }
+
+    public void unsubscribeReplicatedClient(String key, InetSocketAddress clientAddress) {
+        if (replicatedSubscriptions.containsKey(key)) {
+            replicatedSubscriptions.get(key).remove(clientAddress);
+        }
+        replicatedClients.remove(clientAddress);
+        replicatedClientWriters.remove(clientAddress);
     }
 
     public void subscribe(String key, InetSocketAddress clientAddress, MessageWriter clientWriter) {
@@ -65,6 +114,7 @@ public class SubscriptionService {
         } else {
             notification.put("value", update.getValue());
         }
+
         try {
             clientWriters.get(dest).write(notification);
         } catch (CancelledKeyException e) {
@@ -72,5 +122,29 @@ public class SubscriptionService {
             clientWriters.get(dest).close();
             unsubscribe(update.getKey(), dest);
         }
+
+        Set<InetSocketAddress> currentReplicaSet = replicator.getCurrentReplicaSet();
+
+        for (InetSocketAddress inetSocketAddress : currentReplicaSet) {
+            if (!replicaClients.containsKey(inetSocketAddress)) {
+                connectReplica(inetSocketAddress);
+            }
+        }
+        replicaClients.entrySet().removeIf(next -> !currentReplicaSet.contains(next.getKey()));
+
+        for (KVTP2Client client : replicaClients.values()) {
+            Message message = new Message("cancelnotification");
+            message.put("key", update.getKey());
+            message.put("value", update.getValue());
+            try {
+                client.send(message);
+            } catch (IOException e) {
+                logger.warning("Replication lost: ", e);
+            }
+        }
+    }
+
+    private void connectReplica(InetSocketAddress inetSocketAddress) throws IOException {
+        replicaClients.put(inetSocketAddress, replicator.getReplicaClient(inetSocketAddress));
     }
 }
