@@ -83,8 +83,8 @@ public class KvClient {
     private String readPromptLine() throws IOException {
         System.out.print(PROMPT);
         String line = inReader.readLine();
-        // treat null values or empty strings (such as after Ctrl+D) as quit command
-        if (line == null || line.length() == 0) {
+        // treat null values (such as after Ctrl+D) as quit command
+        if (line == null ) {
             line = "quit";
         }
         // only split by one space instead of multiple ones, to keep multiple spaces like
@@ -301,6 +301,8 @@ public class KvClient {
                 kvLib.disconnect();
                 subscriptionService.quit();
                 exit = true;
+            } else if (inputMsg.equals("")) {
+                // if user press enter key just give prompt
             } else {
                 // Look up what to do
                 Action<?> action = actions.get(inputMsg.split(" ")[0]);
