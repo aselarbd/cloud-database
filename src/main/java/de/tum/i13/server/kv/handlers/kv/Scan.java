@@ -22,21 +22,18 @@ public class Scan implements Handler {
         this.kvStore = kvStore;
     }
 
-    private String getKVSetAsString(Set<KVItem> kvItemSet){
-        StringBuffer buffer = new StringBuffer("");
-        for (KVItem item : kvItemSet){
-            // TODO: handle real commas
-            buffer.append(item.toString().replace(" ", ","));
-            buffer.append(";");
-        }
-        return buffer.substring(0, buffer.length() -1);
-    }
 
     private void writeFound(MessageWriter messageWriter, Message request, String key, Set<KVItem> kvItemSet) {
         Message response = Message.getResponse(request);
         response.setCommand("scan_success");
         response.put("key", key);
-        response.put("values", getKVSetAsString(kvItemSet));
+        response.put("count", Integer.toString(kvItemSet.size()));
+        int i = 1;
+        for (KVItem item: kvItemSet){
+            response.put("K"+i, item.getKey());
+            response.put("V"+i, item.getValue());
+            i++;
+        }
         messageWriter.write(response);
         messageWriter.flush();
     }

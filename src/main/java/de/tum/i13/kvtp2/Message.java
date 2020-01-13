@@ -31,7 +31,7 @@ public class Message {
             put("get_success", () -> new Parser().with(Type.RESPONSE));
             put("delete_success", () -> new Parser().with(Type.RESPONSE));
             put("delete_error", () -> new Parser().with(Type.RESPONSE));
-            put("scan_success", () -> new Parser().with(Type.RESPONSE).withSecondArgName("values"));
+            put("scan_success", () -> new Parser().with(Type.RESPONSE).withSecondArgName("count"));
             put("scan_error", () -> new GetErrorParser().with(Type.RESPONSE).withSecondArgName("msg"));
             put("keyrange_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
             put("keyrange_read_success", () -> new KeyrangeParser().with(Type.RESPONSE).withFirstArgName("keyrange"));
