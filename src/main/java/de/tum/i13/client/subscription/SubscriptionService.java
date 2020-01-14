@@ -7,13 +7,13 @@ import de.tum.i13.shared.TaskRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -24,13 +24,15 @@ public class SubscriptionService {
 
     private static final Log logger = new Log(SubscriptionService.class);
     private static final int RETRY_WAIT = 2000;
-    Map<InetSocketAddress, Subscriber> subscribers = new HashMap<>();
-    Map<String, InetSocketAddress> subscribedKeys = new HashMap<>();
-    Set<String> retries = new HashSet<>();
-    ConsistentHashMap keyrange = null;
-    Supplier<ConsistentHashMap> keyrangeUpdater;
-    Consumer<KVItem> updateHandler;
-    Consumer<String> outputHandler;
+
+    private boolean reloadOngoing = false;
+    private Map<InetSocketAddress, Subscriber> subscribers = new HashMap<>();
+    private Map<String, List<InetSocketAddress>> subscribedKeys = new HashMap<>();
+    private Set<String> retries = new HashSet<>();
+    private ConsistentHashMap keyrange = null;
+    private Supplier<ConsistentHashMap> keyrangeUpdater;
+    private Consumer<KVItem> updateHandler;
+    private Consumer<String> outputHandler;
     // lock for keyrange changes (the object itself is thread-safe, but it is set to null occasionally)
     private Lock keyrangeLock = new ReentrantLock();
 
@@ -41,12 +43,72 @@ public class SubscriptionService {
         this.outputHandler = outputHandler;
     }
 
-    private String subscribeOrUnsubscribe(String key, BiConsumer<InetSocketAddress, Subscriber> action) {
+    private void appendSubscription(String key, InetSocketAddress addr) {
+        List<InetSocketAddress> addrs = subscribedKeys.computeIfAbsent(key, k -> new ArrayList<>());
+        addrs.add(addr);
+    }
+
+    private void removeSubscription(String key, InetSocketAddress addr) {
+        List<InetSocketAddress> addrs = subscribedKeys.get(key);
+        if (addrs != null) {
+            addrs.remove(addr);
+            if (addrs.isEmpty()) {
+                subscribedKeys.remove(key);
+            }
+        }
+    }
+
+    private Subscriber getSubscriber(InetSocketAddress addr) throws IOException {
+        Subscriber sub = subscribers.get(addr);
+        if (sub == null) {
+            sub = new Subscriber(addr, updateHandler, this::subscriberEventHandler);
+            subscribers.put(addr, sub);
+        }
+        return sub;
+    }
+
+    private void renewKeyrange() {
         keyrangeLock.lock();
         if (keyrange == null) {
             logger.fine("Reloading keyranges for subscriber");
             keyrange = keyrangeUpdater.get();
         }
+        // skip if still no keyrange is available
+        if (keyrange == null) {
+            keyrangeLock.unlock();
+            return;
+        }
+        // we need to check all subscription servers as topology might have changed
+        subscribedKeys.forEach((key, addrs) -> {
+            Set<InetSocketAddress> newAddrs = new HashSet<>(keyrange.getAllSuccessors(key));
+            Set<InetSocketAddress> oldAddrs = new HashSet<>(addrs);
+            oldAddrs.removeAll(newAddrs);
+            newAddrs.removeAll(addrs);
+
+            for (InetSocketAddress addr : newAddrs) {
+                try {
+                    Subscriber s = getSubscriber(addr);
+                    s.subscribe(key);
+                    addrs.add(addr);
+                } catch (IOException e) {
+                    logger.warning("Failed to move subscription of " + key
+                        + " to " + addr.toString(), e);
+                }
+            }
+
+            for (InetSocketAddress addr : oldAddrs) {
+                // only unsubscribe if server wasn't marked as down (i.e. removed)
+                if (subscribers.containsKey(addr)) {
+                    subscribers.get(addr).unsubscribe(key);
+                }
+            }
+        });
+        keyrangeLock.unlock();
+    }
+
+    private String subscribeOrUnsubscribe(String key, boolean isSubscription) {
+        renewKeyrange();
+        keyrangeLock.lock();
         // skip if still no keyrange is available
         if (keyrange == null) {
             keyrangeLock.unlock();
@@ -56,13 +118,16 @@ public class SubscriptionService {
         String status = "";
         for (InetSocketAddress responsibleServer : responsibleServers) {
             try {
-                Subscriber sub = subscribers.get(responsibleServer);
-                if (sub == null) {
-                    sub = new Subscriber(responsibleServer, updateHandler, this::subscriberEventHandler);
-                    subscribers.put(responsibleServer, sub);
+                Subscriber sub = getSubscriber(responsibleServer);
+                if (isSubscription) {
+                    sub.subscribe(key);
+                    appendSubscription(key, responsibleServer);
+                    logger.info("Subscription to key " + key + " on " + responsibleServer.toString());
+                } else {
+                    sub.unsubscribe(key);
+                    removeSubscription(key, responsibleServer);
+                    logger.info("Unsubscription from key " + key + " on " + responsibleServer.toString());
                 }
-                logger.info("Subscribe/unsubscribe action for key " + key + " on " + responsibleServer.toString());
-                action.accept(responsibleServer, sub);
             } catch (IOException e) {
                 logger.warning("Failed to connect", e);
                 status += "\nFailed to connect - " + e.getMessage();
@@ -72,7 +137,11 @@ public class SubscriptionService {
         return "sent requests" + status;
     }
 
-    private void retry(String key) {
+    private void reload() {
+        if (reloadOngoing) {
+            return;
+        }
+        reloadOngoing = true;
         // run a separate thread for retry as it might take longer, so the receive logic doesn't get blocked
         taskRunner.run(() -> {
             // give servers some time to rebalance
@@ -85,13 +154,9 @@ public class SubscriptionService {
             keyrangeLock.lock();
             keyrange = null;
             keyrangeLock.unlock();
-            // use state map to determine which action is to be retried
-            if (subscribedKeys.keySet().contains(key)) {
-                subscribeOrUnsubscribe(key, (addr, subscriber) -> subscriber.subscribe(key));
-            } else {
-                subscribeOrUnsubscribe(key, (addr, subscriber) -> subscriber.unsubscribe(key));
-            }
-            logger.fine("Sent retry for " + key);
+            renewKeyrange();
+            reloadOngoing = false;
+            logger.fine("Done with reload");
         });
     }
 
@@ -104,20 +169,34 @@ public class SubscriptionService {
                     outputHandler.accept("Failed to determine responsible server for " + key);
                     logger.info("Retry failed for " + key);
                     // restore previous state
-                    if (subscribedKeys.keySet().contains(key)) {
+                    if (subscribedKeys.getOrDefault(key, new ArrayList<>()).contains(event.getSource())) {
                         // failed subscribe - consider unsubscribed again
                         subscribedKeys.remove(key);
                     } else {
-                        // failed subscribe - consider as still subscribed
-                        subscribedKeys.put(key, event.getSource());
+                        // failed unsubscribe - consider as still subscribed
+                        appendSubscription(key, event.getSource());
                     }
                 } else {
+                    // try once to reload everything
                     retries.add(key);
-                    retry(key);
+                    reload();
                 }
                 break;
             case SERVER_DOWN:
-                // TODO manage new responsibilities
+                // try to remove subscriber and prevent keyrange modifications in the meantime
+                keyrangeLock.lock();
+                Subscriber sub = subscribers.get(event.getSource());
+                if (sub != null) {
+                    try {
+                        sub.quit();
+                    } catch (Exception e) {
+                        logger.warning("Failed to quit subscriber "
+                                + event.getSource().toString(), e);
+                    }
+                    subscribers.remove(event.getSource());
+                }
+                keyrangeLock.unlock();
+                reload();
                 break;
             case SERVER_NOT_READY:
                 // TODO determine possibly pending actions and retry
@@ -130,27 +209,21 @@ public class SubscriptionService {
     }
 
     public String subscribe(String key) {
-        if (subscribedKeys.keySet().contains(key)) {
+        if (subscribedKeys.containsKey(key)) {
             return "Already subscribed";
         }
         // clear potential previous retries
         retries.remove(key);
-        return subscribeOrUnsubscribe(key, (addr, subscriber) -> {
-            subscribedKeys.put(key, addr);
-            subscriber.subscribe(key);
-        });
+        return subscribeOrUnsubscribe(key, true);
     }
 
     public String unsubscribe(String key) {
-        if (!subscribedKeys.keySet().contains(key)) {
+        if (!subscribedKeys.containsKey(key)) {
             return "Not subscribed";
         }
         // clear potential previous retries
         retries.remove(key);
-        return subscribeOrUnsubscribe(key, (addr, subscriber) -> {
-            subscribedKeys.remove(key);
-            subscriber.unsubscribe(key);
-        });
+        return subscribeOrUnsubscribe(key, false);
     }
 
     public void quit() throws InterruptedException {
