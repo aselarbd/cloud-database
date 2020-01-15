@@ -96,11 +96,15 @@ public class KVTP2Client {
             sendVal = encoder.encode(sendVal, ENCODING);
         }
         String response = this.transport.send(sendVal);
+        Message error = new Message("_error");
+        if (response == null) {
+            error.put("msg", "empty message");
+            return error;
+        }
         String decodedResponse = decoder.decode(response, ENCODING);
         try {
             return Message.parse(decodedResponse);
         } catch (MalformedMessageException e) {
-            Message error = new Message("_error");
             error.put("msg", "malformed message");
             error.put("original", decodedResponse);
             return error;

@@ -80,28 +80,26 @@ public class SubscriptionService {
         }
         // we need to check all subscription servers as topology might have changed
         subscribedKeys.forEach((key, addrs) -> {
-            Set<InetSocketAddress> newAddrs = new HashSet<>(keyrange.getAllSuccessors(key));
-            Set<InetSocketAddress> oldAddrs = new HashSet<>(addrs);
-            oldAddrs.removeAll(newAddrs);
+            List<InetSocketAddress> newSuccessors = keyrange.getAllSuccessors(key);
+            Set<InetSocketAddress> newAddrs = new HashSet<>(newSuccessors);
             newAddrs.removeAll(addrs);
 
+            // send subscription to all new servers
             for (InetSocketAddress addr : newAddrs) {
                 try {
                     Subscriber s = getSubscriber(addr);
                     s.subscribe(key);
                     addrs.add(addr);
+                    logger.fine("Also subscribing to " + addr + " for key " + key);
                 } catch (IOException e) {
                     logger.warning("Failed to move subscription of " + key
                         + " to " + addr.toString(), e);
                 }
             }
 
-            for (InetSocketAddress addr : oldAddrs) {
-                // only unsubscribe if server wasn't marked as down (i.e. removed)
-                if (subscribers.containsKey(addr)) {
-                    subscribers.get(addr).unsubscribe(key);
-                }
-            }
+            // remove all old subscribers. Unsubscription messages are not necessary as these servers are
+            // not responsible anymore.
+            addrs.retainAll(newSuccessors);
         });
         keyrangeLock.unlock();
     }

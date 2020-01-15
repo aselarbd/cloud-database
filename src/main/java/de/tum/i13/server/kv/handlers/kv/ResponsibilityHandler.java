@@ -56,11 +56,11 @@ public class ResponsibilityHandler implements Handler {
             if (m.get("key") == null || m.get("key").isEmpty()) {
                 logger.info("got request without key: " + m.toString());
                 replyError(w, m, "no key given");
-            } else if (m.getCommand().matches("put|delete|(un)?subscribe") &&
+            } else if (m.getCommand().matches("put|delete") &&
                     !keyRangeWithReplica.getSuccessor(m.get("key")).equals(kvAddress)) {
                 logger.info("request key out of keyrange: " + m.toString());
                 handle(w, m);
-            } else if (m.getCommand().matches("get") &&
+            } else if (m.getCommand().matches("get|(un)?subscribe") &&
                     !keyRangeWithReplica.getAllSuccessors(m.get("key")).contains(kvAddress)) {
                 logger.info("request key out of keyrange: " + m.toString());
                 handle(w, m);
