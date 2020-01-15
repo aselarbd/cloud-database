@@ -334,6 +334,5 @@ public class KvClient {
         } catch (Exception e) {
             logger.severe("Exception occurred in main()", e);
         }
-        TaskRunner.shutdown();
     }
 }

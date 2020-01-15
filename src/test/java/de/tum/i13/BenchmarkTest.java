@@ -39,16 +39,6 @@ public class BenchmarkTest {
     private Process ecs;
     private Process[] kvServers;
 
-    @BeforeAll
-    public static void startup() throws Exception {
-        TaskRunner.reset();
-    }
-
-    @AfterAll
-    public static void shutdown() throws Exception {
-        TaskRunner.shutdown();
-    }
-
     @Disabled
     @Test
     public void testAddAllEnronMails() throws IOException {

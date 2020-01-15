@@ -55,7 +55,6 @@ public class KVMain {
                 attempts++;
             }
             ecsServer.stop();
-            TaskRunner.shutdown();
         } catch (IOException | InterruptedException e) {
             logger.severe("Failed to gracefully shut down servers", e);
         }

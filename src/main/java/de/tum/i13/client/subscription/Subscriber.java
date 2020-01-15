@@ -19,6 +19,7 @@ import java.util.function.Consumer;
  * Background runner which manages subscriptions to a specific server.
  */
 public class Subscriber {
+
     private final static Log logger = new Log(Subscriber.class);
     private final static int HEALTH_INTVL = 10000;
     private int pendingHealthReplies = 0;
@@ -27,6 +28,8 @@ public class Subscriber {
     Consumer<KVItem> updateCallback;
     Consumer<SubscriberEvent> eventHandler;
     NonBlockingKVTP2Client client;
+
+    TaskRunner taskRunner = new TaskRunner();
 
     /**
      * Creates a new instance subscribing to the given server.
@@ -49,7 +52,7 @@ public class Subscriber {
         this.client.setDefaultHandler(this::messageHandler);
         Future<Boolean> connected = this.client.connect(addr);
         // start client service
-        TaskRunner.run(() -> {
+        taskRunner.run(() -> {
             try {
                 this.client.start();
             } catch (IOException e) {
@@ -67,7 +70,7 @@ public class Subscriber {
             throw new IOException("Could not connect", e);
         }
         // periodically check if server is alive
-        TaskRunner.run(() -> {
+        taskRunner.run(() -> {
             try {
                 while(!exit) {
                     Thread.sleep(HEALTH_INTVL);
@@ -116,9 +119,10 @@ public class Subscriber {
         }
     }
 
-    public void quit() {
+    public void quit() throws InterruptedException {
         client.quit();
         exit = true;
+        taskRunner.shutdown();
     }
 
     private Message msgWithKey(String cmd, String key) {

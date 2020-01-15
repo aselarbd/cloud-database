@@ -14,12 +14,18 @@ import de.tum.i13.shared.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class KVServer {
 
     public static final Log logger = new Log(KVServer.class);
+
+    TaskRunner taskRunner = new TaskRunner();
 
     private final KVTP2Server kvtp2Server;
     private KVStore kvStore;
@@ -72,7 +78,7 @@ public class KVServer {
                 keyRangeReadHandler
         );
 
-        subscriptionService = new SubscriptionService(replicator);
+        subscriptionService = new SubscriptionService(replicator, taskRunner);
         subscriptionService.run();
         publicationHandler = new Publication(subscriptionService);
         subscriptionHandler = new Subscribe(subscriptionService);
@@ -282,7 +288,7 @@ public class KVServer {
         kvtp2Server.start(config.listenaddr, config.port);
     }
 
-    public void stop() throws IOException {
+    public void stop() throws IOException, InterruptedException {
         subscriptionService.stop();
         logger.info("sending shutdown announcement");
         Message shutdownMsg = new Message("announce_shutdown");
@@ -290,7 +296,7 @@ public class KVServer {
         shutdownMsg.put("ecsport", Integer.toString(controlAPIServer.getLocalPort()));
         KVTP2Client blockingECSClient = getBlockingECSClient();
 
-        TaskRunner.run(() -> {
+        taskRunner.run(() -> {
             Message send;
             try {
                 send = blockingECSClient.send(shutdownMsg);
@@ -300,6 +306,7 @@ public class KVServer {
             }
             logger.info("shutdown announcement response: " + send.toString());
         });
+        taskRunner.shutdown();
     }
 
     public KVItem getItem(String key) throws IOException {
@@ -335,6 +342,14 @@ public class KVServer {
         } catch (IOException e) {
             logger.warning("failed to close ecs client", e);
         }
+    }
+
+    public Future<?> executeTask(Runnable task) {
+        return taskRunner.run(task);
+    }
+
+    public <T> List<Future<T>> executeAllTasks(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+        return taskRunner.runAll(tasks);
     }
 
     public SubscriptionService getSubscriptionService() {

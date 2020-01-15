@@ -23,6 +23,8 @@ public class SubscriptionService {
 
     private boolean exit = false;
 
+    private TaskRunner taskRunner;
+
     private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
 
     private Map<InetSocketAddress, MessageWriter> replicatedClientWriters = Collections.synchronizedMap(new HashMap<>());
@@ -37,8 +39,9 @@ public class SubscriptionService {
 
     private Replicator replicator;
 
-    public SubscriptionService(Replicator replicator) {
+    public SubscriptionService(Replicator replicator, TaskRunner taskRunner) {
         this.replicator = replicator;
+        this.taskRunner = taskRunner;
     }
 
     public void notify(KVItem item) {
@@ -95,7 +98,7 @@ public class SubscriptionService {
     }
 
     public void run() {
-        TaskRunner.run(() -> {
+        taskRunner.run(() -> {
             while (!exit) {
                 try {
                     KVItem take = changes.take();

@@ -32,16 +32,6 @@ public class ReplicatorTest {
     private static int REPL_THREAD_WAIT = 50;
     private static int SHUTDOWN_WAIT = 5050;
 
-    @BeforeAll
-    public static void startup() throws Exception {
-        TaskRunner.reset();
-    }
-
-    @AfterAll
-    public static void shutdown() throws Exception {
-        TaskRunner.shutdown();
-    }
-
     @BeforeEach
     public void prepareTest() throws IOException {
         ecsClient = mock(KVTP2Client.class);

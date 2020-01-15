@@ -16,16 +16,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @Disabled
 public class KVTP2Test {
 
-    @BeforeAll
-    public static void startup() throws Exception {
-        TaskRunner.reset();
-    }
-
-    @AfterAll
-    public static void shutdown() throws Exception {
-        TaskRunner.shutdown();
-    }
-
     private class Pair {
         private MessageWriter messageWriter;
         private Message message;

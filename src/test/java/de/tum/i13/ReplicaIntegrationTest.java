@@ -22,16 +22,6 @@ public class ReplicaIntegrationTest {
     public static final Integer WAIT_TIME_ITEM_REPL = 2000;
     public static final Integer WAIT_TIME_BALANCE = 2000;
 
-    @BeforeAll
-    public static void startup() throws Exception {
-        TaskRunner.reset();
-    }
-
-    @AfterAll
-    public static void shutdown() throws Exception {
-        TaskRunner.shutdown();
-    }
-
     private void assertReplica(int[] kvPorts, String key, String value) throws IOException {
         for (int port : kvPorts) {
             Socket s = IntegrationTestHelpers.connectToTestSvr(port);

@@ -45,7 +45,7 @@ public class KeyRange implements Handler {
                             .equals(kvServer.getAddress())
             );
 
-            TaskRunner.run(() -> {
+            kvServer.executeTask(() -> {
                 KVTP2Client ecsClient = null;
                 try {
                     ecsClient = kvServer.getBlockingECSClient();
@@ -74,7 +74,7 @@ public class KeyRange implements Handler {
                 KVTP2Client kvtp2Client = new KVTP2Client(predecessorIP, predecessorPort);
                 try {
                     kvtp2Client.connect();
-                    List<Future<String>> futures = TaskRunner.runAll(
+                    List<Future<String>> futures = kvServer.executeAllTasks(
                             oldKeys.stream().map((k) -> (Callable<String>) () -> {
                                 Message put = new Message("put");
                                 KVItem item = null;
@@ -117,7 +117,7 @@ public class KeyRange implements Handler {
             });
             nextKeyRange = newKeyRange;
         } else {
-            TaskRunner.run(() -> {
+            kvServer.executeTask(() -> {
                 kvServer.setKeyRange(newKeyRange);
                 nextKeyRange = null;
             });

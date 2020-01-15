@@ -17,6 +17,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class SubscriptionService {
+
+    TaskRunner taskRunner = new TaskRunner();
+
     private static final Log logger = new Log(SubscriptionService.class);
     private static final int RETRY_WAIT = 2000;
     Map<InetSocketAddress, Subscriber> subscribers = new HashMap<>();
@@ -67,7 +70,7 @@ public class SubscriptionService {
 
     private void retry(String key) {
         // run a separate thread for retry as it might take longer, so the receive logic doesn't get blocked
-        TaskRunner.run(() -> {
+        taskRunner.run(() -> {
             // give servers some time to rebalance
             try {
                 Thread.sleep(RETRY_WAIT);
@@ -146,10 +149,15 @@ public class SubscriptionService {
         });
     }
 
-    public void quit() {
+    public void quit() throws InterruptedException {
         subscribers.forEach((inetSocketAddress, subscriber) -> {
-            subscriber.quit();
+            try {
+                subscriber.quit();
+            } catch (InterruptedException e) {
+                logger.warning("Exception while quitting subscribers", e);
+            }
         });
+        taskRunner.shutdown();
     }
 
 }

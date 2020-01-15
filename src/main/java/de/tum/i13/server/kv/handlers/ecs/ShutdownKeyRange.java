@@ -49,17 +49,17 @@ public class ShutdownKeyRange implements Handler {
         messageWriter.flush();
 
         if (newKeyRange.size() <= 0) {
-            TaskRunner.run(() -> {
+            kvServer.executeTask(() -> {
                 sendFinish(finalEcsClient);
             });
             return;
         }
 
-        TaskRunner.run(() -> {
+        kvServer.executeTask(() -> {
             Map<InetSocketAddress, KVTP2Client> clients = new HashMap<>();
 
             try {
-                List<Future<String>> futures = TaskRunner.runAll(
+                List<Future<String>> futures = kvServer.executeAllTasks(
                         kvServer.getAllKeys((k) -> true).stream().map((k) -> (Callable<String>) () -> {
                             Message put = new Message("put");
                             KVItem item = null;

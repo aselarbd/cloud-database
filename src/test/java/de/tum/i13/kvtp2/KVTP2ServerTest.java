@@ -14,16 +14,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 class KVTP2ServerTest {
 
-    @BeforeAll
-    public static void startup() throws Exception {
-        TaskRunner.reset();
-    }
-
-    @AfterAll
-    public static void shutdown() throws Exception {
-        TaskRunner.shutdown();
-    }
-
     @Test
     public void testNewServer() throws IOException {
         KVTP2Server kvtp2Server = new KVTP2Server();
