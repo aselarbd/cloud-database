@@ -80,6 +80,7 @@ public class ShutdownKeyRange implements Handler {
                                         String ip = kvToEcs.get("ecsip");
                                         int port = Integer.parseInt(kvToEcs.get("ecsport"));
                                         KVTP2Client kvtp2Client = new KVTP2Client(ip, port);
+                                        kvtp2Client.connect();
                                         clients.put(successor, kvtp2Client);
                                     }
                                 }

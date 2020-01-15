@@ -4,18 +4,12 @@ import de.tum.i13.kvtp2.KVTP2Client;
 import de.tum.i13.kvtp2.KVTP2ClientFactory;
 import de.tum.i13.kvtp2.Message;
 import de.tum.i13.server.kv.KVStore;
-import de.tum.i13.shared.ConsistentHashMap;
-import de.tum.i13.shared.Constants;
-import de.tum.i13.shared.KVItem;
-import de.tum.i13.shared.Log;
+import de.tum.i13.shared.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class Replicator {
 
@@ -25,33 +19,37 @@ public class Replicator {
 
     private InetSocketAddress address;
 
+    TaskRunner taskRunner;
+
     private KVTP2Client ecsClient;
     private final KVStore store;
     private final KVTP2ClientFactory clientFactory;
     private final Map<InetSocketAddress, ReplicationConsumer> kvAddressToReplicationConsumer;
-    private final Map<ReplicationConsumer, ExecutorService> services;
-    public Replicator(KVStore store) {
-        this(null, store);
+
+    public Replicator(TaskRunner taskRunner, KVStore store) {
+        this(taskRunner, null, store);
     }
 
     public Replicator(
+            TaskRunner taskRunner,
             InetSocketAddress address,
             KVStore store
     ) {
-        this(address, store, KVTP2Client::new);
+        this(taskRunner, address, store, KVTP2Client::new);
     }
 
     public Replicator(
+            TaskRunner taskRunner,
             InetSocketAddress address,
             KVStore store,
             KVTP2ClientFactory clientFactory
     ) {
+        this.taskRunner = taskRunner;
         this.address = address;
         this.store = store;
         this.clientFactory = clientFactory;
 
         this.kvAddressToReplicationConsumer = new HashMap<>();
-        this.services = new HashMap<>();
     }
 
     public void setAddress(InetSocketAddress address) {
@@ -67,7 +65,7 @@ public class Replicator {
         successors.remove(address);
 
         for (InetSocketAddress successor : successors) {
-            if (!kvAddressToReplicationConsumer.keySet().contains(successor)) {
+            if (!kvAddressToReplicationConsumer.containsKey(successor)) {
                 add(successor);
                 replicateAllAt(keyRange, successor);
             }
@@ -88,24 +86,15 @@ public class Replicator {
     }
 
     private void remove(InetSocketAddress replica) throws InterruptedException {
-
         ReplicationConsumer replicationConsumer = kvAddressToReplicationConsumer.get(replica);
         replicationConsumer.add(POISON);
-
-        ExecutorService service = services.get(replicationConsumer);
-        service.awaitTermination(5000, TimeUnit.MILLISECONDS);
-        service.shutdownNow();
-        replicationConsumer.closeClient();
-        services.remove(replicationConsumer);
+        taskRunner.run(replicationConsumer);
     }
 
     private void add(InetSocketAddress replica) throws IOException {
         LinkedBlockingQueue<KVItem> replicationQueue = new LinkedBlockingQueue<>();
         ReplicationConsumer replicationConsumer = new ReplicationConsumer(replicationQueue, POISON, getReplicaClient(replica));
         kvAddressToReplicationConsumer.put(replica, replicationConsumer);
-        ExecutorService service = Executors.newSingleThreadExecutor();
-        service.submit(replicationConsumer);
-        services.put(replicationConsumer, service);
     }
 
     /**
@@ -133,7 +122,14 @@ public class Replicator {
     }
 
     private void replicateAt(KVItem item, InetSocketAddress addr) throws InterruptedException {
-        kvAddressToReplicationConsumer.get(addr).add(item);
+        ReplicationConsumer replicationConsumer = kvAddressToReplicationConsumer.get(addr);
+        replicationConsumer.add(item);
+
+        try {
+            taskRunner.run(replicationConsumer);
+        } catch (RejectedExecutionException e) {
+            logger.warning("Failed to replicate due to taskrunner shutdown", e);
+        }
     }
 
     private void replicateAllAt(ConsistentHashMap keyRange, InetSocketAddress replica) throws IOException {

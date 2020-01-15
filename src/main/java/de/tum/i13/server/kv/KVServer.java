@@ -62,6 +62,7 @@ public class KVServer {
                 .build();
 
         this.replicator = new Replicator(
+                taskRunner,
                 kvStore
         );
 

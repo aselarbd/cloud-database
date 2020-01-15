@@ -37,10 +37,13 @@ public class ReplicationConsumer implements Runnable {
     @Override
     public void run() {
         KVItem next;
-        while (true) {
+        while (replicationQueue.size() > 0) {
             Message message = new Message("put");
             try {
-                if ((next = replicationQueue.take()).equals(poison)) break;
+                if ((next = replicationQueue.take()).equals(poison)) {
+                    closeClient();
+                    return;
+                }
                 message.put("key", next.getKey());
                 message.put("value", next.getValue());
                 if (next.getValue() == null) {

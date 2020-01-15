@@ -8,10 +8,7 @@ import de.tum.i13.server.kv.KVStore;
 import de.tum.i13.shared.ConsistentHashMap;
 import de.tum.i13.shared.KVItem;
 import de.tum.i13.shared.TaskRunner;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
@@ -29,11 +26,14 @@ public class ReplicatorTest {
     KVTP2Client kvClient;
     KVTP2ClientFactory clientFactory;
 
+    TaskRunner taskRunner;
+
     private static int REPL_THREAD_WAIT = 50;
     private static int SHUTDOWN_WAIT = 5050;
 
     @BeforeEach
     public void prepareTest() throws IOException {
+        taskRunner = new TaskRunner();
         ecsClient = mock(KVTP2Client.class);
         Message ecsResponse = new Message("kv_to_ecs");
         ecsResponse.put("ecsip", "127.0.0.1");
@@ -46,8 +46,13 @@ public class ReplicatorTest {
         testMap = ConsistentHashMap.fromKeyrangeReadString(TestConstants.KEYRANGE_REPLICA_FULL);
     }
 
+    @AfterEach
+    public void cleanUp() throws InterruptedException {
+        taskRunner.shutdown();
+    }
+
     private void prepareRepl(InetSocketAddress ip) {
-        replicator = new Replicator(ip, kvStore, clientFactory);
+        replicator = new Replicator(taskRunner, ip, kvStore, clientFactory);
         replicator.setEcsClient(ecsClient);
     }
 

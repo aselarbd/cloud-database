@@ -49,7 +49,7 @@ public class KVMain {
             kvServer.stop();
             int max = 3;
             int attempts = 0;
-            while(!kvServer.stopped() && attempts < max) {
+            while(!kvServer.stopped()) {
                 logger.info("waiting for kvServer shutdown...");
                 Thread.sleep(3000);
                 attempts++;
