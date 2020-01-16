@@ -50,6 +50,7 @@ public class SubscriptionService {
     }
 
     public void takeResponsibility(ConsistentHashMap keyRange, InetSocketAddress address) {
+        publishKeyRange(keyRange);
         Iterator<Map.Entry<String, List<KVItem>>> iterator = replicatedNotifications.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, List<KVItem>> next = iterator.next();
@@ -92,6 +93,35 @@ public class SubscriptionService {
         });
     }
 
+    private void sendMsg(InetSocketAddress dest, Message msg) {
+        try {
+            clientWriters.get(dest).write(msg);
+        } catch (CancelledKeyException e) {
+            logger.info("Client has gone away, cancelling subscription");
+            try {
+                clientWriters.get(dest).close();
+                unsubscribe(msg.get("key"), dest);
+            } catch (IOException ex) {
+                logger.info("failed to close connection to lost client", ex);
+            }
+        }
+
+    }
+
+    private void publishKeyRange(ConsistentHashMap keyRange) {
+        taskRunner.run(() -> {
+            for (InetSocketAddress inetSocketAddress : clients.keySet()) {
+                notifyClientKeyRange(inetSocketAddress, keyRange);
+            }
+        });
+    }
+
+    private void notifyClientKeyRange(InetSocketAddress dest, ConsistentHashMap keyRange) {
+        Message msg = new Message("keyrange_update");
+        msg.put("keyrange", keyRange.getKeyrangeReadString());
+        sendMsg(dest, msg);
+    }
+
     private void notifyClient(InetSocketAddress dest, KVItem update) throws IOException {
         Message notification = new Message("pubsub_update");
         notification.put("key", update.getKey());
@@ -102,14 +132,11 @@ public class SubscriptionService {
             notification.put("value", update.getValue());
         }
 
-        try {
-            clientWriters.get(dest).write(notification);
-        } catch (CancelledKeyException e) {
-            logger.info("Client has gone away, cancelling subscription");
-            clientWriters.get(dest).close();
-            unsubscribe(update.getKey(), dest);
-        }
+        sendMsg(dest, notification);
+        updateReplica(update);
+    }
 
+    private void updateReplica(KVItem update) throws IOException {
         Set<InetSocketAddress> currentReplicaSet = replicator.getCurrentReplicaSet();
 
         for (InetSocketAddress inetSocketAddress : currentReplicaSet) {
