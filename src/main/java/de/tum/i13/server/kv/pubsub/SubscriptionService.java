@@ -126,9 +126,8 @@ public class SubscriptionService {
         Message notification = new Message("pubsub_update");
         notification.put("key", update.getKey());
 
-        if (update.getValue().equals(Constants.DELETE_MARKER)) {
-            notification.setCommand("delete");
-        } else {
+        // for deletes, just omit the value field
+        if (!update.getValue().equals(Constants.DELETE_MARKER)) {
             notification.put("value", update.getValue());
         }
 

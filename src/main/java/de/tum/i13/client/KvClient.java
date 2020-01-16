@@ -36,7 +36,17 @@ public class KvClient {
     public KvClient(Reader inReader) {
         this.kvLib = new KVLib();
         this.subscriptionService = this.kvLib.getSubscriptionService(
-                kvItem -> write("Subscription update: " + kvItem.toString()),
+                kvItem -> {
+                    String delSuffix = "";
+                    if (!kvItem.hasValue()) {
+                        delSuffix = " got deleted";
+                    }
+
+                    // do not use write() to get nicer output (no double prompt)
+                    System.out.println("Subscription update: " + kvItem.toString() + delSuffix);
+                    // add new prompt
+                    System.out.print(PROMPT);
+                },
                 this::write);
         this.inReader = new BufferedReader(inReader);
         this.actions = new HashMap<>();
