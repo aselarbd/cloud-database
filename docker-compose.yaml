@@ -23,3 +23,6 @@ services:
       context: .
       dockerfile: kvc.Dockerfile
     image: kvclient
+    volumes:
+      - ../maildir:/maildir
+    command: ["java", "-jar", "kv-client.jar", "b", "kv", "5153", "maildir/allen-p"]

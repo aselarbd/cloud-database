@@ -1,21 +1,19 @@
 package de.tum.i13.client;
 
-import de.tum.i13.client.communication.SocketCommunicatorException;
 import de.tum.i13.client.subscription.SubscriptionService;
-import de.tum.i13.shared.KVItem;
-import de.tum.i13.shared.KVResult;
-import de.tum.i13.shared.Log;
-import de.tum.i13.shared.LogLevelChange;
-import de.tum.i13.shared.LogSetup;
-import de.tum.i13.shared.TaskRunner;
+import de.tum.i13.shared.*;
 import de.tum.i13.shared.parsers.KVItemParser;
 import de.tum.i13.shared.parsers.StringArrayParser;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import static de.tum.i13.shared.LogSetup.setupLogging;
 
@@ -82,6 +80,53 @@ public class KvClient {
                 new StringArrayParser(0, false), this::keyRangeRead));
         this.actions.put("serverLogLevel", new Action<>(
                 new StringArrayParser(1, false), this::serverLogLevel));
+        this.actions.put("benchmark", new Action<>(
+                new StringArrayParser(1, false), this::benchmark));
+    }
+
+    private void benchmark(String[] args) {
+        List<Long> putTimes = new ArrayList<>();
+
+        String dataDir = args[0];
+        Path dataDirPath = Paths.get(dataDir);
+        try (Stream<Path> walk = Files.walk(dataDirPath)) {
+            walk.forEach(f -> {
+                if (Files.isDirectory(f)) {
+                    return;
+                }
+                StringBuilder sb = new StringBuilder();
+                try (FileInputStream fileInputStream = new FileInputStream(f.toString());
+                     InputStreamReader isr = new InputStreamReader(fileInputStream);
+                     BufferedReader br = new BufferedReader(isr)
+                ) {
+
+                    String l;
+                    while ((l = br.readLine()) != null) {
+                        sb.append(l);
+                    }
+                } catch (IOException e) {
+                    logger.severe("failed to open fileInputStream for file " + f.toString(), e);
+                }
+
+                String key = dataDirPath.relativize(f).toString().replaceAll("\\s+", "_");
+                String value = sb.toString();
+
+                KVItem kvItem = new KVItem(key, value);
+
+                Instant startTime = Instant.now();
+                kvLib.put(kvItem);
+                Instant stopTime = Instant.now();
+
+                putTimes.add(Duration.between(startTime, stopTime).toMillis());
+            });
+        } catch (IOException e) {
+            logger.severe("could not walk test data directory", e);
+        }
+
+        Long sum = putTimes.stream().reduce((long) 0, Long::sum);
+        double avg = (double) sum / putTimes.size();
+
+        write(String.format("Total items put: %d, average time: %fms", putTimes.size(), avg));
     }
 
     /**
@@ -186,14 +231,14 @@ public class KvClient {
      *
      * @param args The input arguments splitted by spaces
      */
-    private void connect(String[] args) {
+    private boolean connect(String[] args) {
         String hostName = args[0];
         int port;
         try {
             port = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             write("Not a valid port: " + args[1]);
-            return;
+            return false;
         }
         logger.fine("Connecting to " + hostName + ":" + args[1]);
         String resp;
@@ -203,7 +248,9 @@ public class KvClient {
         } catch (IOException e) {
             writeAndWarn("Unable to connect: " + e.getMessage());
             logger.warning("Failed connection was to " + hostName + ":" + args[1]);
+            return false;
         }
+        return true;
     }
 
     /**
@@ -333,16 +380,25 @@ public class KvClient {
             }
         }
     }
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         setupLogging(Path.of("client.log"), "ALL");
 
         logger.info("Creating a new Socket");
         KvClient client = new KvClient();
 
-        try {
-            client.run();
-        } catch (Exception e) {
-            logger.severe("Exception occurred in main()", e);
+        if (args.length > 1 && args[0].equals("b")) {
+            while (!client.connect(new String[]{args[1], args[2]})) {
+                client.write("waiting for connection");
+                Thread.sleep(3000);
+            }
+            client.write("starting benchmark");
+            client.benchmark(Arrays.copyOfRange(args, 3, args.length));
+        } else {
+            try {
+                client.run();
+            } catch (Exception e) {
+                logger.severe("Exception occurred in main()", e);
+            }
         }
     }
 }
