@@ -29,6 +29,7 @@ public class SubscriptionService {
     private Map<InetSocketAddress, Subscriber> subscribers = new HashMap<>();
     private Map<String, List<InetSocketAddress>> subscribedKeys = new HashMap<>();
     private Set<String> retries = new HashSet<>();
+    private String keyrangeSrc = "";
     private ConsistentHashMap keyrange = null;
     private Supplier<ConsistentHashMap> keyrangeUpdater;
     private Consumer<KVItem> updateHandler;
@@ -69,16 +70,39 @@ public class SubscriptionService {
 
     private void renewKeyrange() {
         keyrangeLock.lock();
+        boolean didPull = false;
         if (keyrange == null) {
-            logger.fine("Reloading keyranges for subscriber");
+            logger.fine("Pulling keyranges for subscriber");
             keyrange = keyrangeUpdater.get();
+            // skip if still no keyrange is available
+            if (keyrange == null) {
+                keyrangeLock.unlock();
+                return;
+            }
+            didPull = true;
         }
-        // skip if still no keyrange is available
-        if (keyrange == null) {
+
+        final String krString = keyrange.getKeyrangeReadString();
+        if (krString.equals(keyrangeSrc)) {
+            logger.fine("Keyrange is up-to-date.");
             keyrangeLock.unlock();
             return;
+        } else if (didPull) {
+            // pulled new object, so update string representation
+            keyrangeSrc = krString;
+        } else {
+            // string representation got updated via event, so read new object
+            logger.fine("Got updated keyranges, renewing");
+            try {
+                keyrange = ConsistentHashMap.fromKeyrangeReadString(keyrangeSrc);
+            } catch (IllegalArgumentException e) {
+                logger.warning("Failed to update, got invalid keyrange string", e);
+                keyrangeLock.unlock();
+                return;
+            }
         }
-        // we need to check all subscription servers as topology might have changed
+
+        // we need to check all subscription servers as topology has changed
         subscribedKeys.forEach((key, addrs) -> {
             List<InetSocketAddress> newSuccessors = keyrange.getAllSuccessors(key);
             Set<InetSocketAddress> newAddrs = new HashSet<>(newSuccessors);
@@ -135,23 +159,25 @@ public class SubscriptionService {
         return "sent requests" + status;
     }
 
-    private void reload() {
+    private void reload(boolean pull) {
         if (reloadOngoing) {
             return;
         }
         reloadOngoing = true;
         // run a separate thread for retry as it might take longer, so the receive logic doesn't get blocked
         taskRunner.run(() -> {
-            // give servers some time to rebalance
-            try {
-                Thread.sleep(RETRY_WAIT);
-            } catch (InterruptedException e) {
-                logger.info("Interrupted while waiting for retry", e);
+            if (pull) {
+                // give servers some time to rebalance
+                try {
+                    Thread.sleep(RETRY_WAIT);
+                } catch (InterruptedException e) {
+                    logger.info("Interrupted while waiting for retry", e);
+                }
+                // force reloading of keyrange from server (pull)
+                keyrangeLock.lock();
+                keyrange = null;
+                keyrangeLock.unlock();
             }
-            // force reloading of keyrange
-            keyrangeLock.lock();
-            keyrange = null;
-            keyrangeLock.unlock();
             renewKeyrange();
             reloadOngoing = false;
             logger.fine("Done with reload");
@@ -177,7 +203,7 @@ public class SubscriptionService {
                 } else {
                     // try once to reload everything
                     retries.add(key);
-                    reload();
+                    reload(true);
                 }
                 break;
             case SERVER_DOWN:
@@ -194,8 +220,13 @@ public class SubscriptionService {
                     subscribers.remove(event.getSource());
                 }
                 keyrangeLock.unlock();
-                reload();
+                reload(true);
                 break;
+            case KEYRANGE:
+                keyrangeLock.lock();
+                keyrangeSrc = event.getDescription();
+                keyrangeLock.unlock();
+                reload(false);
             case SERVER_NOT_READY:
                 // TODO determine possibly pending actions and retry
                 break;

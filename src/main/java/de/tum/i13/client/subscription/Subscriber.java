@@ -146,6 +146,15 @@ public class Subscriber {
                 }
                 updateCallback.accept(res.getItem());
                 break;
+            case "keyrange_update":
+                String kr = message.get("keyrange");
+                if (kr == null) {
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.OTHER,
+                            "Invalid keyrange message " + message.toString()));
+                } else {
+                    eventHandler.accept(new SubscriberEvent(addr, EventType.KEYRANGE, kr));
+                }
+                break;
             case "server_not_responsible_for":
                 String key = message.get("key");
                 if (key == null) {

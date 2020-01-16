@@ -10,6 +10,7 @@ public class SubscriberEvent {
         SERVER_NOT_RESPONSIBLE,
         SERVER_DOWN,
         SERVER_NOT_READY,
+        KEYRANGE,
         OTHER
     }
 
