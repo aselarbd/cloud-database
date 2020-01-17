@@ -19,13 +19,13 @@ public class SubscriptionService {
 
     private TaskRunner taskRunner;
 
-    private Map<InetSocketAddress, KVTP2Client> replicaClients = new HashMap<>();
-    private Map<String, List<KVItem>> replicatedNotifications = Collections.synchronizedMap(new HashMap<>());
+    private final Map<InetSocketAddress, KVTP2Client> replicaClients = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, List<KVItem>> replicatedNotifications = Collections.synchronizedMap(new HashMap<>());
 
-    private Map<InetSocketAddress, MessageWriter> clientWriters = Collections.synchronizedMap(new HashMap<>());
-    private Map<InetSocketAddress, Set<String>> clients = Collections.synchronizedMap(new HashMap<>());
-    private Map<String, Set<InetSocketAddress>> subscriptions = Collections.synchronizedMap(new HashMap<>());
-    private BlockingQueue<KVItem> changes = new LinkedBlockingQueue<>();
+    private final Map<InetSocketAddress, MessageWriter> clientWriters = Collections.synchronizedMap(new HashMap<>());
+    private final Map<InetSocketAddress, Set<String>> clients = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, Set<InetSocketAddress>> subscriptions = Collections.synchronizedMap(new HashMap<>());
+    private final BlockingQueue<KVItem> changes = new LinkedBlockingQueue<>();
 
     private Replicator replicator;
 
@@ -44,19 +44,23 @@ public class SubscriptionService {
     }
 
     public void cancelNotification(KVItem item) {
-        if (replicatedNotifications.containsKey(item.getKey())) {
-            replicatedNotifications.get(item.getKey()).remove(item);
+        synchronized (replicatedNotifications) {
+            if (replicatedNotifications.containsKey(item.getKey())) {
+                replicatedNotifications.get(item.getKey()).remove(item);
+            }
         }
     }
 
     public void takeResponsibility(ConsistentHashMap keyRange, InetSocketAddress address) {
         publishKeyRange(keyRange);
-        Iterator<Map.Entry<String, List<KVItem>>> iterator = replicatedNotifications.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, List<KVItem>> next = iterator.next();
-            if (keyRange.getSuccessor(next.getKey()).equals(address)) {
-                changes.addAll(next.getValue());
-                iterator.remove();
+        synchronized (replicatedNotifications) {
+            Iterator<Map.Entry<String, List<KVItem>>> iterator = replicatedNotifications.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, List<KVItem>> next = iterator.next();
+                if (keyRange.getSuccessor(next.getKey()).equals(address)) {
+                    changes.addAll(next.getValue());
+                    iterator.remove();
+                }
             }
         }
         run();
@@ -69,8 +73,10 @@ public class SubscriptionService {
     }
 
     public void unsubscribe(String key, InetSocketAddress clientAddress) {
-        if (subscriptions.containsKey(key)) {
-            subscriptions.get(key).remove(clientAddress);
+        synchronized (subscriptions) {
+            if (subscriptions.containsKey(key)) {
+                subscriptions.get(key).remove(clientAddress);
+            }
         }
         clients.remove(clientAddress);
         clientWriters.remove(clientAddress);
@@ -78,16 +84,23 @@ public class SubscriptionService {
 
     public void run() {
         taskRunner.run(() -> {
-            while (changes.size() > 0) {
-                try {
-                    KVItem take = changes.take();
-                    for (InetSocketAddress dest : subscriptions.get(take.getKey())) {
-                        notifyClient(dest, take);
+            synchronized (changes) {
+                while (changes.size() > 0) {
+                    logger.info(changes.stream().map(kvItem -> kvItem.toString()).reduce((s, s2) -> s + s2).orElse(""));
+                    try {
+                        KVItem take = changes.take();
+                        Set<InetSocketAddress> destinations = subscriptions.getOrDefault(take.getKey(),
+                                new HashSet<>());
+                        for (InetSocketAddress dest : destinations) {
+                            logger.info(dest.toString());
+                            notifyClient(dest, take);
+                        }
+                    } catch (InterruptedException e) {
+                        // all fine
+                    } catch (Exception e) {
+                        // log all exceptions to be aware of thread crashes
+                        logger.warning("notifyClient failed", e);
                     }
-                } catch (InterruptedException e) {
-                    // all fine
-                } catch (IOException e) {
-                    logger.warning("notifyClient failed", e);
                 }
             }
         });
@@ -96,6 +109,7 @@ public class SubscriptionService {
     private void sendMsg(InetSocketAddress dest, Message msg) {
         try {
             clientWriters.get(dest).write(msg);
+            clientWriters.get(dest).flush();
         } catch (CancelledKeyException e) {
             logger.info("Client has gone away, cancelling subscription");
             try {
@@ -143,12 +157,15 @@ public class SubscriptionService {
                 connectReplica(inetSocketAddress);
             }
         }
-        Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> iterator = replicaClients.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<InetSocketAddress, KVTP2Client> next = iterator.next();
-            if (currentReplicaSet.contains(next.getKey())) {
-                next.getValue().close();
-                iterator.remove();
+
+        synchronized (replicaClients) {
+            Iterator<Map.Entry<InetSocketAddress, KVTP2Client>> iterator = replicaClients.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<InetSocketAddress, KVTP2Client> next = iterator.next();
+                if (currentReplicaSet.contains(next.getKey())) {
+                    next.getValue().close();
+                    iterator.remove();
+                }
             }
         }
 

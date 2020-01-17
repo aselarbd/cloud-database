@@ -68,6 +68,19 @@ public class SubscriptionService {
         return sub;
     }
 
+    private void dropSubscriber(InetSocketAddress addr) {
+        Subscriber sub = subscribers.get(addr);
+        if (sub != null) {
+            try {
+                sub.quit();
+            } catch (Exception e) {
+                logger.warning("Failed to quit subscriber "
+                        + addr.toString(), e);
+            }
+            subscribers.remove(addr);
+        }
+    }
+
     private void renewKeyrange() {
         keyrangeLock.lock();
         boolean didPull = false;
@@ -102,6 +115,9 @@ public class SubscriptionService {
             }
         }
 
+        // use a copy of the current subscriber list to find out if servers got removed
+        List<InetSocketAddress> oldSubscribers = new ArrayList<>(subscribers.keySet());
+
         // we need to check all subscription servers as topology has changed
         subscribedKeys.forEach((key, addrs) -> {
             List<InetSocketAddress> newSuccessors = keyrange.getAllSuccessors(key);
@@ -114,6 +130,8 @@ public class SubscriptionService {
                     Subscriber s = getSubscriber(addr);
                     s.subscribe(key);
                     addrs.add(addr);
+                    // this subscriber is used, so don't close it
+                    oldSubscribers.remove(addr);
                     logger.fine("Also subscribing to " + addr + " for key " + key);
                 } catch (IOException e) {
                     logger.warning("Failed to move subscription of " + key
@@ -125,6 +143,11 @@ public class SubscriptionService {
             // not responsible anymore.
             addrs.retainAll(newSuccessors);
         });
+
+        // close all instances which do not occur any more
+        for (InetSocketAddress addr : oldSubscribers) {
+            dropSubscriber(addr);
+        }
         keyrangeLock.unlock();
     }
 
@@ -209,16 +232,7 @@ public class SubscriptionService {
             case SERVER_DOWN:
                 // try to remove subscriber and prevent keyrange modifications in the meantime
                 keyrangeLock.lock();
-                Subscriber sub = subscribers.get(event.getSource());
-                if (sub != null) {
-                    try {
-                        sub.quit();
-                    } catch (Exception e) {
-                        logger.warning("Failed to quit subscriber "
-                                + event.getSource().toString(), e);
-                    }
-                    subscribers.remove(event.getSource());
-                }
+                dropSubscriber(event.getSource());
                 keyrangeLock.unlock();
                 reload(true);
                 break;
