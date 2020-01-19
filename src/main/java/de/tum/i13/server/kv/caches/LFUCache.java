@@ -84,7 +84,8 @@ public class LFUCache implements KVCache {
                     increaseFrequency(key);
                     this.cache.put(key,item);
                 }else {
-                    if ( this.frequencyLists.get(this.minFrequency) != null) {
+                    LinkedHashSet<String> keyList = this.frequencyLists.get(this.minFrequency);
+                    if ( keyList != null && keyList.iterator().hasNext()) {
                         String replaceKey = this.frequencyLists.get(this.minFrequency).iterator().next();
                         this.frequencyLists.get(this.minFrequency).remove(replaceKey);
                         this.frequency.remove(replaceKey);
