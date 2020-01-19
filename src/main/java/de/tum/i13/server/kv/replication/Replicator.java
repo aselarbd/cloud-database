@@ -24,7 +24,7 @@ public class Replicator {
     private KVTP2Client ecsClient;
     private final KVStore store;
     private final KVTP2ClientFactory clientFactory;
-    private final Map<InetSocketAddress, ReplicationConsumer> kvAddressToReplicationConsumer;
+    private final Map<InetSocketAddress, ReplicationConsumer> kvAddressToReplicationConsumer = Collections.synchronizedMap(new HashMap<>());
 
     public Replicator(TaskRunner taskRunner, KVStore store) {
         this(taskRunner, null, store);
@@ -48,8 +48,6 @@ public class Replicator {
         this.address = address;
         this.store = store;
         this.clientFactory = clientFactory;
-
-        this.kvAddressToReplicationConsumer = new HashMap<>();
     }
 
     public void setAddress(InetSocketAddress address) {
@@ -71,18 +69,23 @@ public class Replicator {
             }
         }
 
-        Iterator<InetSocketAddress> it = kvAddressToReplicationConsumer.keySet().iterator();
-        while (it.hasNext()) {
-            InetSocketAddress a = it.next();
-            if ((!successors.contains(a))) {
-                remove(a);
-                it.remove();
+        Set<InetSocketAddress> inetSocketAddresses = kvAddressToReplicationConsumer.keySet();
+
+        synchronized (kvAddressToReplicationConsumer) {
+            Iterator<InetSocketAddress> it = inetSocketAddresses.iterator();
+            while (it.hasNext()) {
+                InetSocketAddress a = it.next();
+                if ((!successors.contains(a))) {
+                    remove(a);
+                    it.remove();
+                }
             }
         }
+
     }
 
     public Set<InetSocketAddress> getCurrentReplicaSet() {
-        return kvAddressToReplicationConsumer.keySet();
+        return new HashSet<>(kvAddressToReplicationConsumer.keySet());
     }
 
     private void remove(InetSocketAddress replica) throws InterruptedException {
